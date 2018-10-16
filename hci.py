@@ -1,8 +1,8 @@
 import usb.core
 import sys
+from interpolate_f import interpolate_f
 import threading
 from scipy.interpolate import interp1d
-from scipy import interpolate
 from multiprocessing import Process, Queue
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -71,8 +71,9 @@ y_mean = np.array([])
 start = time.time()
 
 class SlideArray:
-    def __init__(self, window, size, line, location_mod=False):
+    def __init__(self, window, size, line, draw_interval, ele_type='coordiante', location_mod=False):
         self.window = window
+        self.draw_interval = draw_interval
         self.line = line
         self.size = size
         self.location_mod = location_mod
@@ -85,25 +86,23 @@ class SlideArray:
                     else:
                         self.occur_times[ele] += 1
 
-    def push(self, ele):
-        if self.window.size >= self.size:
+    def push(self, chunk_or_ele): # chunk for coordinate, ele for binary bits
+        assert chunk_or_ele.size <= self.size
+        if self.window.size + chunk_or_ele.size > self.size:
             if self.location_mod:
                 print(self.window)
                 print(self.occur_times)
-                self.occur_times.pop(self.window[0])
-            self.window = np.delete(self.window, 0, axis=0)
-        self.window = np.append(self.window, ele)
+                self.occur_times[self.window[0]] -= 1
+            self.window = self.window[-(self.size - chunk_or_ele.size):]
+        if self.window.size == 0:
+            self.window = chunk_or_ele
+        else:
+            self.window = np.concatenate((self.window, chunk_or_ele))
         if self.location_mod:
-            if ele in self.occur_times:
-                self.occur_times[ele] += 1
+            if chunk_or_ele in self.occur_times:
+                self.occur_times[chunk_or_ele] += 1
             else:
-                self.occur_times[ele] = 1
-
-    def push_chunk(self, chunk): # for coordinate
-        assert chunk.size <= self.size
-        if self.window.size + chunk.size > self.size:
-            self.window = self.window[-(self.size - chunk.size):]
-        self.window = np.concatenate((self.window, chunk))
+                self.occur_times[chunk_or_ele] = 1
 
     def is_full(self):
         return self.window.size == self.size
@@ -124,18 +123,11 @@ class SlideArray:
             dis_arr = np.append(dis_arr, sum(np.array(list(bit_str)) == np.array(list(fixed_bit_arr))))
             print('current mean number of error bits(decimal): ' + str(BITS_NUM - dis_arr.mean()))
 
-
         return (location_range[1][1], location_range[0][1])
-
-
-        #loc_x = num % SIZE[0]
-        #loc_y = math.floor(num / SIZE[0])
-        #print(loc_x, loc_y)
 
     def most_frequent_ele(self):
         assert self.location_mod
         return max(self.occur_times, key=self.occur_times.get)
-
 
     def reset(self):
         self.window = np.array([])
@@ -145,6 +137,15 @@ class SlideArray:
             return 0
         
         return sum(preamble == self.window[:preamble.size])
+
+    def update_line_data(self):
+        x, y = divide_coordinate(self.window)
+        if x.size < self.draw_interval:
+            self.line.set_xdata(x)
+            self.line.set_ydata(y)
+        else:
+            self.line.set_xdata(x[-self.draw_interval:])
+            self.line.set_ydata(y[-self.draw_interval:])
 
 class TupleSlideArray:
     def __init__(self, window, size, location_mod=False):
@@ -285,24 +286,65 @@ def decode(x, y_corrected):
             current_bit_index += points_per_screen_frame
 
 
+
 def update():
     global q, points_per_frame
     global x, y, line, ax, y_mean, y_fixed
-    bkp_raw_frames
-    raw_frames_m = SlideArray(np.array([]), MOUSE_FRAME_RATE * 2)  # maintain raw frames within around 2 seconds
-    frames_m = SlideArray(np.array([]), FRAMES_PER_SECOND_AFTER_INTERPOLATE * 2) # maintain frames within 2 seconds after interpolation
+    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / 60))  # maintain raw frames within around 2 seconds
+    frames_m = SlideArray(np.array([[]]), FRAMES_PER_SECOND_AFTER_INTERPOLATE * 2, line2, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / 60 / POINTS_TO_COMBINE)) # maintain frames within 2 seconds after interpolation
     lasttime_interpolated = 0
     while True:
         response_list = np.array([])
         response_list_fixed = np.array([])
         timestamp_list = np.array([])
 
-        single_frame_m, timestamp = q.get()
-        raw_frames_m.push((timestamp, single_frame_m))
-        if raw_frames_m.window[-1][0] - lasttime_interpolated > 0.1: # conduct once interpolation per 0.1 second
+        response, timestamp = q.get()
+
+        # Fix broken value
+        single_frame_m = int.from_bytes(response, 'big')
+        if single_frame_m > 240:
+            continue
+        elif single_frame_m < 128:
+            single_frame_m += 128
+
+        raw_frames_m.push(np.array([[timestamp, single_frame_m], ]))
+
+        if lasttime_interpolated == 0:
+            frames_m.push(np.array([raw_frames_m.window[0]]))
+            lasttime_interpolated = raw_frames_m.window[0][0]
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 0.1: # conduct once interpolation per 0.1 second
             raw_frames_m_not_interpolated = raw_frames_m.window[raw_frames_m.window[:, 0]>lasttime_interpolated]
-            frames_m_interpolated = interpolate(raw_frames_m_not_interpolated)
-            frames_m.push_chunk(frames_m_interpolated)
+            frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
+
+            for f in range(len(frames_m_interpolated)):
+                if f % POINTS_TO_COMBINE == 0 and f != 0:
+                    frames_m.push(np.array([[frames_m_interpolated[f-POINTS_TO_COMBINE:f, 0].mean(), \
+                            frames_m_interpolated[f-POINTS_TO_COMBINE:f, 1].mean()]]))
+                    '''
+                    if GRAPHICS:
+                        #raw_frames_m.update_line_data()
+                        frames_m.update_line_data()
+                        ax.relim() # renew the data limits
+                        ax.autoscale_view(True, True, True) # rescale plot view
+                        plt.draw() # plot new figure
+
+                        plt.pause(1e-17)
+                    '''
+
+            #frames_m.push(frames_m_interpolated)
+            lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
+
+
+        if GRAPHICS:
+            raw_frames_m.update_line_data()
+            #frames_m.update_line_data()
+            ax.relim() # renew the data limits
+            ax.autoscale_view(True, True, True) # rescale plot view
+            plt.draw() # plot new figure
+
+            plt.pause(1e-17)
+    
 
 
         '''
