@@ -1,5 +1,13 @@
 import os
 from setting import *
+import numpy as np
+
+def get_coordinate(x, y):
+    return np.concatenate((x.reshape(x.size, 1), \
+            y.reshape(y.size, 1)), axis=1)
+
+def divide_coordinate(xy):
+    return xy[:, 0], xy[:, 1]
 
 def get_screen_size():
     output = os.popen('xdpyinfo | grep dimensions').readlines()[0]

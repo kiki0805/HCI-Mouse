@@ -14,6 +14,13 @@ fixed_val = int(val_mode) if val_mode != '' else 0
 if val_mode != '':
     print('Binary format of ' + val_mode + ': ' + num2bin(fixed_val, BITS_NUM))
 
+test_mode = input('black & white? ')
+test_mode = True if test_mode != '' else False
+if test_mode:
+    val_mode = '01'
+    fixed_val = 10
+
+
 
 preamble = PREAMBLE_STR
 #size = get_screen_size()
@@ -46,6 +53,8 @@ def get_pixel_locaiton(size):
                 num = (x - 1) * blocks_x + y
                 if val_mode == '':
                     str2enc = preamble + num2bin(num, BITS_NUM)
+                elif val_mode == '01':
+                    str2enc = preamble + '1010101010'
                 else:
                     str2enc = preamble + num2bin(fixed_val, BITS_NUM)
                 str_enc_dic[(x, y)] = str2enc
@@ -113,6 +122,9 @@ if val_mode == '':
     imgs_arr = hle(size)
 else:
     imgs_arr = get_pixel_locaiton(size)
+
+if test_mode:
+    imgs_arr = imgs_arr[len(PREAMBLE_STR):]
 [im_id, row, col, _] = imgs_arr.shape
 
 def draw_pixel(img, value, i, j):
@@ -136,9 +148,11 @@ for n in range(im_id):
     im.save('location__' + num.zfill(2) + '.png')
 
 if val_mode != '':
-    print('ffmpeg -r ' + str(rate) + ' -stream_loop 100 -i location__%02d.png -c:v huffyuv one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.avi')
+    out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
 else:
-    print('ffmpeg -r ' + str(rate) + ' -stream_loop 100 -i location__%02d.png -c:v huffyuv location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.avi')
+    out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
+os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4')
+os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
     
 # ffmpeg -r 50 -stream_loop 100 -i location__%02d.png -c:v huffyuv test.avi
 

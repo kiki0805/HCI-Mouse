@@ -71,8 +71,9 @@ y_mean = np.array([])
 start = time.time()
 
 class SlideArray:
-    def __init__(self, window, size, location_mod=False):
+    def __init__(self, window, size, line, location_mod=False):
         self.window = window
+        self.line = line
         self.size = size
         self.location_mod = location_mod
         if location_mod:
@@ -97,6 +98,12 @@ class SlideArray:
                 self.occur_times[ele] += 1
             else:
                 self.occur_times[ele] = 1
+
+    def push_chunk(self, chunk): # for coordinate
+        assert chunk.size <= self.size
+        if self.window.size + chunk.size > self.size:
+            self.window = self.window[-(self.size - chunk.size):]
+        self.window = np.concatenate((self.window, chunk))
 
     def is_full(self):
         return self.window.size == self.size
@@ -281,12 +288,25 @@ def decode(x, y_corrected):
 def update():
     global q, points_per_frame
     global x, y, line, ax, y_mean, y_fixed
+    bkp_raw_frames
+    raw_frames_m = SlideArray(np.array([]), MOUSE_FRAME_RATE * 2)  # maintain raw frames within around 2 seconds
+    frames_m = SlideArray(np.array([]), FRAMES_PER_SECOND_AFTER_INTERPOLATE * 2) # maintain frames within 2 seconds after interpolation
+    lasttime_interpolated = 0
     while True:
         response_list = np.array([])
         response_list_fixed = np.array([])
         timestamp_list = np.array([])
+
+        single_frame_m, timestamp = q.get()
+        raw_frames_m.push((timestamp, single_frame_m))
+        if raw_frames_m.window[-1][0] - lasttime_interpolated > 0.1: # conduct once interpolation per 0.1 second
+            raw_frames_m_not_interpolated = raw_frames_m.window[raw_frames_m.window[:, 0]>lasttime_interpolated]
+            frames_m_interpolated = interpolate(raw_frames_m_not_interpolated)
+            frames_m.push_chunk(frames_m_interpolated)
+
+
+        '''
         for _ in range(points_per_frame):
-            response, timestamp = q.get()
             if not response:
                 return
             val = int.from_bytes(response, 'big')
@@ -374,6 +394,7 @@ def update():
             plt.draw() # plot new figure
 
             plt.pause(1e-17)
+        '''
 
 
 q = Queue()
