@@ -1,4 +1,5 @@
 import usb.core
+import re
 import sys
 from interpolate_f import interpolate_f
 import threading
@@ -54,15 +55,14 @@ def init():
 
 init()
 
-if GRAPHICS:
-    plt.ion()
+plt.ion()
 
-    line1, = plt.plot([], [], 'r', label='original') # plot the data and specify the 2d line
-    line2, = plt.plot([], [], 'b', label='inter')
-    line3, = plt.plot([], [], 'g', label='mean')
-    line4, = plt.plot([], [], 'y', label='repaired')
-    line5, = plt.plot([], [], 'black', label='power')
-    ax = plt.gca() # get most of the figure elements 
+line1, = plt.plot([], [], 'r', label='original') # plot the data and specify the 2d line
+line2, = plt.plot([], [], 'b', label='inter')
+line3, = plt.plot([], [], 'g', label='mean')
+line4, = plt.plot([], [], 'y', label='repaired')
+line5 = plt.scatter([], [], marker='x', color='black', label='power')
+ax = plt.gca() # get most of the figure elements 
 x = np.array([])
 y = np.array([])
 y_fixed = np.array([])
@@ -71,11 +71,14 @@ y_mean = np.array([])
 start = time.time()
 
 class SlideArray:
-    def __init__(self, window, size, line, draw_interval, ele_type='coordiante', location_mod=False):
+    def __init__(self, window, size, line, draw_interval, ele_type='coordiante', location_mod=False, sample_line=None, scatter_mode=False):
+        self.scatter_mode = scatter_mode
+        self.sample_line = sample_line
         self.window = window
         self.draw_interval = draw_interval
         self.line = line
         self.size = size
+        self.last_detected = -1
         self.location_mod = location_mod
         if location_mod:
             self.occur_times = {}
@@ -93,7 +96,7 @@ class SlideArray:
                 print(self.window)
                 print(self.occur_times)
                 self.occur_times[self.window[0]] -= 1
-            self.window = self.window[-(self.size - chunk_or_ele.size):]
+            self.window = self.window[int((chunk_or_ele.size + self.window.size) - self.size):]
         if self.window.size == 0:
             self.window = chunk_or_ele
         else:
@@ -105,7 +108,9 @@ class SlideArray:
                 self.occur_times[chunk_or_ele] = 1
 
     def is_full(self):
-        return self.window.size == self.size
+        if self.window.size > self.size:
+            print('outflow')
+        return abs(self.window.size - self.size) <= 1
 
     def output(self):
         bit_str = ''.join(self.window.tolist())
@@ -139,13 +144,144 @@ class SlideArray:
         return sum(preamble == self.window[:preamble.size])
 
     def update_line_data(self):
+        if self.line is None:
+            return
+        if self.window.size == 0:
+            return
+
         x, y = divide_coordinate(self.window)
         if x.size < self.draw_interval:
+            if self.scatter_mode:
+                self.line.set_offsets(self.window)
+                return
             self.line.set_xdata(x)
             self.line.set_ydata(y)
         else:
+            if self.scatter_mode:
+                self.line.set_offsets(self.window[-self.draw_interval:,:])
+                return
             self.line.set_xdata(x[-self.draw_interval:])
             self.line.set_ydata(y[-self.draw_interval:])
+
+    def check_bit(self, sample_slide):
+        if not self.is_full():
+            return None
+        x, y = divide_coordinate(self.window)
+        num_one = 0
+        num_zero = 0
+        for e in y.tolist():
+            if e == one:
+                num_one += 1
+            else:
+                num_zero += 1
+
+        if num_one / y.size >= 0.9:
+            if self.last_detected < self.window.size * 0.9:
+                self.last_detected += 1
+                return None
+            self.last_detected = 0
+            sample_slide.push(np.array([[x.mean(), one]]))
+            return '1'
+        elif num_zero / y.size >= 0.9:
+            if self.last_detected < self.window.size * 0.9:
+                self.last_detected += 1
+                return None
+            self.last_detected = 0
+            sample_slide.push(np.array([[x.mean(), zero]]))
+            return '0'
+        else:
+            self.last_detected += 1
+            return None
+
+class BitSlideArray:
+    def __init__(self, window, size, location_mod=False):
+        self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM) + '}'  
+        self.window = window
+        self.size = size
+        self.last_detected = -1
+        self.location_mod = location_mod
+        if location_mod:
+            self.occur_times = {}
+            if self.window != np.array([]):
+                for ele in self.window:
+                    if ele not in self.occur_times:
+                        self.occur_times[ele] = 1
+                    else:
+                        self.occur_times[ele] += 1
+
+    def update(self, one_bit, sample_arr):
+        bit_detected = one_bit.check_bit(sample_arr)
+        if not bit_detected:
+           # if self.window.size != 0:
+           #     self.reset()
+            return
+        self.push(bit_detected)
+        self.decode()
+
+    def decode(self):
+        bit_str = ''.join(self.window)
+        print(bit_str)
+        sub_str = re.findall(self.pattern, bit_str)
+        decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
+        decoded_num = [bit_str2num(i) for i in decoded_data]
+        if decoded_data != []:
+            print(decoded_data)
+            print(decoded_num)
+
+    def push(self, ele):
+        if self.window.size >= self.size:
+            if self.location_mod:
+                print(self.window)
+                print(self.occur_times)
+                self.occur_times.pop(self.window[0])
+            self.window = np.delete(self.window, 0, axis=0)
+        self.window = np.append(self.window, ele)
+        if self.location_mod:
+            if ele in self.occur_times:
+                self.occur_times[ele] += 1
+            else:
+                self.occur_times[ele] = 1
+
+    def is_full(self):
+        return self.window.size == self.size
+
+    def output(self):
+        bit_str = ''.join(self.window.tolist())
+        print(bit_str)
+        location_range = hld(bit_str, SIZE, '1', '0')
+        print(location_range[1][1], location_range[0][1])
+
+        if TESTING_MODE:
+            global ans_arr, fixed_val, dis_arr
+            num = bit_str2num(bit_str)
+            print(num)
+            ans_arr = np.append(ans_arr, num)
+            print('current accuracy(decimal): ' + str(sum(ans_arr == np.array([fixed_val] * ans_arr.size)) / ans_arr.size))
+            
+            dis_arr = np.append(dis_arr, sum(np.array(list(bit_str)) == np.array(list(fixed_bit_arr))))
+            print('current mean number of error bits(decimal): ' + str(BITS_NUM - dis_arr.mean()))
+
+
+        return (location_range[1][1], location_range[0][1])
+
+
+        #loc_x = num % SIZE[0]
+        #loc_y = math.floor(num / SIZE[0])
+        #print(loc_x, loc_y)
+
+    def most_frequent_ele(self):
+        assert self.location_mod
+        return max(self.occur_times, key=self.occur_times.get)
+
+    def reset(self):
+        self.window = np.array([])
+
+    def cal_power(self, preamble):
+        if self.window.size < preamble.size:
+            return 0
+        
+        return sum(preamble == self.window[:preamble.size])
+
 
 class TupleSlideArray:
     def __init__(self, window, size, location_mod=False):
@@ -185,260 +321,111 @@ class TupleSlideArray:
 
 location_arr = TupleSlideArray([], LOCATION_SLIDE_WINDOW_SIZE, True)
 
-def get_gap_len(y):
-    old = 0
-    #one_frame = int((MOUSE_FRAME_RATE - 400) * times_interpolate / FRAME_RATE) - 10
-    gaps = []
-    for i in range(y.size):
-        ele = y[i]
-        if ele != old:
-            gaps.append(i)
-            old = ele
-    own_len = [gaps[i + 1] - gaps[i] for i in range(len(gaps) - 1)]
-    return gaps, own_len
-
-
-def get_continue_num_less_frame(y):
-    gaps, own_len = get_gap_len(y)
-    if own_len != []:
-        intervals = [(gaps[i], gaps[i] + own_len[i]) for i in range(len(own_len))]
-
-    #print(own_len)
-
-    for i in range(len(own_len)):
-        l = own_len[i]
-        if l < MIN_LEN_PER_BIT: 
-            y[intervals[i][0]:intervals[i][1] + 1] = y[intervals[i][0] - 1] 
-
-    #gaps, own_len = get_gap_len(y)
-    #print(own_len)
-
-    return y
-
-def correct(y):
-    y_corrected = get_continue_num_less_frame(y)
-    return y
 
 x4decode = np.array([])
 y4decode = np.array([])
 y_mean4decode = np.array([])
 
-def decode(x, y_corrected):
-
-        # within latest 2 periods
-        if x.size < 3 * times_interpolate * MOUSE_FRAME_RATE / points_per_frame:
-        #if x.size < 2 * POINTS_PER_SECOND_AFTER_INTERPOLATE:
-            return
-
-        x_cut = x[-math.floor(3 * times_interpolate * MOUSE_FRAME_RATE / points_per_frame):-1]
-        y_cut = y_corrected[-math.floor(3 * times_interpolate * MOUSE_FRAME_RATE / points_per_frame):-1]
-        #x_cut = x[-2 * POINTS_PER_SECOND_AFTER_INTERPOLATE:-1]
-        #y_cut = y_corrected[-2 * POINTS_PER_SECOND_AFTER_INTERPOLATE:-1]
-        max_indexes = np.where(y_cut==np.max(y_cut))[0]
-        x_interval = x_cut[1] - x_cut[0]
-        points_per_screen_frame = math.floor(1 / FRAME_RATE / x_interval)
-
-        # for align
-        duration_points = 0
-        old_index = -1
-        for max_index in max_indexes:
-            if old_index == -1:
-                old_index = max_index
-                continue
-            if max_index - old_index == 1:
-                duration_points += 1
-                old_index = max_index
-            else:
-                old_index = max_index
-                if duration_points >= int(0.7 * points_per_screen_frame) and duration_points < int(points_per_screen_frame * 1.5):
-                    break
-                duration_points = 0
-
-        current_bit_index = old_index - int(duration_points / 2) # first_bit_index
-        slide_arr = SlideArray(np.array([]), preamble.size)
-        bit_arr = SlideArray(np.array([]), BITS_NUM)
-        detected = False
-        power_arr = np.array([100] * x_cut.size)
-        while current_bit_index < x_cut.size:
-            bit = '0' if y_cut[current_bit_index] == zero else '1'
-            if detected:
-                bit_arr.push(bit)
-                if bit_arr.is_full():
-                    cur_loc = bit_arr.output()
-                    location_arr.push((cur_loc[0], cur_loc[1]))
-                    print('Most likely location: ' + str(location_arr.most_frequent_ele()))
-                    if TESTING_MODE:
-                        global delay_arr
-                        delay = time.time() - x_cut[current_bit_index]
-                        delay_arr = np.append(delay_arr, delay)
-                        print('current mean delay: ' + str(delay_arr.mean()))
-                    bit_arr.reset()
-                    detected = False
-            slide_arr.push(bit)
-            power = slide_arr.cal_power(preamble)
-            power_arr[current_bit_index] = power**2 + 100
-            if GRAPHICS:
-                line5.set_xdata(x_cut[max(-x_cut.size, -int(times_interpolate * MOUSE_FRAME_RATE / points_per_frame)):])
-                line5.set_ydata(power_arr[max(-power_arr.size, -int(times_interpolate * MOUSE_FRAME_RATE / points_per_frame)):])
-            if power == preamble.size:
-                detected = True
-            #current_bit_index += duration_points
-            current_bit_index += points_per_screen_frame
-
-
-
 def update():
     global q, points_per_frame
-    global x, y, line, ax, y_mean, y_fixed
-    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / 60))  # maintain raw frames within around 2 seconds
-    frames_m = SlideArray(np.array([[]]), FRAMES_PER_SECOND_AFTER_INTERPOLATE * 2, line2, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / 60 / POINTS_TO_COMBINE)) # maintain frames within 2 seconds after interpolation
+    global x, y, line, ax, y_fixed
+    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
+    frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
+    y_mean = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line3, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
+    one_bit = SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE), line4, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
+    sample_arr = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line5, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2), scatter_mode=True) # maintain frames within 2 seconds after interpolation
+
+    binary_arr =  SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line1, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
+
+    bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
+
+
+    max_pixel = 200
+    min_pixel = 100
     lasttime_interpolated = 0
     while True:
-        response_list = np.array([])
-        response_list_fixed = np.array([])
-        timestamp_list = np.array([])
 
         response, timestamp = q.get()
-
-        # Fix broken value
-        single_frame_m = int.from_bytes(response, 'big')
-        if single_frame_m > 240:
+        if not response:
+            return
+        val = int.from_bytes(response, 'big')
+        val_fixed = val
+        if val_fixed < 128:
+            val_fixed += 128
+        if val_fixed > 240:
             continue
-        elif single_frame_m < 128:
-            single_frame_m += 128
-
-        raw_frames_m.push(np.array([[timestamp, single_frame_m], ]))
+        raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
 
         if lasttime_interpolated == 0:
             frames_m.push(np.array([raw_frames_m.window[0]]))
             lasttime_interpolated = raw_frames_m.window[0][0]
-        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 0.1: # conduct once interpolation per 0.1 second
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 1: # conduct once interpolation per 0.1 second
             raw_frames_m_not_interpolated = raw_frames_m.window[raw_frames_m.window[:, 0]>lasttime_interpolated]
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
-            for f in range(len(frames_m_interpolated)):
-                if f % POINTS_TO_COMBINE == 0 and f != 0:
-                    frames_m.push(np.array([[frames_m_interpolated[f-POINTS_TO_COMBINE:f, 0].mean(), \
-                            frames_m_interpolated[f-POINTS_TO_COMBINE:f, 1].mean()]]))
-                    '''
+            l = len(frames_m_interpolated)
+            temp_x = np.array([])
+            temp_y = np.array([])
+            for i in range(l + 1):
+                if i >= 2:
+                    max_pixel = frames_m.window[:, 1].max()
+                    min_pixel = frames_m.window[:, 1].min()
+
+                if i < l:
+                    temp_x = np.append(temp_x, frames_m_interpolated[i][0])
+                    temp_y = np.append(temp_y, frames_m_interpolated[i][1])
+                if temp_x.size % POINTS_TO_COMBINE == 0 or i == l:
+                    if temp_x.size == 0:
+                        continue
+                    frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
+                    x, y = divide_coordinate(frames_m.window)
+                    #y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
+                    y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    if y_mean.window.size == 2:
+                        one_bit.push(np.array([[x[-1], one]]))
+
+                    elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
+                        if one_bit.window.size != 0:
+                            one_bit.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
+                        else:
+                            one_bit.push(np.array([[x[-1], one]]))
+                    elif y_mean.window[-1][1] < frames_m.window[-1][1]:
+                        one_bit.push(np.array([[x[-1], zero]]))
+                    else:
+                        one_bit.push(np.array([[x[-1], one]]))
+
+                    binary_arr.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
+                    # fix
+                    if one_bit.window.size > 4:
+                        if one_bit.window[-2][1] != one_bit.window[-1][1] and \
+                                one_bit.window[-2][1] != one_bit.window[-3][1]:
+                                    one_bit.window[-2][1] = one_bit.window[-1][1]
+                                    binary_arr.window[-2][1] = binary_arr.window[-1][1]
+
+                    bit_arr.update(one_bit, sample_arr)
+
+                    temp_x = np.array([])
+                    temp_y = np.array([])
+
                     if GRAPHICS:
+                        one_bit.update_line_data()
+                        binary_arr.update_line_data()
+                        y_mean.update_line_data()
+                        sample_arr.update_line_data()
                         #raw_frames_m.update_line_data()
                         frames_m.update_line_data()
                         ax.relim() # renew the data limits
                         ax.autoscale_view(True, True, True) # rescale plot view
                         plt.draw() # plot new figure
-
                         plt.pause(1e-17)
-                    '''
 
-            #frames_m.push(frames_m_interpolated)
+
             lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
-
-
-        if GRAPHICS:
-            raw_frames_m.update_line_data()
-            #frames_m.update_line_data()
-            ax.relim() # renew the data limits
-            ax.autoscale_view(True, True, True) # rescale plot view
-            plt.draw() # plot new figure
-
-            plt.pause(1e-17)
-    
-
-
-        '''
-        for _ in range(points_per_frame):
-            if not response:
-                return
-            val = int.from_bytes(response, 'big')
-            if val > 240:
-                continue
-            val_fixed = val
-            if val_fixed < 128:
-                val_fixed += 128
-            response_list = np.append(response_list, val)
-            response_list_fixed = np.append(response_list_fixed, val_fixed)
-            timestamp_list = np.append(timestamp_list, timestamp)
-        
-        new_x = timestamp_list.mean()
-        new_y = response_list.mean()
-        new_y_fixed = response_list_fixed.mean()
-
-        x = np.append(x, new_x)
-        y = np.append(y, new_y)
-        y_fixed = np.append(y_fixed, new_y_fixed)
-        y = y_fixed
-        y_mean = np.append(y_mean, y[max(0, y.size - MEAN_WIDTH):-1].mean())
-
-        if x.size > 20:
-#        if x.size > (MOUSE_FRAME_RATE / points_per_frame) * 2: # maintain a window of samples in two seconds
-            inter = interp1d(x, y, kind='linear')
-            inter_mean = interp1d(x, y_mean, kind='linear')
-
-            x_extend = np.linspace(x[0], x[-1], num=x.size * times_interpolate)
-            #x_extend = np.linspace(x[0], x[-1], num=int(x[-1] - x[0]) * POINTS_PER_SECOND_AFTER_INTERPOLATE)
-            f_extend = inter(x_extend)
-            f_extend_mean = inter_mean(x_extend)
-            f_extend_binary = one_bit_array(f_extend_mean.size) * (f_extend < f_extend_mean) \
-                    + zero_bit_array(f_extend_mean.size) * (f_extend >= f_extend_mean)
-
-            ##############
-
-            y_corrected = correct(f_extend_binary)
-            #t = threading.Thread(target=decode, args=(x_extend, y_corrected))
-            #t.start()
-            decode(x_extend, y_corrected)
-
-            if GRAPHICS:
-                line2.set_xdata(x_extend[max(-x_extend.size, -int(times_interpolate * MOUSE_FRAME_RATE / points_per_frame)):])
-                line2.set_ydata(y_corrected[max(-y_corrected.size, -int(times_interpolate * MOUSE_FRAME_RATE / points_per_frame)):])
-                line3.set_xdata(x[max(-x.size, -int(MOUSE_FRAME_RATE / points_per_frame)):])
-                line3.set_ydata(y_mean[max(-y_mean.size, -int(MOUSE_FRAME_RATE / points_per_frame)):])
-                line1.set_xdata(x[max(-x.size, -int(MOUSE_FRAME_RATE / points_per_frame)):])
-                line1.set_ydata(y[max(-y.size, -int(MOUSE_FRAME_RATE / points_per_frame)):]) # set the curve with new data
-
-                #if x_extend.size >= times_interpolate * MOUSE_FRAME_RATE / points_per_frame:
-                #elif x.size >= MOUSE_FRAME_RATE / points_per_frame: 
-                #    line3.set_xdata(x[-int(MOUSE_FRAME_RATE / points_per_frame):])
-                #    line3.set_ydata(y_mean[-int(MOUSE_FRAME_RATE / points_per_frame):])
-                #    line1.set_xdata(x[-int(MOUSE_FRAME_RATE / points_per_frame):])
-                #    line1.set_ydata(y[-int(MOUSE_FRAME_RATE / points_per_frame):]) # set the curve with new data
-                #    #line4.set_xdata(x[-int(MOUSE_FRAME_RATE / points_per_frame):-1])
-                #    #line4.set_ydata(y_fixed[-int(MOUSE_FRAME_RATE / points_per_frame):-1]) # set the curve with new data
-                #else:
-                #    line2.set_xdata(x_extend)
-                #    line2.set_ydata(y_corrected)
-                #    line3.set_xdata(x)
-                #    line3.set_ydata(y_mean)
-                #    line1.set_xdata(x)
-                #    line1.set_ydata(y)
-                    #line4.set_xdata(x)
-                    #line4.set_ydata(y_fixed)
-                #if x_extend.size >= POINTS_PER_SECOND_AFTER_INTERPOLATE: 
-                #    line1.set_xdata(x_extend[-POINTS_PER_SECOND_AFTER_INTERPOLATE:-1])
-                #    line1.set_ydata(f_extend[-POINTS_PER_SECOND_AFTER_INTERPOLATE:-1]) # set the curve with new data
-                #    line2.set_xdata(x_extend[-POINTS_PER_SECOND_AFTER_INTERPOLATE:-1])
-                #    line2.set_ydata(y_corrected[-POINTS_PER_SECOND_AFTER_INTERPOLATE:-1])
-                #    line3.set_xdata(x_extend[-POINTS_PER_SECOND_AFTER_INTERPOLATE:-1])
-                #    line3.set_ydata(f_extend_mean[-POINTS_PER_SECOND_AFTER_INTERPOLATE:-1])
-                #else:
-                #    line1.set_xdata(x_extend[80:])
-                #    line1.set_ydata(f_extend[80:])
-                #    line2.set_xdata(x_extend[80:])
-                #    line2.set_ydata(y_corrected[80:])
-                #    line3.set_xdata(x_extend[80:])
-                #    line3.set_ydata(f_extend_mean[80:])
-
-        if GRAPHICS:
-            ax.relim() # renew the data limits
-            ax.autoscale_view(True, True, True) # rescale plot view
-            plt.draw() # plot new figure
-
-            plt.pause(1e-17)
-        '''
-
-
 q = Queue()
 p = Process(target=update) # for display
 p.start()
