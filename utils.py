@@ -2,6 +2,26 @@ import os
 from setting import *
 import numpy as np
 
+def Manchester_encode(raw_bit_str): # input: str, output: str
+    new_bit_str = ['Unassigned'] * len(raw_bit_str)
+    for i in range(len(raw_bit_str)):
+        bit = raw_bit_str[i]
+        new_bit_str[i] = '01' if bit == '0' else '10'
+    return ''.join(new_bit_str)
+
+def Manchester_decode(raw_bit_str): # input: str, output: str
+    assert len(raw_bit_str) % 2 == 0
+    new_bit_str = ['Unassigned']  * int(len(raw_bit_str) / 2)
+    for i in range(len(raw_bit_str)):
+        if i % 2 != 0:
+            continue
+        bit0 = raw_bit_str[i]
+        bit1 = raw_bit_str[i + 1]
+        if not (bit0 + bit1 != '11' and bit0 + bit1 != '00'):
+            return None
+        new_bit_str[int(i / 2)] = '0' if bit0 == '0' and bit1 == '1' else '1'
+    return ''.join(new_bit_str)
+
 def get_coordinate(x, y):
     return np.concatenate((x.reshape(x.size, 1), \
             y.reshape(y.size, 1)), axis=1)
