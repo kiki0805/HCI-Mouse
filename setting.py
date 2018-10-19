@@ -17,7 +17,7 @@ LOCATION_SLIDE_WINDOW_SIZE = 10
 BITS_NUM = 10
 FRAME_RATE = 60
 MOUSE_FRAME_RATE = 2800 # 2400
-PREAMBLE_STR = '10101010101010'
+PREAMBLE_STR = '000' # 01010101010101
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
 SIZE = (4, 4) # (256, 256)
@@ -35,6 +35,7 @@ POINTS_TO_COMBINE = 14 # 40 for 20hz , 14 for 60hz -> maintain 10 points for one
 
 
 # setting for encoder
+MANCHESTER_MODE = True
 ZOOM = 64 * 2
 
 # Ultimate

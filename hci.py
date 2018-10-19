@@ -18,7 +18,10 @@ dur = input('Duration: ')
 dur = 10 if dur == '' else int(dur)
 if TESTING_MODE:
     fixed_val = int(input('[TESTING MODE] Fixed value: '))
-    fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
+    if MANCHESTER_MODE:
+        fixed_bit_arr = Manchester_encode(num2bin(fixed_val, BITS_NUM))
+    else:
+        fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
     ans_arr = np.array([])
     dis_arr = np.array([]) 
     delay_arr = np.array([])
@@ -195,7 +198,10 @@ class SlideArray:
 
 class BitSlideArray:
     def __init__(self, window, size, location_mod=False):
-        self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM) + '}'  
+        if MANCHESTER_MODE:
+            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM * 2) + '}'  
+        else:
+            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM) + '}'  
         self.window = window
         self.size = size
         self.last_detected = -1
@@ -219,14 +225,30 @@ class BitSlideArray:
         self.decode()
 
     def decode(self):
-        bit_str = ''.join(self.window)
-        print(bit_str)
-        sub_str = re.findall(self.pattern, bit_str)
-        decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
-        decoded_num = [bit_str2num(i) for i in decoded_data]
-        if decoded_data != []:
-            print(decoded_data)
-            print(decoded_num)
+        if not MANCHESTER_MODE:
+            bit_str = ''.join(self.window)
+            print(bit_str)
+            sub_str = re.findall(self.pattern, bit_str)
+            decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
+            decoded_num = [bit_str2num(i) for i in decoded_data]
+            if decoded_data != []:
+                print(decoded_data)
+                print(decoded_num)
+        else:
+            temp_str = ''.join(self.window)
+            print(temp_str)
+            sub_str = re.findall(self.pattern, temp_str)
+
+            for i in sub_str:
+                i_removed_preamble = i[len(PREAMBLE_STR):]
+                if len(i_removed_preamble) % 2 != 0:
+                    continue
+                bit_str = Manchester_decode(i_removed_preamble)
+                if not bit_str:
+                    continue
+                decoded_num = bit_str2num(bit_str)
+                print(bit_str)
+                print(decoded_num)
 
     def push(self, ele):
         if self.window.size >= self.size:
@@ -342,8 +364,10 @@ def update():
     binary_arr =  SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line1, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
 
-    bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
-
+    if MANCHESTER_MODE:
+        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM * 2 + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
+    else:
+        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
 
     max_pixel = 200
     min_pixel = 100
@@ -384,8 +408,8 @@ def update():
                         continue
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     x, y = divide_coordinate(frames_m.window)
-                    #y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
-                    y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
+                    #y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
 

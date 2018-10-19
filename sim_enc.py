@@ -116,12 +116,85 @@ def hld(bit_arr, size, bit_one, bit_zero):
 
 
 
+
+def hle_Manchester(size):
+    assert math.log(size[0], 2) % 1 == 0
+    assert math.log(size[1], 2) % 1 == 0
+
+    width_divided = size[0]
+    height_divided = size[1]
+
+    imgs_arr = np.zeros((len(preamble) + BITS_NUM * 2, size[0], size[1], 3), dtype=np.int16)
+    [im_id, row, col, _] = imgs_arr.shape
+
+    turn = True
+    for n in range(im_id):
+        if n < len(preamble):
+            imgs_arr[n, :, :] = zero if preamble[n] == '0' else one
+            continue
+        
+        if (n - preamble) % 2 != 0:
+            continue
+
+        mod = width_divided / 2 if turn else height_divided / 2
+        if turn:
+            width_divided /= 2
+        else:
+            height_divided /= 2
+
+        if turn:
+            for j in range(col):
+                imgs_arr[n, :, j] = zero if math.floor(j / mod) % 2 == 0 else one
+                imgs_arr[n + 1, :, j] = one if math.floor(j / mod) % 2 == 0 else zero
+        else:
+            for i in range(row):
+                imgs_arr[n, i, :] = zero if math.floor(i / mod) % 2 == 0 else one
+                imgs_arr[n + 1, i, :] = one if math.floor(i / mod) % 2 == 0 else zero
+                
+        turn = not turn
+    return imgs_arr
+
+
+def naive_Manchester(size):
+    pixel_block_size = max(1, math.ceil(math.sqrt(size[0] * size[1] / pow(2, BITS_NUM))))
+
+    blocks_x = math.ceil(size[0] / pixel_block_size)
+    blocks_y = math.ceil(size[1] / pixel_block_size)
+
+    imgs_arr = np.zeros((len(preamble) + BITS_NUM * 2, size[0], size[1], 3), dtype=np.int16)
+    [im_id, row, col, _] = imgs_arr.shape
+    str_enc_dic = {}
+    for i in range(row):
+        for j in range(col):
+            x = math.ceil(i / pixel_block_size)
+            y = math.ceil(j / pixel_block_size)
+            if (x, y) in str_enc_dic:
+                str2enc = str_enc_dic[(x, y)]
+            else:
+                num = (x - 1) * blocks_x + y
+                if val_mode == '':
+                    str2enc = preamble + num2bin(num, BITS_NUM)
+                elif val_mode == '01':
+                    str2enc = preamble + Manchester_encode('1010101010')
+                else:
+                    str2enc = preamble + Manchester_encode(num2bin(fixed_val, BITS_NUM))
+                str_enc_dic[(x, y)] = str2enc
+            for n in range(im_id):
+                imgs_arr[n, i, j] = np.array(zero) if str2enc[n] == '0' else np.array(one)
+    return imgs_arr
+
 #imgs_arr = get_pixel_locaiton(size)
 assert math.log(ZOOM, 2) % 1 == 0
 if val_mode == '':
-    imgs_arr = hle(size)
+    if MANCHESTER_MODE:
+        imgs_arr = hle_Manchester(size)
+    else:
+        imgs_arr = hle(size)
 else:
-    imgs_arr = get_pixel_locaiton(size)
+    if MANCHESTER_MODE:
+        imgs_arr = naive_Manchester(size) 
+    else:
+        imgs_arr = get_pixel_locaiton(size)
 
 if test_mode:
     imgs_arr = imgs_arr[len(PREAMBLE_STR):]
@@ -135,6 +208,8 @@ def draw_pixel(img, value, i, j):
 dirs = os.listdir()
 for d in dirs:
     if d[:min(10, len(d))] == 'location__':
+        os.remove(d)
+    if d == 'test.mp4':
         os.remove(d)
 
 for n in range(im_id):
@@ -151,6 +226,9 @@ if val_mode != '':
     out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
 else:
     out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
+
+if MANCHESTER_MODE:
+    out_name = 'Manchester_' + out_name
 os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4')
 os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
     
