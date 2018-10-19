@@ -133,7 +133,7 @@ def hle_Manchester(size):
             imgs_arr[n, :, :] = zero if preamble[n] == '0' else one
             continue
         
-        if (n - preamble) % 2 != 0:
+        if (n - len(preamble)) % 2 != 0:
             continue
 
         mod = width_divided / 2 if turn else height_divided / 2

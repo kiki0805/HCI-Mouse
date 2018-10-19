@@ -2,6 +2,22 @@ import os
 from setting import *
 import numpy as np
 
+def sim_fix(raw_str):
+    new_str = ''
+    continue_num = 1
+    last_ele = ''
+    for i in range(len(raw_str)):
+        assert raw_str[i] == '0' or raw_str[i] == '1'
+        if raw_str[i] != last_ele:
+            continue_num = 1
+            last_ele = raw_str[i]
+        elif continue_num == 2:
+            continue
+        else:
+            continue_num += 1
+        new_str += raw_str[i]
+    return new_str
+
 def Manchester_encode(raw_bit_str): # input: str, output: str
     new_bit_str = ['Unassigned'] * len(raw_bit_str)
     for i in range(len(raw_bit_str)):
@@ -54,6 +70,7 @@ def num2bin(num, bit_num): # return str
     return current[-bit_num:]
 
 def hld(bit_arr, size, bit_one, bit_zero):
+    print(bit_arr)
     assert len(bit_arr) == BITS_NUM
 
     init_location_range = [[0, size[0]], [0, size[1]]]

@@ -17,11 +17,8 @@ from utils import *
 dur = input('Duration: ')
 dur = 10 if dur == '' else int(dur)
 if TESTING_MODE:
-    fixed_val = int(input('[TESTING MODE] Fixed value: '))
-    if MANCHESTER_MODE:
-        fixed_bit_arr = Manchester_encode(num2bin(fixed_val, BITS_NUM))
-    else:
-        fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
+    fixed_val = int(input('[ TESTING MODE ] Fixed value: '))
+    fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
     ans_arr = np.array([])
     dis_arr = np.array([]) 
     delay_arr = np.array([])
@@ -29,7 +26,6 @@ if TESTING_MODE:
 
 preamble = np.array(PREAMBLE_LIST) 
 times_interpolate = TIMES_INTERPOLATE
-points_per_frame = POINTS_PER_FRAME # combine to one
 
 
 one = 125
@@ -115,36 +111,12 @@ class SlideArray:
             print('outflow')
         return abs(self.window.size - self.size) <= 1
 
-    def output(self):
-        bit_str = ''.join(self.window.tolist())
-        print(bit_str)
-        location_range = hld(bit_str, SIZE, '1', '0')
-        print(location_range[1][1], location_range[0][1])
-
-        if TESTING_MODE:
-            global ans_arr, fixed_val, dis_arr
-            num = bit_str2num(bit_str)
-            print(num)
-            ans_arr = np.append(ans_arr, num)
-            print('current accuracy(decimal): ' + str(sum(ans_arr == np.array([fixed_val] * ans_arr.size)) / ans_arr.size))
-            
-            dis_arr = np.append(dis_arr, sum(np.array(list(bit_str)) == np.array(list(fixed_bit_arr))))
-            print('current mean number of error bits(decimal): ' + str(BITS_NUM - dis_arr.mean()))
-
-        return (location_range[1][1], location_range[0][1])
-
     def most_frequent_ele(self):
         assert self.location_mod
         return max(self.occur_times, key=self.occur_times.get)
 
     def reset(self):
         self.window = np.array([])
-
-    def cal_power(self, preamble):
-        if self.window.size < preamble.size:
-            return 0
-        
-        return sum(preamble == self.window[:preamble.size])
 
     def update_line_data(self):
         if self.line is None:
@@ -222,33 +194,44 @@ class BitSlideArray:
            #     self.reset()
             return
         self.push(bit_detected)
-        self.decode()
+        return self.decode()
 
     def decode(self):
         if not MANCHESTER_MODE:
-            bit_str = ''.join(self.window)
-            print(bit_str)
+            bit_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM:]
+            if DETAILS:
+                print(bit_str)
             sub_str = re.findall(self.pattern, bit_str)
             decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
             decoded_num = [bit_str2num(i) for i in decoded_data]
             if decoded_data != []:
-                print(decoded_data)
-                print(decoded_num)
+                if DETAILS:
+                    print(decoded_data)
+                    print(decoded_num)
+                return decoded_data, decoded_num
         else:
-            temp_str = ''.join(self.window)
-            print(temp_str)
+            temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM * 2:]
+            #if DETAILS:
+            #    print(temp_str)
             sub_str = re.findall(self.pattern, temp_str)
-
+            if sub_str == []:
+                return
+            possible_dataB = []
+            possible_dataD = []
             for i in sub_str:
-                i_removed_preamble = i[len(PREAMBLE_STR):]
-                if len(i_removed_preamble) % 2 != 0:
+                i_removed_preamble = sim_fix(i[len(PREAMBLE_STR):])
+                if len(i_removed_preamble) != 2 * BITS_NUM:
                     continue
                 bit_str = Manchester_decode(i_removed_preamble)
                 if not bit_str:
                     continue
                 decoded_num = bit_str2num(bit_str)
-                print(bit_str)
-                print(decoded_num)
+                if DETAILS:
+                    print(bit_str)
+                    print(decoded_num)
+                possible_dataB.append(bit_str)
+                possible_dataD.append(decoded_num)
+            return possible_dataB, possible_dataD
 
     def push(self, ele):
         if self.window.size >= self.size:
@@ -267,42 +250,12 @@ class BitSlideArray:
     def is_full(self):
         return self.window.size == self.size
 
-    def output(self):
-        bit_str = ''.join(self.window.tolist())
-        print(bit_str)
-        location_range = hld(bit_str, SIZE, '1', '0')
-        print(location_range[1][1], location_range[0][1])
-
-        if TESTING_MODE:
-            global ans_arr, fixed_val, dis_arr
-            num = bit_str2num(bit_str)
-            print(num)
-            ans_arr = np.append(ans_arr, num)
-            print('current accuracy(decimal): ' + str(sum(ans_arr == np.array([fixed_val] * ans_arr.size)) / ans_arr.size))
-            
-            dis_arr = np.append(dis_arr, sum(np.array(list(bit_str)) == np.array(list(fixed_bit_arr))))
-            print('current mean number of error bits(decimal): ' + str(BITS_NUM - dis_arr.mean()))
-
-
-        return (location_range[1][1], location_range[0][1])
-
-
-        #loc_x = num % SIZE[0]
-        #loc_y = math.floor(num / SIZE[0])
-        #print(loc_x, loc_y)
-
     def most_frequent_ele(self):
         assert self.location_mod
         return max(self.occur_times, key=self.occur_times.get)
 
     def reset(self):
         self.window = np.array([])
-
-    def cal_power(self, preamble):
-        if self.window.size < preamble.size:
-            return 0
-        
-        return sum(preamble == self.window[:preamble.size])
 
 
 class TupleSlideArray:
@@ -342,14 +295,16 @@ class TupleSlideArray:
         self.window = np.array([])
 
 location_arr = TupleSlideArray([], LOCATION_SLIDE_WINDOW_SIZE, True)
+if TESTING_MODE:
+    location_list = []
+    dataB_list = []
+    dataD_list = []
+    delay_list = []
 
-
-x4decode = np.array([])
-y4decode = np.array([])
-y_mean4decode = np.array([])
 
 def update():
-    global q, points_per_frame
+    global location_list, dataB_list, dataD_list, delay_list
+    global q 
     global x, y, line, ax, y_fixed
     raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
     frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
@@ -431,7 +386,37 @@ def update():
                                     one_bit.window[-2][1] = one_bit.window[-1][1]
                                     binary_arr.window[-2][1] = binary_arr.window[-1][1]
 
-                    bit_arr.update(one_bit, sample_arr)
+                    result = bit_arr.update(one_bit, sample_arr)
+                    if result:
+                        possible_dataB = result[0] 
+                        possible_dataD = result[1]
+                        if possible_dataB != []:
+                            print(possible_dataB[0])
+                            location_range = hld(possible_dataB[0], SIZE, '1', '0')
+                            if TESTING_MODE:
+                                delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
+                                for i in possible_dataB:
+                                    dataB_list.append(i)
+                                for i in possible_dataD:
+                                    dataD_list.append(i)
+                                delay_list.append(delay)
+                                location_list.append((location_range[1][1], location_range[0][1]))
+                                temp_arr = np.array(dataD_list)
+                                print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
+                                print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
+                                print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
+                                correct_bit_num_arr = []
+                                for i in dataB_list:
+                                    correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
+                                print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
+                                print('Average Delay: ' + str(np.array(delay_list).mean()))
+                            if DETAILS:
+                                print(possible_dataB[0])
+                                print(possible_dataD[0])
+                                print('delay: ' + str(time.time() - divide_coordinate(one_bit.window)[0].mean()))
+                                print(location_range[1][1], location_range[0][1])
+                            location_arr.push((location_range[1][1], location_range[0][1]))
+                            print('Most likely location: ' + str(location_arr.most_frequent_ele()))
 
                     temp_x = np.array([])
                     temp_y = np.array([])
@@ -457,7 +442,8 @@ p.start()
 
 start = time.time()
 global_count = 0
-
+if LOOP:
+    dur = 999999999
 
 while time.time() - start < dur:
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
@@ -471,6 +457,17 @@ while time.time() - start < dur:
     global_count += 1
 
 print('Frame rate: ' + str(global_count / (time.time() - start)))
+
+# if TESTING_MODE:
+#     time.sleep(5)
+#     temp_arr = np.array(dataD_list)
+#     print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
+#     print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
+#     print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
+#     correct_bit_num_arr = [sum(np.array([int(str_i) for str_i in list(i)]) == fixed_bit_arr) for i in dataB_list]
+#     print('Pencentage of Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
+
+    
 
 if FORCED_EXIT:
     p.terminate()
