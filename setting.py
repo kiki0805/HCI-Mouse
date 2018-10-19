@@ -3,7 +3,7 @@
 INTERPOLATION_DEBUG = True
 
 
-GRAPHICS = True #False # True
+GRAPHICS = False # True
 TESTING_MODE = False #True
 FORCED_EXIT = False
 
@@ -15,7 +15,7 @@ if not GRAPHICS:
 
 LOCATION_SLIDE_WINDOW_SIZE = 10
 BITS_NUM = 10
-FRAME_RATE = 20
+FRAME_RATE = 60
 MOUSE_FRAME_RATE = 2800 # 2400
 PREAMBLE_STR = '10101010101010'
 #PREAMBLE_STR = '11011'
@@ -31,7 +31,7 @@ FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8500 # choice one from two
 POINTS_PER_FRAME = 30 # 30 # to combine
 MEAN_WIDTH = 50 # 50
 MIN_LEN_PER_BIT = 15 # 15
-POINTS_TO_COMBINE = 40
+POINTS_TO_COMBINE = 14 # 40 for 20hz , 14 for 60hz -> maintain 10 points for one bit
 
 
 # setting for encoder
