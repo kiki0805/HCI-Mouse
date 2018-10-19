@@ -3,7 +3,7 @@
 INTERPOLATION_DEBUG = True
 
 
-GRAPHICS = False # True
+GRAPHICS = True #False # True
 TESTING_MODE = False #True
 FORCED_EXIT = False
 
