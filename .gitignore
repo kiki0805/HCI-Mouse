@@ -1,6 +1,7 @@
 /__pycache__
 /.idea
 *.avi
+*.ipynb
 *.png
 *.mp4
 *.pyc

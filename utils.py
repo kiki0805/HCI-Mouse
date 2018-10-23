@@ -46,10 +46,11 @@ def get_coordinate(x, y):
 def divide_coordinate(xy):
     return xy[:, 0], xy[:, 1]
 
-def get_screen_size():
-    output = os.popen('xdpyinfo | grep dimensions').readlines()[0]
-    nums = re.findall("\d+",output)
-    return (int(nums[0]), int(nums[1]))
+# def get_screen_size():
+#     import re
+#     output = os.popen('xdpyinfo | grep dimensions').readlines()[0]
+#     nums = re.findall("\d+",output)
+#     return (int(nums[0]), int(nums[1]))
 
 
 def bit_str2num(bits_str):
@@ -77,7 +78,7 @@ def crc_cal(num, binary=True, bit_num=10):
     byte_arr = bytearray(num.to_bytes(2, 'big'))
     crc = Crc4Itu.calc(byte_arr)
     if binary:
-        return num2bin(crc, bit_num)
+        return num2bin(crc, 4)
     else:
         return crc
 

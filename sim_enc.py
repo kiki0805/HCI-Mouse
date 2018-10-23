@@ -5,7 +5,7 @@ import re
 import math
 from utils import *
 from setting import *
-import fiveBsixB
+from fiveBsixB_coding import *
 
 ### Configuration
 
@@ -66,6 +66,7 @@ def get_pixel_locaiton(size):
 ## Hierachical Location Encoding
 ## HLE
 
+# per bit, per x, y
 def hle(size):
     assert math.log(size[0], 2) % 1 == 0
     assert math.log(size[1], 2) % 1 == 0
@@ -73,13 +74,13 @@ def hle(size):
     width_divided = size[0]
     height_divided = size[1]
 
-    imgs_arr = np.zeros((bits_num, size[0], size[1], 3), dtype=np.int16)
-    [im_id, row, col, _] = imgs_arr.shape
+    imgs_arr = np.zeros((bits_num, size[0], size[1]), dtype=np.int16)
+    [im_id, row, col] = imgs_arr.shape
 
     turn = True
     for n in range(im_id):
         if n < len(preamble):
-            imgs_arr[n, :, :] = zero if preamble[n] == '0' else one
+            imgs_arr[n, :, :] = preamble[n] == '0'
             continue
         mod = width_divided / 2 if turn else height_divided / 2
         if turn:
@@ -89,41 +90,96 @@ def hle(size):
 
         if turn:
             for j in range(col):
-                imgs_arr[n, :, j] = zero if math.floor(j / mod) % 2 == 0 else one
+                imgs_arr[n, :, j] = '0' if math.floor(j / mod) % 2 == 0 else '1'
         else:
             for i in range(row):
-                imgs_arr[n, i, :] = zero if math.floor(i / mod) % 2 == 0 else one
+                imgs_arr[n, i, :] = '0' if math.floor(i / mod) % 2 == 0 else '1'
                 
         turn = not turn
     return imgs_arr
 
 
+# per x, y, per bit
 # without preamble
 def hle_raw(size):
     imgs_arr = np.zeros((size[0], size[1], BITS_NUM), dtype=np.int16)
     raw_imgs_arr = hle(size)
     for i in range(size[0]):
-        for j in range(size[1])
-            imgs_arr = hle(size)[:,i,j]
+        for j in range(size[1]):
+            imgs_arr[i,j,:] = raw_imgs_arr[:,i,j][-BITS_NUM:]
+    return imgs_arr
             
 
+# with preamble
+# per x,y, per bit
+def fiveBsixB_encode(size, val_mode=False):
+    assert BITS_NUM == 10
+    raw_arr = hle_raw(size)
+    imgs_arr = np.zeros((size[0], size[1], len(PREAMBLE_STR) + 12), dtype=np.int16)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            if not val_mode:
+                temp_list = raw_arr[:,i,j][-BITS_NUM:].tolist()
+            else:
+                temp_list = list(num2bin(fixed_val, BITS_NUM))
+            encoded_str = CODING_DIC[''.join(temp_list)]
+            encoded_list = PREAMBLE_LIST + list(encoded_str)
+            imgs_arr[i,j,:] = np.array(encoded_list)
+    return imgs_arr
 
-def hld(bit_arr, size, bit_one, bit_zero):
-    assert len(bit_arr) == BITS_NUM
 
-    init_location_range = [[0, size[0]], [0, size[1]]]
+# crc4, without preamble
+# per x,y, per bit
+def crc_encode(size, val_mode=False):
+    raw_arr = hle_raw(size)
+    imgs_arr = np.zeros((size[0], size[1], 4 + BITS_NUM), dtype=np.int16)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            if not val_mode:
+                raw_bit_str = ''.join(raw_arr[:,i,j][-BITS_NUM:].tolist())
+            else:
+                raw_bit_str = num2bin(fixed_val, BITS_NUM)
+            crc_val_list = list(crc_cal(raw_bit_str))
+            imgs_arr[i,j,:] = np.array(list(raw_bit_str) + crc_val_list)
+    return imgs_arr
 
-    turn = True
-    for bit in range(bit_arr):
-        if turn:
-            init_location_range[1] = [init_location_range[1][0], init_location_range[1][1] / 2] if bit == bit_zero \
-                    else [init_location_range[1][1] / 2, init_location_range[1][1]]
-        else:
-            init_location_range[0] = [init_location_range[0][0], init_location_range[0][1] / 2] if bit == bit_zero \
-                    else [init_location_range[0][1] / 2, init_location_range[0][1]]
-        turn = not turn
 
-    print(init_location_range)
+# per x,y per bit -> per bit per x,y
+def change_order(origin):
+    [row, col, im_id] = origin.shape
+    new_arr = np.zeros((im_id, row, col), dtype=np.int16)
+    for i in range(row):
+        for j in range(col):
+            new_arr[:,i,j] = origin[i,j,:]
+    return new_arr
+
+        
+def replace_str_by_pixel(arr):
+    [im_id, row, col] = arr.shape
+    new_arr = np.zeros((im_id, row, col, 3), dtype=np.int16)
+    for n in range(im_id):
+        for i in range(row):
+            for j in range(col):
+                new_arr[n, i, j] = zero if arr[n,i,j] == '0' or arr[n,i,j] == 0 else one
+    return new_arr
+
+
+# def hld(bit_arr, size, bit_one, bit_zero):
+#     assert len(bit_arr) == BITS_NUM
+
+#     init_location_range = [[0, size[0]], [0, size[1]]]
+
+#     turn = True
+#     for bit in range(bit_arr):
+#         if turn:
+#             init_location_range[1] = [init_location_range[1][0], init_location_range[1][1] / 2] if bit == bit_zero \
+#                     else [init_location_range[1][1] / 2, init_location_range[1][1]]
+#         else:
+#             init_location_range[0] = [init_location_range[0][0], init_location_range[0][1] / 2] if bit == bit_zero \
+#                     else [init_location_range[0][1] / 2, init_location_range[0][1]]
+#         turn = not turn
+
+#     print(init_location_range)
 
 
 def hle_Manchester(size):
@@ -198,18 +254,18 @@ if val_mode == '':
     if MANCHESTER_MODE:
         imgs_arr = hle_Manchester(size)
     elif CRC4:
-        imgs_arr = 
+        imgs_arr = replace_str_by_pixel(change_order(crc_encode(size)))
     elif fiveBsixB:
-        imgs_arr = 
+        imgs_arr = replace_str_by_pixel(change_order(fiveBsixB_encode(size)))
     else:
-        imgs_arr = hle(size)
+        imgs_arr = replace_str_by_pixel(hle(size))
 else:
     if MANCHESTER_MODE:
         imgs_arr = naive_Manchester(size) 
     elif CRC4:
-        imgs_arr = 
+        imgs_arr = replace_str_by_pixel(change_order(crc_encode(size, val_mode=True)))
     elif fiveBsixB:
-        imgs_arr = 
+        imgs_arr = replace_str_by_pixel(change_order(fiveBsixB_encode(size, val_mode=True)))
     else:
         imgs_arr = get_pixel_locaiton(size)
 
