@@ -296,9 +296,11 @@ for n in range(im_id):
     im.save('location__' + num.zfill(2) + '.png')
 
 if val_mode != '':
-    out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
+    #out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
+    out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mkv' 
 else:
-    out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
+    #out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
+    out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mkv'
 
 if MANCHESTER_MODE:
     out_name = 'Manchester_' + out_name
@@ -309,8 +311,10 @@ if CRC4:
 if fiveBsixB:
     out_name = 'fiveBsixB_' + out_name
 
-os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4')
-os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
+#os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4')
+#os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
+os.system('ffmpeg -framerate ' + str(rate) + ' -i location__%02d.png -vcodec copy test.mkv')
+os.system('ffmpeg -f concat -i new_mkv.txt -c copy ' + out_name)
     
 # ffmpeg -r 50 -stream_loop 100 -i location__%02d.png -c:v huffyuv test.avi
 
