@@ -231,7 +231,7 @@ class BitSlideArray:
             #    print(temp_str)
             possible_dataB = []
             possible_dataD = []
-            i_removed_preamble = ''.join(self.window)[-len(BITS_NUM)-4:]
+            i_removed_preamble = ''.join(self.window)[-BITS_NUM-4:]
             if not crc_validate(i_removed_preamble[:BITS_NUM], i_removed_preamble[-4:]):
                 return
             bit_str = i_removed_preamble[:BITS_NUM]
@@ -256,7 +256,10 @@ class BitSlideArray:
                 i_removed_preamble = i[len(PREAMBLE_STR):]
                 if len(i_removed_preamble) != 2 + BITS_NUM:
                     continue
-                bit_str = REVERSE_DIC[i_removed_preamble]
+                try:
+                    bit_str = REVERSE_DIC[i_removed_preamble]
+                except:
+                    continue
                 if not bit_str:
                     continue
                 decoded_num = bit_str2num(bit_str)
@@ -368,6 +371,10 @@ def update():
 
     if MANCHESTER_MODE:
         bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM * 2 + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
+    elif fiveBsixB:
+        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + 2 + len(PREAMBLE_STR)) * 2)
+    elif CRC4:
+        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + 4) * 2)
     else:
         bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
 
