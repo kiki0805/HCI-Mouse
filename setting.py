@@ -3,9 +3,11 @@
 LOOP = False# True
 DETAILS = True #False
 INTERPOLATION_DEBUG = True
-MANCHESTER_MODE = True #False #True
+MANCHESTER_MODE = False #False #True
+CRC4 = False
+fiveBsixB = True
 GRAPHICS = False # True
-TESTING_MODE = True # False #True
+TESTING_MODE = True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -20,14 +22,19 @@ BITS_NUM = 10
 FRAME_RATE = 60
 MOUSE_FRAME_RATE = 2800 # 2400
 
-if not MANCHESTER_MODE:
-    PREAMBLE_STR = '10101010101010' #'10001' # '10101010101010' # '000'
-else:
+if MANCHESTER_MODE:
     PREAMBLE_STR = '10001' # '10101010101010' # '000'
+elif CRC4:
+    PREAMBLE_STR = ''
+elif fiveBsixB:
+    PREAMBLE_STR = '100001' # ver.1
+else:
+    PREAMBLE_STR = '10101010101010' #'10001' # '10101010101010' # '000'
 
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
 SIZE = (32, 32) # (256, 256)
+CRC_LEN = 4
 
 
 # setting for decoder

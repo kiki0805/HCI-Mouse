@@ -13,6 +13,7 @@ import numpy as np
 import usb.util
 from setting import *
 from utils import *
+from fiveBsixB_coding import *
 
 dur = input('Duration: ')
 dur = 10 if dur == '' else int(dur)
@@ -171,7 +172,12 @@ class SlideArray:
 class BitSlideArray:
     def __init__(self, window, size, location_mod=False):
         if MANCHESTER_MODE:
-            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM * 2) + '}'  
+            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM * 2) + '}'
+        elif fiveBsixB:
+            # only for 10b12b
+            self.pattern = PREAMBLE_STR + '\d{12}'
+        elif CRC4:
+            self.pattern = None
         else:
             self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM) + '}'  
         self.window = window
@@ -197,19 +203,7 @@ class BitSlideArray:
         return self.decode()
 
     def decode(self):
-        if not MANCHESTER_MODE:
-            bit_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM:]
-            if DETAILS:
-                print(bit_str)
-            sub_str = re.findall(self.pattern, bit_str)
-            decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
-            decoded_num = [bit_str2num(i) for i in decoded_data]
-            if decoded_data != []:
-                if DETAILS:
-                    print(decoded_data)
-                    print(decoded_num)
-                return decoded_data, decoded_num
-        else:
+        if MANCHESTER_MODE:
             temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM * 2:]
             #if DETAILS:
             #    print(temp_str)
@@ -232,6 +226,66 @@ class BitSlideArray:
                 possible_dataB.append(bit_str)
                 possible_dataD.append(decoded_num)
             return possible_dataB, possible_dataD
+        elif CRC4:
+            #if DETAILS:
+            #    print(temp_str)
+            if len(self.window) < BITS_NUM + 4:
+                return
+            possible_dataB = []
+            possible_dataD = []
+            i_removed_preamble = ''.join(self.window)[-BITS_NUM-4:]
+            if not crc_validate(i_removed_preamble[:BITS_NUM], i_removed_preamble[-4:]):
+                return
+            bit_str = i_removed_preamble[:BITS_NUM]
+            decoded_num = bit_str2num(bit_str)
+            if DETAILS:
+                print(bit_str)
+                print(decoded_num)
+            possible_dataB.append(bit_str)
+            possible_dataD.append(decoded_num)
+            return possible_dataB, possible_dataD
+        elif fiveBsixB:
+            # only for 10b12b
+            if len(self.window) < len(PREAMBLE_STR) + BITS_NUM + 2:
+                return
+            temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM - 2:]
+            #if DETAILS:
+            #    print(temp_str)
+            sub_str = re.findall(self.pattern, temp_str)
+            if sub_str == []:
+                return
+            possible_dataB = []
+            possible_dataD = []
+            for i in sub_str:
+                i_removed_preamble = i[len(PREAMBLE_STR):]
+                if len(i_removed_preamble) != 2 + BITS_NUM:
+                    continue
+                try:
+                    bit_str = REVERSE_DIC[i_removed_preamble]
+                except:
+                    continue
+                if not bit_str:
+                    continue
+                decoded_num = bit_str2num(bit_str)
+                if DETAILS:
+                    print(bit_str)
+                    print(decoded_num)
+                possible_dataB.append(bit_str)
+                possible_dataD.append(decoded_num)
+            return possible_dataB, possible_dataD
+        else:
+            bit_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM:]
+            if DETAILS:
+                print(bit_str)
+            sub_str = re.findall(self.pattern, bit_str)
+            decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
+            decoded_num = [bit_str2num(i) for i in decoded_data]
+            if decoded_data != []:
+                if DETAILS:
+                    print(decoded_data)
+                    print(decoded_num)
+                return decoded_data, decoded_num
+            
 
     def push(self, ele):
         if self.window.size >= self.size:
@@ -321,6 +375,10 @@ def update():
 
     if MANCHESTER_MODE:
         bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM * 2 + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
+    elif fiveBsixB:
+        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + 2 + len(PREAMBLE_STR)) * 2)
+    elif CRC4:
+        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + 4) * 2)
     else:
         bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
 
