@@ -1,4 +1,5 @@
 import os
+from crccheck.crc import Crc4Itu
 from setting import *
 import numpy as np
 
@@ -68,6 +69,30 @@ def num2bin(num, bit_num): # return str
     while len(current) < bit_num:
         current = '0' + current
     return current[-bit_num:]
+
+
+def crc_cal(num, binary=True, bit_num=10):
+    if binary:
+        num = bit_str2num(num)
+    byte_arr = bytearray(num.to_bytes(2, 'big'))
+    crc = Crc4Itu.calc(byte_arr)
+    if binary:
+        return num2bin(crc, bit_num)
+    else:
+        return crc
+
+
+def crc_validate(num, crc, binary=True, bit_num=10):
+    if binary:
+        num = bit_str2num(num)
+        crc = bit_str2num(crc)
+    hex_byte = bytes([crc])
+    byte_arr = bytearray(num.to_bytes(2, 'big')) + hex_byte
+    new_crc = Crc4Itu.calc(byte_arr)
+    if new_crc == 0:
+        return True
+    return False
+
 
 def hld(bit_arr, size, bit_one, bit_zero):
     print(bit_arr)

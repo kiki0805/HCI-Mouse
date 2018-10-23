@@ -3,9 +3,11 @@
 LOOP = False# True
 DETAILS = True #False
 INTERPOLATION_DEBUG = True
-MANCHESTER_MODE = True #False #True
+MANCHESTER_MODE = False #False #True
+CRC4 = True
+fiveBsixB = False
 GRAPHICS = False # True
-TESTING_MODE = True # False #True
+TESTING_MODE = True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -28,6 +30,7 @@ else:
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
 SIZE = (32, 32) # (256, 256)
+CRC_LEN = 4
 
 
 # setting for decoder

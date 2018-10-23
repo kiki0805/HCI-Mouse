@@ -5,6 +5,7 @@ import re
 import math
 from utils import *
 from setting import *
+import fiveBsixB
 
 ### Configuration
 
@@ -97,6 +98,16 @@ def hle(size):
     return imgs_arr
 
 
+# without preamble
+def hle_raw(size):
+    imgs_arr = np.zeros((size[0], size[1], BITS_NUM), dtype=np.int16)
+    raw_imgs_arr = hle(size)
+    for i in range(size[0]):
+        for j in range(size[1])
+            imgs_arr = hle(size)[:,i,j]
+            
+
+
 def hld(bit_arr, size, bit_one, bit_zero):
     assert len(bit_arr) == BITS_NUM
 
@@ -113,8 +124,6 @@ def hld(bit_arr, size, bit_one, bit_zero):
         turn = not turn
 
     print(init_location_range)
-
-
 
 
 def hle_Manchester(size):
@@ -188,11 +197,19 @@ assert math.log(ZOOM, 2) % 1 == 0
 if val_mode == '':
     if MANCHESTER_MODE:
         imgs_arr = hle_Manchester(size)
+    elif CRC4:
+        imgs_arr = 
+    elif fiveBsixB:
+        imgs_arr = 
     else:
         imgs_arr = hle(size)
 else:
     if MANCHESTER_MODE:
         imgs_arr = naive_Manchester(size) 
+    elif CRC4:
+        imgs_arr = 
+    elif fiveBsixB:
+        imgs_arr = 
     else:
         imgs_arr = get_pixel_locaiton(size)
 
@@ -229,6 +246,13 @@ else:
 
 if MANCHESTER_MODE:
     out_name = 'Manchester_' + out_name
+
+if CRC4:
+    out_name = 'CRC4_' + out_name
+
+if fiveBsixB:
+    out_name = 'fiveBsixB_' + out_name
+
 os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4')
 os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
     
