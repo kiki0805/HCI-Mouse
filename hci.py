@@ -229,6 +229,8 @@ class BitSlideArray:
         elif CRC4:
             #if DETAILS:
             #    print(temp_str)
+            if len(self.window) < BITS_NUM + 4:
+                return
             possible_dataB = []
             possible_dataD = []
             i_removed_preamble = ''.join(self.window)[-BITS_NUM-4:]
@@ -244,6 +246,8 @@ class BitSlideArray:
             return possible_dataB, possible_dataD
         elif fiveBsixB:
             # only for 10b12b
+            if len(self.window) < len(PREAMBLE_STR) + BITS_NUM + 2:
+                return
             temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM - 2:]
             #if DETAILS:
             #    print(temp_str)
