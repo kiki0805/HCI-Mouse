@@ -282,7 +282,8 @@ dirs = os.listdir()
 for d in dirs:
     if d[:min(10, len(d))] == 'location__':
         os.remove(d)
-    if d == 'test.mp4':
+    #if d == 'test.mp4':
+    if d == 'test.mkv':
         os.remove(d)
 
 for n in range(im_id):
