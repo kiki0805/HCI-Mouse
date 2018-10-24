@@ -6,6 +6,7 @@ import math
 from utils import *
 from setting import *
 from fiveBsixB_coding import *
+from IMG_STR import IMG_STR
 
 ### Configuration
 
@@ -55,7 +56,8 @@ def get_pixel_locaiton(size):
                 if val_mode == '':
                     str2enc = preamble + num2bin(num, BITS_NUM)
                 elif val_mode == '01':
-                    str2enc = preamble + '1010101010'
+                    # str2enc = preamble + '1010101010'
+                    str2enc = preamble + IMG_STR
                 else:
                     str2enc = preamble + num2bin(fixed_val, BITS_NUM)
                 str_enc_dic[(x, y)] = str2enc
@@ -240,7 +242,8 @@ def naive_Manchester(size):
                 if val_mode == '':
                     str2enc = preamble + num2bin(num, BITS_NUM)
                 elif val_mode == '01':
-                    str2enc = preamble + Manchester_encode('1010101010')
+                    # str2enc = preamble + Manchester_encode('1010101010')
+                    str2enc = preamble + Manchester_encode(IMG_STR)
                 else:
                     str2enc = preamble + Manchester_encode(num2bin(fixed_val, BITS_NUM))
                 str_enc_dic[(x, y)] = str2enc
@@ -284,24 +287,29 @@ for d in dirs:
         os.remove(d)
     #if d == 'test.mp4':
     if d == 'test.mkv':
+    # if d == 'test.avi':
         os.remove(d)
 
-for n in range(im_id):
-    im = Image.new('RGB', (row * ZOOM, col * ZOOM))
-    for i in range(row):
-        for j in range(col):
-            draw_pixel(im, tuple(imgs_arr[n][i][j].tolist()), i, j)
-            #im.putpixel((i, j), tuple(imgs_arr[n][i][j].tolist()))
-    #im.save('./encoded_imgs/im_encoded' + str(n) + '.png')
-    num = str(n+1)
-    im.save('location__' + num.zfill(2) + '.png')
+for x in range(600):
+    for n in range(im_id):
+        im = Image.new('RGB', (row * ZOOM, col * ZOOM))
+        for i in range(row):
+            for j in range(col):
+                draw_pixel(im, tuple(imgs_arr[n][i][j].tolist()), i, j)
+                #im.putpixel((i, j), tuple(imgs_arr[n][i][j].tolist()))
+        #im.save('./encoded_imgs/im_encoded' + str(n) + '.png')
+        num = str((n+1) +im_id*x)
+        im.save('location__' + num.zfill(4) + '.png')
 
 if val_mode != '':
-    #out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
+    # out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
     out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mkv' 
+    # out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.avi'
 else:
-    #out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
+    # out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
     out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mkv'
+    # out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.avi'
+
 
 if MANCHESTER_MODE:
     out_name = 'Manchester_' + out_name
@@ -312,10 +320,13 @@ if CRC4:
 if fiveBsixB:
     out_name = 'fiveBsixB_' + out_name
 
-#os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4')
-#os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
-os.system('ffmpeg -framerate ' + str(rate) + ' -i location__%02d.png -vcodec copy test.mkv')
-os.system('ffmpeg -f concat -i new_mkv.txt -c copy ' + out_name)
-    
+os.system('ffmpeg -r ' + str(rate) + ' -i location__%04d.png -vcodec libx264 -preset ultrafast -crf 0 test.mkv')
+# os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 0 -pix_fmt yuv420p test.mp4') # crf 10
+# os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
+# os.system('ffmpeg -framerate ' + str(rate) + ' -i location__%02d.png -vcodec copy test.mkv')
+# os.system('ffmpeg -f concat -i new_mkv.txt -c copy ' + out_name)
+# os.system('ffmpeg -r ' + str(rate) + ' -i location__%02d.png -c:v huffyuv test.avi')
+# os.system('ffmpeg -f concat -i new_avi.txt -c copy ' + out_name)
+
 # ffmpeg -r 50 -stream_loop 100 -i location__%02d.png -c:v huffyuv test.avi
 

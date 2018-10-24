@@ -3,11 +3,11 @@
 LOOP = False# True
 DETAILS = True #False
 INTERPOLATION_DEBUG = True
-MANCHESTER_MODE = True #False #True
+MANCHESTER_MODE = False #False #True
 CRC4 = False
 fiveBsixB = False #True
 GRAPHICS = True #False # True
-TESTING_MODE = True #False #True
+TESTING_MODE = False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:

@@ -46,7 +46,7 @@ if device.is_kernel_driver_active(0):
 device.set_configuration()
 
 def init():
-    response = device.ctrl_transfer(bmRequestType = 0x40, #Write
+    device.ctrl_transfer(bmRequestType = 0x40, #Write
                                          bRequest = 0x01,
                                          wValue = 0x0000,
                                          wIndex = 0x0D, #PIX_GRAB register value
@@ -375,7 +375,7 @@ if TESTING_MODE:
 def update():
     global location_list, dataB_list, dataD_list, delay_list
     global q 
-    global x, y, line, ax, y_fixed
+    global x, y, ax, y_fixed
     raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, MOUSE_FRAME_RATE * 2)  # maintain raw frames within around 2 seconds
     # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
     frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
@@ -425,7 +425,7 @@ def update():
 
             raw_frames_m_not_interpolated = \
                 raw_frames_m.window[condition]
-            print(raw_frames_m_not_interpolated.shape)
+            # print(raw_frames_m_not_interpolated[0][0], raw_frames_m_not_interpolated[-1][0])
 
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
