@@ -141,7 +141,7 @@ class SlideArray:
             self.line.set_ydata(y[-self.draw_interval:])
 
     def check_bit(self, sample_slide):
-        if self.init_timestamp:
+        if self.init_timestamp and CHECK_BIT == 'BY_TIME':
             x, y = divide_coordinate(self.window)
             if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
                 bit = '1' if y[-1] == one else '0'
@@ -169,7 +169,8 @@ class SlideArray:
                 return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), one]]))
-            self.init_timestamp = x.mean()
+            if CHECK_BIT == 'BY_TIME':
+                self.init_timestamp = x.mean()
             return '1'
         elif num_zero / y.size >= 0.9:
             if self.last_detected < self.window.size * 0.9:
@@ -177,7 +178,8 @@ class SlideArray:
                 return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), zero]]))
-            self.init_timestamp = x.mean()
+            if CHECK_BIT == 'BY_TIME':
+                self.init_timestamp = x.mean()
             return '0'
         else:
             self.last_detected += 1
@@ -415,9 +417,13 @@ def update():
         if lasttime_interpolated == 0:
             frames_m.push(np.array([raw_frames_m.window[0]]))
             lasttime_interpolated = raw_frames_m.window[0][0]
-        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 0.2: # conduct once interpolation per 0.1 second
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > INTERPOLATION_INTERVAL: # conduct once interpolation per 0.1 second
+            # probe = min(raw_frames_m.window[-1][0]-0.1, lasttime_interpolated + INTERPOLATION_INTERVAL)
+            # condition = np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<=probe)
+            probe = raw_frames_m.window[-1][0]
+            condition = raw_frames_m.window[:, 0]>lasttime_interpolated
             raw_frames_m_not_interpolated = \
-                raw_frames_m.window[np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<=min(raw_frames_m.window[-1][0]-0.1, math.ceil(lasttime_interpolated + 0.2)))]
+                raw_frames_m.window[condition]
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
             l = len(frames_m_interpolated)
@@ -507,7 +513,7 @@ def update():
                         plt.pause(1e-17)
 
 
-            lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
+            lasttime_interpolated = probe
 q = Queue()
 p = Process(target=update) # for display
 p.start()

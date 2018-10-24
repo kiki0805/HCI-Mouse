@@ -3,11 +3,11 @@
 LOOP = False# True
 DETAILS = True #False
 INTERPOLATION_DEBUG = True
-MANCHESTER_MODE = False #False #True
+MANCHESTER_MODE = True #False #True
 CRC4 = False
-fiveBsixB = True
-GRAPHICS = True #False # True
-TESTING_MODE = False
+fiveBsixB = False #True
+GRAPHICS = False # True
+TESTING_MODE = True #False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -39,8 +39,10 @@ CRC_LEN = 4
 
 # setting for decoder
 
+CHECK_BIT = 'BY_PERCENTAGE'#  'BY_TIME' # 'BY_PERCENTAGE'
 TIMES_INTERPOLATE = 10 # 10 choice one from two
 FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8500 # choice one from two
+INTERPOLATION_INTERVAL = 1
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
 MEAN_WIDTH = 50 # 50
