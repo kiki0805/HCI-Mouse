@@ -376,7 +376,8 @@ def update():
     global location_list, dataB_list, dataD_list, delay_list
     global q 
     global x, y, line, ax, y_fixed
-    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
+    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, MOUSE_FRAME_RATE * 2)  # maintain raw frames within around 2 seconds
+    # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
     frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
     y_mean = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line3, \
@@ -417,15 +418,14 @@ def update():
         if lasttime_interpolated == 0:
             frames_m.push(np.array([raw_frames_m.window[0]]))
             lasttime_interpolated = raw_frames_m.window[0][0]
-        elif raw_frames_m.window[-1][0] - lasttime_interpolated > INTERPOLATION_INTERVAL: # conduct once interpolation per 0.1 second
-            # end_probe = min(raw_frames_m.window[-1][0]-0.1, lasttime_interpolated + INTERPOLATION_INTERVAL)
-            # condition = np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<=end_probe)
-            condition = raw_frames_m.window[:, 0]>lasttime_interpolated
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > END_INTERVAL: # conduct once interpolation per 0.1 second
+            end_probe = lasttime_interpolated + INTERPOLATION_INTERVAL
+            condition = np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<end_probe)
+            # condition = raw_frames_m.window[:, 0]>lasttime_interpolated
 
             raw_frames_m_not_interpolated = \
                 raw_frames_m.window[condition]
-
-            probe = raw_frames_m_not_interpolated[-1][0]
+            print(raw_frames_m_not_interpolated.shape)
 
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
@@ -516,7 +516,7 @@ def update():
                         plt.pause(1e-17)
 
 
-            lasttime_interpolated = probe
+            lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
 q = Queue()
 p = Process(target=update) # for display
 p.start()

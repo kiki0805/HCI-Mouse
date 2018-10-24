@@ -6,7 +6,7 @@ INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = True #False #True
 CRC4 = False
 fiveBsixB = False #True
-GRAPHICS = False # True
+GRAPHICS = True #False # True
 TESTING_MODE = True #False #True
 FORCED_EXIT = False
 
@@ -42,7 +42,8 @@ CRC_LEN = 4
 CHECK_BIT = 'BY_PERCENTAGE'#  'BY_TIME' # 'BY_PERCENTAGE'
 TIMES_INTERPOLATE = 10 # 10 choice one from two
 FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8500 # choice one from two
-INTERPOLATION_INTERVAL = 1
+INTERPOLATION_INTERVAL = 1 # 0.5
+END_INTERVAL = 1
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
 MEAN_WIDTH = 50 # 50
