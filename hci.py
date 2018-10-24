@@ -80,6 +80,7 @@ class SlideArray:
         self.size = size
         self.last_detected = -1
         self.location_mod = location_mod
+        self.init_timestamp = None
         if location_mod:
             self.occur_times = {}
             if self.window != np.array([]):
@@ -140,6 +141,17 @@ class SlideArray:
             self.line.set_ydata(y[-self.draw_interval:])
 
     def check_bit(self, sample_slide):
+        if self.init_timestamp:
+            x, y = divide_coordinate(self.window)
+            if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
+                bit = '1' if y[-1] == one else '0'
+                if bit == '1':
+                    sample_slide.push(np.array([[x[-1], one]]))
+                else:
+                    sample_slide.push(np.array([[x[-1], zero]]))
+                self.init_timestamp = x[-1]
+                return bit
+            return
         if not self.is_full():
             return None
         x, y = divide_coordinate(self.window)
@@ -157,6 +169,7 @@ class SlideArray:
                 return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), one]]))
+            self.init_timestamp = x.mean()
             return '1'
         elif num_zero / y.size >= 0.9:
             if self.last_detected < self.window.size * 0.9:
@@ -164,6 +177,7 @@ class SlideArray:
                 return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), zero]]))
+            self.init_timestamp = x.mean()
             return '0'
         else:
             self.last_detected += 1
@@ -401,8 +415,9 @@ def update():
         if lasttime_interpolated == 0:
             frames_m.push(np.array([raw_frames_m.window[0]]))
             lasttime_interpolated = raw_frames_m.window[0][0]
-        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 1: # conduct once interpolation per 0.1 second
-            raw_frames_m_not_interpolated = raw_frames_m.window[raw_frames_m.window[:, 0]>lasttime_interpolated]
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 0.2: # conduct once interpolation per 0.1 second
+            raw_frames_m_not_interpolated = \
+                raw_frames_m.window[np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<=min(raw_frames_m.window[-1][0]-0.1, math.ceil(lasttime_interpolated + 0.2)))]
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
             l = len(frames_m_interpolated)
@@ -421,8 +436,8 @@ def update():
                         continue
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     x, y = divide_coordinate(frames_m.window)
-                    y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
-                    #y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    #y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
+                    y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
 
