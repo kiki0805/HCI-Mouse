@@ -418,12 +418,15 @@ def update():
             frames_m.push(np.array([raw_frames_m.window[0]]))
             lasttime_interpolated = raw_frames_m.window[0][0]
         elif raw_frames_m.window[-1][0] - lasttime_interpolated > INTERPOLATION_INTERVAL: # conduct once interpolation per 0.1 second
-            # probe = min(raw_frames_m.window[-1][0]-0.1, lasttime_interpolated + INTERPOLATION_INTERVAL)
-            # condition = np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<=probe)
-            probe = raw_frames_m.window[-1][0]
+            # end_probe = min(raw_frames_m.window[-1][0]-0.1, lasttime_interpolated + INTERPOLATION_INTERVAL)
+            # condition = np.logical_and(raw_frames_m.window[:, 0]>lasttime_interpolated, raw_frames_m.window[:, 0]<=end_probe)
             condition = raw_frames_m.window[:, 0]>lasttime_interpolated
+
             raw_frames_m_not_interpolated = \
                 raw_frames_m.window[condition]
+
+            probe = raw_frames_m_not_interpolated[-1][0]
+
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
             l = len(frames_m_interpolated)
