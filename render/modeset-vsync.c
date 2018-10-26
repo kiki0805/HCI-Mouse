@@ -676,9 +676,9 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	// dev->r = next_color(&dev->r_up, dev->r, 20);
 	// dev->g = next_color(&dev->g_up, dev->g, 10);
 	// dev->b = next_color(&dev->b_up, dev->b, 5);
-	dev->r = begin->bit == '0' ? 0:0xff;
-	dev->g = begin->bit == '0' ? 0:0xff;
-	dev->b = begin->bit == '0' ? 0:0xff;
+	dev->r = begin->bit == '0' ? 0xff:0;
+	dev->g = begin->bit == '0' ? 0xff:0;
+	dev->b = begin->bit == '0' ? 0xff:0;
 	if (begin->next == NULL) begin = (struct bit_ele*) begin->first_bit;
 	else begin = begin->next;
 
