@@ -423,7 +423,8 @@ static void modeset_destroy_fb(int fd, struct modeset_buf *buf)
 int main(int argc, char **argv)
 {
 	int duration; // second
-	char* file_path; // output data
+	// char* file_path; // output data
+	char* file_path = "share_data";
 
 	int ret, fd;
 	const char *card;
@@ -432,9 +433,9 @@ int main(int argc, char **argv)
 
 	printf("Duration: ");
 	scanf("%d", &duration);
-	file_path =(char *)malloc(sizeof(char));
-    printf("File Path: ");
-	scanf("%s", file_path);
+	// file_path =(char *)malloc(sizeof(char));
+    // printf("File Path: ");
+	// scanf("%s", file_path);
     begin = read_swap_data(file_path);
 
 	/* check which DRM device to open */
