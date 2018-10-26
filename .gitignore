@@ -7,4 +7,10 @@
 *.png
 *.mp4
 *.pyc
-
+modeset
+modeset-double-buffered
+modeset-vsync
+/.vscode
+test.c
+a.out
+test
