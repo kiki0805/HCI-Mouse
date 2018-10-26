@@ -320,11 +320,11 @@ if CRC4:
 if fiveBsixB:
     out_name = 'fiveBsixB_' + out_name
 
-os.system('ffmpeg -r ' + str(rate) + ' -i location__%04d.png -vcodec libx264 -crf 0 test.mkv')
+# os.system('ffmpeg -r ' + str(rate) + ' -i location__%04d.png -vcodec libx264 -crf 0 test.mkv')
 # os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 0 -pix_fmt yuv420p test.mp4') # crf 10
 # os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
 # os.system('ffmpeg -framerate ' + str(rate) + ' -i location__%02d.png -vcodec copy test.mkv')
-os.system('ffmpeg -f concat -i new_mkv.txt -c copy ' + out_name)
+# os.system('ffmpeg -f concat -i new_mkv.txt -c copy ' + out_name)
 # os.system('ffmpeg -r ' + str(rate) + ' -i location__%02d.png -c:v huffyuv test.avi')
 # os.system('ffmpeg -f concat -i new_avi.txt -c copy ' + out_name)
 

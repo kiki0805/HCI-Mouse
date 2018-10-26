@@ -57,4 +57,4 @@ else:
 
 # setting for encoder
 ZOOM = 16
-
+SHARE_PATH = 'render/share_data'
