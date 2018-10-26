@@ -195,6 +195,7 @@ class BitSlideArray:
             self.pattern = PREAMBLE_STR + '\d{12}'
         elif CRC4:
             self.pattern = None
+            self.pending_count = 0
         else:
             self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM) + '}'  
         self.window = window
@@ -246,6 +247,9 @@ class BitSlideArray:
         elif CRC4:
             #if DETAILS:
             #    print(temp_str)
+            if self.pending_count != 0:
+                self.pending_count -= 1
+                return
             if len(self.window) < BITS_NUM + 4:
                 return
             possible_dataB = []
@@ -260,6 +264,8 @@ class BitSlideArray:
                 print(decoded_num)
             possible_dataB.append(bit_str)
             possible_dataD.append(decoded_num)
+            if possible_dataB != [] and possible_dataD != []:
+                self.pending_count = BITS_NUM + 4
             return possible_dataB, possible_dataD
         elif fiveBsixB:
             # only for 10b12b
@@ -425,8 +431,8 @@ def update():
             lasttime_interpolated = raw_frames_m.window[0][0]
         elif raw_frames_m.window[-1][0] - lasttime_interpolated > END_INTERVAL: # conduct once interpolation per 0.1 second
             end_probe = lasttime_interpolated + INTERPOLATION_INTERVAL
-            condition = np.logical_and(raw_frames_m.window[:, 0]>=lasttime_interpolated, raw_frames_m.window[:, 0]<end_probe)
-            # condition = raw_frames_m.window[:, 0]>lasttime_interpolated
+            # condition = np.logical_and(raw_frames_m.window[:, 0]>=lasttime_interpolated, raw_frames_m.window[:, 0]<end_probe)
+            condition = raw_frames_m.window[:, 0]>lasttime_interpolated
 
             raw_frames_m_not_interpolated = raw_frames_m.window[condition]
 
@@ -449,8 +455,8 @@ def update():
                         continue
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     x, y = divide_coordinate(frames_m.window)
-                    # y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
-                    y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
+                    # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
 
