@@ -1,13 +1,13 @@
 # Trial
 
 LOOP = False# True
-DETAILS = True #False
+DETAILS = False #True #False
 INTERPOLATION_DEBUG = True
-MANCHESTER_MODE = False #False #True
-CRC4 = False
-fiveBsixB = True
+MANCHESTER_MODE = False #True
+CRC4 = False #False
+fiveBsixB = True #True
 GRAPHICS = False # True
-TESTING_MODE = True
+TESTING_MODE = True #False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -39,15 +39,18 @@ CRC_LEN = 4
 
 # setting for decoder
 
+CHECK_BIT = 'BY_PERCENTAGE'#'BY_TIME' # 'BY_PERCENTAGE'
 TIMES_INTERPOLATE = 10 # 10 choice one from two
 FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8500 # choice one from two
+INTERPOLATION_INTERVAL = 0.5 # 0.5
+END_INTERVAL = 1
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
 MEAN_WIDTH = 50 # 50
 #MIN_LEN_PER_BIT = 15 # 15
 
 if FRAME_RATE == 60:
-    POINTS_TO_COMBINE = 14 # 40 for 20hz , 14 for 60hz -> maintain 10 points for one bit
+    POINTS_TO_COMBINE = 14 # 5 for advanced interpolation, 40 for 20hz , 14 for 60hz -> maintain 10 points for one bit
 else:
     POINTS_TO_COMBINE = 40
 

@@ -46,7 +46,7 @@ if device.is_kernel_driver_active(0):
 device.set_configuration()
 
 def init():
-    response = device.ctrl_transfer(bmRequestType = 0x40, #Write
+    device.ctrl_transfer(bmRequestType = 0x40, #Write
                                          bRequest = 0x01,
                                          wValue = 0x0000,
                                          wIndex = 0x0D, #PIX_GRAB register value
@@ -61,7 +61,8 @@ line1, = plt.plot([], [], 'r', label='original') # plot the data and specify the
 line2, = plt.plot([], [], 'b', label='inter')
 line3, = plt.plot([], [], 'g', label='mean')
 line4, = plt.plot([], [], 'y', label='repaired')
-line5 = plt.scatter([], [], marker='x', color='black', label='power')
+line5 = plt.scatter([], [], marker='x', color='black')
+line6, = plt.plot([], [], 'm')
 ax = plt.gca() # get most of the figure elements 
 x = np.array([])
 y = np.array([])
@@ -80,6 +81,7 @@ class SlideArray:
         self.size = size
         self.last_detected = -1
         self.location_mod = location_mod
+        self.init_timestamp = None
         if location_mod:
             self.occur_times = {}
             if self.window != np.array([]):
@@ -140,6 +142,17 @@ class SlideArray:
             self.line.set_ydata(y[-self.draw_interval:])
 
     def check_bit(self, sample_slide):
+        if self.init_timestamp and CHECK_BIT == 'BY_TIME':
+            x, y = divide_coordinate(self.window)
+            if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
+                bit = '1' if y[-1] == one else '0'
+                if bit == '1':
+                    sample_slide.push(np.array([[x[-1], one]]))
+                else:
+                    sample_slide.push(np.array([[x[-1], zero]]))
+                self.init_timestamp = x[-1]
+                return bit
+            return
         if not self.is_full():
             return None
         x, y = divide_coordinate(self.window)
@@ -157,6 +170,8 @@ class SlideArray:
                 return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), one]]))
+            if CHECK_BIT == 'BY_TIME':
+                self.init_timestamp = x.mean()
             return '1'
         elif num_zero / y.size >= 0.9:
             if self.last_detected < self.window.size * 0.9:
@@ -164,6 +179,8 @@ class SlideArray:
                 return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), zero]]))
+            if CHECK_BIT == 'BY_TIME':
+                self.init_timestamp = x.mean()
             return '0'
         else:
             self.last_detected += 1
@@ -359,19 +376,23 @@ if TESTING_MODE:
 def update():
     global location_list, dataB_list, dataD_list, delay_list
     global q 
-    global x, y, line, ax, y_fixed
+    global x, y, ax, y_fixed
     raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
+    # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
     frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
     y_mean = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line3, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
     one_bit = SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE), line4, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
+            math.floor(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE)) # maintain frames within 2 seconds after interpolation
     sample_arr = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line5, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2), scatter_mode=True) # maintain frames within 2 seconds after interpolation
 
     binary_arr =  SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line1, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
+
+    # print('[ DEBUG ] Window size: ', end='')
+    # print(int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2))
 
     if MANCHESTER_MODE:
         bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM * 2 + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
@@ -400,9 +421,16 @@ def update():
 
         if lasttime_interpolated == 0:
             frames_m.push(np.array([raw_frames_m.window[0]]))
+            # lasttime_interpolated = half_floor(raw_frames_m.window[0][0])
             lasttime_interpolated = raw_frames_m.window[0][0]
-        elif raw_frames_m.window[-1][0] - lasttime_interpolated > 1: # conduct once interpolation per 0.1 second
-            raw_frames_m_not_interpolated = raw_frames_m.window[raw_frames_m.window[:, 0]>lasttime_interpolated]
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > END_INTERVAL: # conduct once interpolation per 0.1 second
+            end_probe = lasttime_interpolated + INTERPOLATION_INTERVAL
+            condition = np.logical_and(raw_frames_m.window[:, 0]>=lasttime_interpolated, raw_frames_m.window[:, 0]<end_probe)
+            # condition = raw_frames_m.window[:, 0]>lasttime_interpolated
+
+            raw_frames_m_not_interpolated = raw_frames_m.window[condition]
+
+            # frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated, fix_len=True)
             frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
 
             l = len(frames_m_interpolated)
@@ -421,8 +449,8 @@ def update():
                         continue
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     x, y = divide_coordinate(frames_m.window)
-                    y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
-                    #y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    #y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
+                    y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
 
@@ -449,6 +477,7 @@ def update():
                         possible_dataB = result[0] 
                         possible_dataD = result[1]
                         if possible_dataB != []:
+                            #if DETAILS:
                             print(possible_dataB[0])
                             location_range = hld(possible_dataB[0], SIZE, '1', '0')
                             if TESTING_MODE:
@@ -480,19 +509,19 @@ def update():
                     temp_y = np.array([])
 
                     if GRAPHICS:
+                        # raw_frames_m.update_line_data()
                         one_bit.update_line_data()
                         binary_arr.update_line_data()
                         y_mean.update_line_data()
                         sample_arr.update_line_data()
-                        #raw_frames_m.update_line_data()
                         frames_m.update_line_data()
                         ax.relim() # renew the data limits
                         ax.autoscale_view(True, True, True) # rescale plot view
                         plt.draw() # plot new figure
                         plt.pause(1e-17)
 
-
             lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
+            # lasttime_interpolated = half_floor(raw_frames_m_not_interpolated[-1][0])
 q = Queue()
 p = Process(target=update) # for display
 p.start()

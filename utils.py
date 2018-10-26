@@ -2,6 +2,25 @@ import os
 from crccheck.crc import Crc4Itu
 from setting import *
 import numpy as np
+import math
+
+
+# ceil based on 0.5
+def half_ceil(raw):
+    flt, dcm = math.modf(raw)
+    if flt <= 0.5:
+        return dcm + 0.5
+    else:
+        return dcm + 1
+
+
+def half_floor(raw):
+    flt, dcm = math.modf(raw)
+    if flt < 0.5:
+        return dcm
+    else:
+        return dcm + 0.5
+
 
 def sim_fix(raw_str):
     new_str = ''
