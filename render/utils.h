@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 2
 static pthread_mutex_t mutex;
 
 bool REPETITION = true;
@@ -206,10 +206,17 @@ void move_next(struct bit_map* big_map) {
     }
     if(go_first) {
         pthread_mutex_lock(&mutex);
-        if(repetition_time == 0) repetition_time = 1;
-        else if(repetition_time == 1) repetition_time = 2;
+        if(repetition_time == 0) {
+            repetition_time = 1;
+            printf("Shift horizentally...\n");
+        }
+        else if(repetition_time == 1) {
+            repetition_time = 2;
+            printf("Shift vertically...\n");
+        }
         else {
             repetition_time = 0;
+            printf("Restore original Location\n");
         }
         pthread_mutex_unlock(&mutex);
     }

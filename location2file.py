@@ -61,7 +61,7 @@ def fiveBsixB_encode(size):
     return imgs_arr
 
 def write_nparray(arr):
-    f = open(SHARE_PATH, 'w')
+    f = open(SHARE_PATH_LOCATION, 'w')
     for i in range(arr.shape[0]):
         for j in range(arr.shape[1]):
             str_list = [str(i) for i in arr[i][j]]

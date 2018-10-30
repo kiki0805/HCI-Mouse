@@ -36,6 +36,9 @@
 #include <xf86drmMode.h>
 #include "utils.h"
 
+#define BITS_NUM 54 // 18 * 3
+#define WIDTH 1366
+#define HEIGHT 768
 
 struct modeset_buf;
 struct modeset_dev;
@@ -51,6 +54,9 @@ static void modeset_draw(int fd, int duration);
 static void modeset_draw_dev(int fd, struct modeset_dev *dev);
 static void modeset_cleanup(int fd);
 struct bit_map* location_data;
+
+char bits_map[BITS_NUM][WIDTH][HEIGHT];
+int bit_index = 0;
 
 /*
  * modeset_open() stays the same.
@@ -425,7 +431,7 @@ int main(int argc, char **argv)
 {
 	int duration; // second
 	// char* file_path; // output data
-	char* file_path = "share_data";
+	char* file_path = "share_data_location";
 	pthread_mutex_init(&mutex, NULL);
 
 	int ret, fd;
@@ -437,6 +443,19 @@ int main(int argc, char **argv)
 	scanf("%d", &duration);
     // begin = read_swap_data(file_path);
 	location_data = read_location_data(file_path);
+	char c;
+	printf("Load location data into memory...\n");
+	for(int n = 0; n < BITS_NUM; n++) {
+        for(int i = 0; i < WIDTH; i++) {
+            for(int j = 0; j < HEIGHT; j++) {
+                c = get_bit_by_pixel(i, j, location_data, WIDTH, HEIGHT);
+                bits_map[n][i][j] = c;
+            }
+        }
+        move_next(location_data);
+    }
+	printf("Load done.\n");
+	printf("Used memory: %dMB\n", BITS_NUM*WIDTH*HEIGHT/8/1000/1000);
 
 	/* check which DRM device to open */
 	if (argc > 1)
@@ -466,6 +485,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "cannot set CRTC for connector %u (%d): %m\n",
 				iter->conn, errno);
 	}
+
+	assert(buf->height == HEIGHT);
+	assert(buf->width == WIDTH);
 
 	/* draw some colors for 5seconds */
 	modeset_draw(fd, duration);
@@ -676,22 +698,20 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	// printf("%d %d\n", buf->width, buf->height);
 	for (j = 0; j < buf->height; ++j) {
 		for (k = 0; k < buf->width; ++k) {
-			bit = get_bit_by_pixel(k, j, location_data, buf->width, buf->height);
+			// bit = get_bit_by_pixel(k, j, location_data, buf->width, buf->height);
+			bit = bits_map[bit_index][k][j];
 			dev->r = bit == '0' ? 0xff:0;
 			dev->g = bit == '0' ? 0xff:0;
 			dev->b = bit == '0' ? 0xff:0;
-			// dev->r = 0;
-			// dev->g = 0;
-			// dev->b = 0;
 			off = buf->stride * j + k * 4;
 			*(uint32_t*)&buf->map[off] =
 				     (dev->r << 16) | (dev->g << 8) | dev->b;
-			// break;
 		}
-		// break;
 	}
 
-	move_next(location_data);
+	bit_index ++;
+	if(bit_index == 18) bit_index = 0;
+	// move_next(location_data);
 	
 	ret = drmModePageFlip(fd, dev->crtc, buf->fb,
 			      DRM_MODE_PAGE_FLIP_EVENT, dev);

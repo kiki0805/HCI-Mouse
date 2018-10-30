@@ -33,7 +33,7 @@ else:
 
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
-SIZE = (32, 32) # (256, 256)
+SIZE = (2, 2) # (256, 256)
 CRC_LEN = 4
 
 
@@ -42,9 +42,9 @@ CRC_LEN = 4
 CHECK_BIT = 'BY_TIME' # 'BY_PERCENTAGE'
 TIMES_INTERPOLATE = 10 # 10 choice one from two
 FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8400 # choice one from two
-INTERPOLATION_INTERVAL = 0.5 # 0.5
-END_INTERVAL = 0.55
-EXTRA_LEN = 0.05
+INTERPOLATION_INTERVAL = 0.08 # 0.5
+END_INTERVAL = 0.1
+EXTRA_LEN = 0.02
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
 MEAN_WIDTH = 50 # 50
@@ -60,3 +60,4 @@ else:
 # setting for encoder
 ZOOM = 16
 SHARE_PATH = 'render/share_data'
+SHARE_PATH_LOCATION = 'render/share_data_location'

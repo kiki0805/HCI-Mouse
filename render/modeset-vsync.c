@@ -680,7 +680,6 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	else begin = begin->next;
 
 	buf = &dev->bufs[dev->front_buf ^ 1];
-	printf("Width:%d, Height:%d\n", buf->width, buf->height);
 	for (j = 0; j < buf->height; ++j) {
 		for (k = 0; k < buf->width; ++k) {
 			off = buf->stride * j + k * 4;
