@@ -5,9 +5,9 @@ DETAILS = False #True #False
 INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = False #True
 CRC4 = False #True #False
-fiveBsixB = True #False #True
+fiveBsixB = True #True
 GRAPHICS = True #False # True
-TESTING_MODE = True #False #True
+TESTING_MODE = True #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -43,17 +43,16 @@ CHECK_BIT = 'BY_TIME' # 'BY_PERCENTAGE'
 TIMES_INTERPOLATE = 10 # 10 choice one from two
 FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8400 # choice one from two
 INTERPOLATION_INTERVAL = 0.5 # 0.5
-END_INTERVAL = 0.6
+END_INTERVAL = 0.55
 EXTRA_LEN = 0.05
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
-MEAN_WIDTH = 100 #50 # 50
+MEAN_WIDTH = 50 # 50
 #MIN_LEN_PER_BIT = 15 # 15
 
-if CHECK_BIT == 'BY_TIME':
-    POINTS_TO_COMBINE = 14 #7
-elif FRAME_RATE == 60:
-    POINTS_TO_COMBINE = 14 # 5 for advanced interpolation, 40 for 20hz , 14 for 60hz -> maintain 10 points for one bit
+if FRAME_RATE == 60:
+    POINTS_TO_COMBINE = FRAMES_PER_SECOND_AFTER_INTERPOLATE / FRAME_RATE / 10 # 5 for advanced interpolation, 40 for 20hz , 14 for 60hz -> maintain 10 points for one bit
+    assert int(POINTS_TO_COMBINE) == POINTS_TO_COMBINE
 else:
     POINTS_TO_COMBINE = 40
 

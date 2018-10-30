@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-// struct bit_ele;
+#define BLOCK_SIZE 32
 
 struct bit_ele {
     char bit;
@@ -67,5 +67,32 @@ void free_bit_arr(struct bit_ele* barr) { // input: the first bit
         free(temp);
     }
     free(barr->next);
+}
+
+///////////////////////////////////////////////////////////
+// Below functions are used for multiple values per frame.
+///////////////////////////////////////////////////////////
+
+struct bit_ele* read_location_data(char* file_path) {
+
+}
+
+void free_location_data(struct bit_ele* bit_eles) {
+
+}
+
+/***************************************
+@x, @y: indexes of pixel
+@bit_eles: location encoding data
+@width, @height: size of monitor
+****************************************/
+char get_bit_by_pixel(int x, int y, struct bit_ele* bit_eles, \
+    int width, int height) {
+
+}
+
+
+void move_next(struct bit_ele* bit_eles) {
+
 }
 

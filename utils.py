@@ -142,3 +142,16 @@ def hld(bit_arr, size, bit_one, bit_zero):
 
     return init_location_range
 
+def mid_one_larger_than(x, compare_num):
+    mid_one = None
+    for i in x:
+        if i >= compare_num:
+            mid_one = i
+            break
+    return (mid_one + x[-1])/2
+
+def first_one_larger_than(x, compare_num):
+    for i in x:
+        if i >= compare_num:
+            return i
+

@@ -92,13 +92,13 @@ class SlideArray:
                         self.occur_times[ele] += 1
 
     def push(self, chunk_or_ele): # chunk for coordinate, ele for binary bits
-        assert chunk_or_ele.size <= self.size
-        if self.window.size + chunk_or_ele.size > self.size:
+        assert chunk_or_ele.size <= self.size * 2
+        if self.window.size + chunk_or_ele.size > self.size * 2:
             if self.location_mod:
                 print(self.window)
                 print(self.occur_times)
                 self.occur_times[self.window[0]] -= 1
-            self.window = self.window[int((chunk_or_ele.size + self.window.size) - self.size):]
+            self.window = self.window[int((chunk_or_ele.size + self.window.size) - self.size * 2):]
         if self.window.size == 0:
             self.window = chunk_or_ele
         else:
@@ -110,9 +110,9 @@ class SlideArray:
                 self.occur_times[chunk_or_ele] = 1
 
     def is_full(self):
-        if self.window.size > self.size:
+        if self.window.size > self.size * 2:
             print('outflow')
-        return abs(self.window.size - self.size) <= 1
+        return self.window.size == self.size * 2
 
     def most_frequent_ele(self):
         assert self.location_mod
@@ -165,35 +165,44 @@ class SlideArray:
             else:
                 num_zero += 1
 
-        # pct = 0.9 if CHECK_BIT != 'BY_TIME' else 0.6
-        pct = 0.7
+        pct = 0.9 if not self.init_timestamp else 0.7
         if num_one / y.size >= pct:
             # if self.last_detected < self.window.size * pct:
             #     self.last_detected += 1
             #     return None
-            if not self.init_timestamp:
-                self.init_timestamp = x.mean()
-            elif x.mean() - self.init_timestamp >= 1 / FRAME_RATE:
-                self.init_timestamp = x.mean()
+            if not self.init_timestamp and num_one / y.size == 0.9:
+                self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == zero \
+                    else x[math.floor((x.size - 1) / 2) + 1]
+            elif not self.init_timestamp:
+                return None
+            elif x[-math.floor((x.size - 1) / 2)] - self.init_timestamp >= 1 / FRAME_RATE * 0.8:
+                # first one later than 1/frame_rate + init
+                first = first_one_larger_than(x, self.init_timestamp + 1 / FRAME_RATE)
+                self.init_timestamp = (first + x[-math.floor((x.size - 1) / 2)]) / 2
             else:
-                return
+                return None
             self.last_detected = 0
-            sample_slide.push(np.array([[x.mean(), one]]))
+            sample_slide.push(np.array([[self.init_timestamp, one]]))
             # if CHECK_BIT == 'BY_TIME':
             #     self.init_timestamp = x.mean()
             return '1'
         elif num_zero / y.size >= pct:
-            if not self.init_timestamp:
-                self.init_timestamp = x.mean()
-            elif x.mean() - self.init_timestamp >= 1 / FRAME_RATE:
-                self.init_timestamp = x.mean()
+            if not self.init_timestamp and num_zero / y.size == 0.9:
+                self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == one \
+                    else x[math.floor((x.size - 1) / 2) + 1]
+            elif not self.init_timestamp:
+                return None
+            elif x[-math.floor((x.size - 1) / 2)] - self.init_timestamp >= 1 / FRAME_RATE * 0.8:
+                # self.init_timestamp = x.mean()
+                first = first_one_larger_than(x, self.init_timestamp + 1 / FRAME_RATE)
+                self.init_timestamp = (first + x[-math.floor((x.size - 1) / 2)]) / 2
             else:
-                return
+                return None
             # if self.last_detected < self.window.size * pct:
             #     self.last_detected += 1
             #     return None
             self.last_detected = 0
-            sample_slide.push(np.array([[x.mean(), zero]]))
+            sample_slide.push(np.array([[self.init_timestamp, zero]]))
             # if CHECK_BIT == 'BY_TIME':
             #     self.init_timestamp = x.mean()
             return '0'
@@ -365,7 +374,7 @@ class TupleSlideArray:
                         self.occur_times[ele] += 1
 
     def push(self, ele):
-        if len(self.window) >= self.size:
+        if len(self.window) >= self.size * 2:
             if self.location_mod:
                 self.occur_times[self.window[0]] -= 1
             del self.window[0]
@@ -377,7 +386,7 @@ class TupleSlideArray:
                 self.occur_times[ele] = 1
 
     def is_full(self):
-        return len(self.window) == self.size
+        return len(self.window) == self.size * 2
 
     def most_frequent_ele(self):
         assert self.location_mod
@@ -398,7 +407,7 @@ def update():
     global location_list, dataB_list, dataD_list, delay_list
     global q 
     global x, y, ax, y_fixed
-    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
+    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, MOUSE_FRAME_RATE)  # maintain raw frames within around 2 seconds
     # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
     frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
             int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2)) # maintain frames within 2 seconds after interpolation
@@ -426,18 +435,31 @@ def update():
 
     max_pixel = 200
     min_pixel = 100
+    if raw_frames_m.line:
+        time_last_get = 0
     lasttime_interpolated = 0
     while True:
 
         response, timestamp = q.get()
         if not response:
             return
+
         val = int.from_bytes(response, 'big')
         val_fixed = val
         if val_fixed < 128:
             val_fixed += 128
         if val_fixed > 240:
             continue
+
+        if raw_frames_m.line:
+            print(timestamp - time_last_get)
+            time_last_get = timestamp
+            raw_frames_m.update_line_data()
+            ax.relim() # renew the data limits
+            ax.autoscale_view(True, True, True) # rescale plot view
+            plt.draw() # plot new figure
+            plt.pause(1e-17)
+
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
 
         if lasttime_interpolated == 0:
@@ -474,7 +496,7 @@ def update():
                         continue
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     x, y = divide_coordinate(frames_m.window)
-                    y_mean.push(np.array([[x[-1], y[max(0, y.size - MEAN_WIDTH):].mean()]]))
+                    y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
                     # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
@@ -533,9 +555,8 @@ def update():
                     temp_x = np.array([])
                     temp_y = np.array([])
 
-                    if GRAPHICS:
-                        # raw_frames_m.update_line_data()
-                        one_bit.update_line_data()
+                    if GRAPHICS and not raw_frames_m.line:
+                        # one_bit.update_line_data()
                         binary_arr.update_line_data()
                         y_mean.update_line_data()
                         sample_arr.update_line_data()
