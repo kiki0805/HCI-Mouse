@@ -1,13 +1,13 @@
 # Trial
 
 LOOP = False# True
-DETAILS = False #True #False
+DETAILS = True #False
 INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = False #True
 CRC4 = False #True #False
 fiveBsixB = True #True
-GRAPHICS = True #False # True
-TESTING_MODE = True #True
+GRAPHICS = False # True
+TESTING_MODE = False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:

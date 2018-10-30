@@ -9,9 +9,17 @@
 #include <time.h>
 #include <unistd.h>
 #include <math.h>
+#include <pthread.h>
 #include <assert.h>
 
 #define BLOCK_SIZE 32
+static pthread_mutex_t mutex;
+
+bool REPETITION = true;
+int repetition_time = 0; 
+// 0: no shift;
+// 1: shift to right by half of block;
+// 2: shift to down by half of block
 
 struct bit_ele {
     char bit;
@@ -157,9 +165,26 @@ char get_bit_by_pixel(int x, int y, struct bit_map* big_map, \
     int width, int height) {
         int bound = width > height ? height:width; // assume always height
         if((x > (width - bound)/2 + bound) || (x < (width - bound)/2)) return '1';
+
+        int x_new, y_new;
         int pixels_per_block = bound / BLOCK_SIZE;
-        int block_x = floor((x - ((width - bound)/2)) / pixels_per_block);
-        int block_y = floor(y / pixels_per_block);
+        ///////////////////shift
+        if(repetition_time == 0) {
+            x_new = x;
+            y_new = y;
+        }
+        else if(repetition_time == 1) {
+            x_new = x + (int) pixels_per_block / 2;
+            y_new = y;
+        }
+        else {
+            x_new = x;
+            y_new = y + (int) pixels_per_block / 2;
+        }
+        ///////////////////shift
+
+        int block_x = floor((x_new - ((width - bound)/2)) / pixels_per_block);
+        int block_y = floor(y_new / pixels_per_block);
         block_x = normalized_block_index(block_x);
         block_y = normalized_block_index(block_y);
         return big_map->ele_arr[block_x][block_y]->bit;
@@ -167,13 +192,26 @@ char get_bit_by_pixel(int x, int y, struct bit_map* big_map, \
 
 
 void move_next(struct bit_map* big_map) {
+    bool go_first = false;
     for(int i = 0; i < BLOCK_SIZE; i++) {
         for(int j = 0; j < BLOCK_SIZE; j++) {
-            if(!big_map->ele_arr[i][j]->last_bit)
+            if(!big_map->ele_arr[i][j]->last_bit) {
                 big_map->ele_arr[i][j] = big_map->ele_arr[i][j]->next;
-            else
+            }
+            else {
                 big_map->ele_arr[i][j] = (struct bit_ele*) big_map->ele_arr[i][j]->first_bit;
+                if(!go_first) go_first = true;
+            }
         }
-    } 
+    }
+    if(go_first) {
+        pthread_mutex_lock(&mutex);
+        if(repetition_time == 0) repetition_time = 1;
+        else if(repetition_time == 1) repetition_time = 2;
+        else {
+            repetition_time = 0;
+        }
+        pthread_mutex_unlock(&mutex);
+    }
 }
 

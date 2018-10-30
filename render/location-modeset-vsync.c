@@ -426,6 +426,7 @@ int main(int argc, char **argv)
 	int duration; // second
 	// char* file_path; // output data
 	char* file_path = "share_data";
+	pthread_mutex_init(&mutex, NULL);
 
 	int ret, fd;
 	const char *card;

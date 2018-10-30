@@ -548,9 +548,9 @@ def update():
                                 print(possible_dataB[0])
                                 print(possible_dataD[0])
                                 print('delay: ' + str(time.time() - divide_coordinate(one_bit.window)[0].mean()))
+                                print('Current Location: ', end='')
                                 print(location_range[1][1], location_range[0][1])
                             location_arr.push((location_range[1][1], location_range[0][1]))
-                            print('Most likely location: ' + str(location_arr.most_frequent_ele()))
 
                     temp_x = np.array([])
                     temp_y = np.array([])
