@@ -142,17 +142,18 @@ class SlideArray:
             self.line.set_ydata(y[-self.draw_interval:])
 
     def check_bit(self, sample_slide):
-        if self.init_timestamp and CHECK_BIT == 'BY_TIME':
-            x, y = divide_coordinate(self.window)
-            if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
-                bit = '1' if y[-1] == one else '0'
-                if bit == '1':
-                    sample_slide.push(np.array([[x[-1], one]]))
-                else:
-                    sample_slide.push(np.array([[x[-1], zero]]))
-                self.init_timestamp = x[-1]
-                return bit
-            return
+        # if self.init_timestamp and CHECK_BIT == 'BY_TIME':
+        #     x, y = divide_coordinate(self.window)
+        #     if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
+        #         if y[-1] != y[-2]: return
+        #         bit = '1' if y[-1] == one else '0'
+        #         if bit == '1':
+        #             sample_slide.push(np.array([[x[-1], one]]))
+        #         else:
+        #             sample_slide.push(np.array([[x[-1], zero]]))
+        #         self.init_timestamp = x[-1]
+        #         return bit
+        #     return
         if not self.is_full():
             return None
         x, y = divide_coordinate(self.window)
@@ -164,24 +165,37 @@ class SlideArray:
             else:
                 num_zero += 1
 
-        pct = 0.9 if CHECK_BIT != 'BY_TIME' else 0.6
+        # pct = 0.9 if CHECK_BIT != 'BY_TIME' else 0.6
+        pct = 0.7
         if num_one / y.size >= pct:
-            if self.last_detected < self.window.size * pct:
-                self.last_detected += 1
-                return None
+            # if self.last_detected < self.window.size * pct:
+            #     self.last_detected += 1
+            #     return None
+            if not self.init_timestamp:
+                self.init_timestamp = x.mean()
+            elif x.mean() - self.init_timestamp >= 1 / FRAME_RATE:
+                self.init_timestamp = x.mean()
+            else:
+                return
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), one]]))
-            if CHECK_BIT == 'BY_TIME':
-                self.init_timestamp = x.mean()
+            # if CHECK_BIT == 'BY_TIME':
+            #     self.init_timestamp = x.mean()
             return '1'
         elif num_zero / y.size >= pct:
-            if self.last_detected < self.window.size * pct:
-                self.last_detected += 1
-                return None
+            if not self.init_timestamp:
+                self.init_timestamp = x.mean()
+            elif x.mean() - self.init_timestamp >= 1 / FRAME_RATE:
+                self.init_timestamp = x.mean()
+            else:
+                return
+            # if self.last_detected < self.window.size * pct:
+            #     self.last_detected += 1
+            #     return None
             self.last_detected = 0
             sample_slide.push(np.array([[x.mean(), zero]]))
-            if CHECK_BIT == 'BY_TIME':
-                self.init_timestamp = x.mean()
+            # if CHECK_BIT == 'BY_TIME':
+            #     self.init_timestamp = x.mean()
             return '0'
         else:
             self.last_detected += 1
@@ -436,7 +450,10 @@ def update():
             # condition = raw_frames_m.window[:, 0]>lasttime_interpolated
 
             raw_frames_m_not_interpolated = raw_frames_m.window[condition]
-            frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated, interval=INTERPOLATION_INTERVAL)
+            if EXTRA_LEN != 0:
+                frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated, interval=INTERPOLATION_INTERVAL)
+            else:
+                frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
             # frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
             # print(frames_m_interpolated.shape)
 

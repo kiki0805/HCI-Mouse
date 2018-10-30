@@ -7,7 +7,7 @@ MANCHESTER_MODE = False #True
 CRC4 = False #True #False
 fiveBsixB = True #False #True
 GRAPHICS = True #False # True
-TESTING_MODE = True #True
+TESTING_MODE = True #False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -44,7 +44,7 @@ TIMES_INTERPOLATE = 10 # 10 choice one from two
 FRAMES_PER_SECOND_AFTER_INTERPOLATE = 8400 # choice one from two
 INTERPOLATION_INTERVAL = 0.5 # 0.5
 END_INTERVAL = 0.6
-EXTRA_LEN = 0.1
+EXTRA_LEN = 0.05
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
 MEAN_WIDTH = 100 #50 # 50
