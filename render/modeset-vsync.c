@@ -484,9 +484,9 @@ out_return:
 	} else {
 		fprintf(stderr, "exiting\n");
 	}
+	free_bit_arr((struct bit_ele*)begin->first_bit);
 	return ret;
 
-	free_bit_arr((struct bit_ele*)begin->first_bit);
 }
 
 /*
@@ -582,9 +582,6 @@ static void modeset_draw(int fd, int duration)
 
 	/* redraw all outputs */
 	for (iter = modeset_list; iter; iter = iter->next) {
-		// iter->r = rand() % 0xff;
-		// iter->g = rand() % 0xff;
-		// iter->b = rand() % 0xff;
 		iter->r = 0xff;
 		iter->g = 0xff;
 		iter->b = 0xff;
@@ -683,6 +680,7 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	else begin = begin->next;
 
 	buf = &dev->bufs[dev->front_buf ^ 1];
+	printf("Width:%d, Height:%d\n", buf->width, buf->height);
 	for (j = 0; j < buf->height; ++j) {
 		for (k = 0; k < buf->width; ++k) {
 			off = buf->stride * j + k * 4;

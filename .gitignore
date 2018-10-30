@@ -10,8 +10,10 @@
 modeset
 modeset-double-buffered
 modeset-vsync
+location
 /.vscode
 test.c
 a.out
 test
+temp
 share_data

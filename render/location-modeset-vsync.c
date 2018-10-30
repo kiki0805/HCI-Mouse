@@ -50,8 +50,7 @@ static int modeset_prepare(int fd);
 static void modeset_draw(int fd, int duration);
 static void modeset_draw_dev(int fd, struct modeset_dev *dev);
 static void modeset_cleanup(int fd);
-struct bit_ele* begin;
-struct bit_ele* location_data[BLOCK_SIZE][BLOCK_SIZE];
+struct bit_map* location_data;
 
 /*
  * modeset_open() stays the same.
@@ -485,7 +484,6 @@ out_return:
 		fprintf(stderr, "exiting\n");
 	}
 
-	// free_bit_arr((struct bit_ele*)begin->first_bit);
 	free_location_data(location_data);
 
 	return ret;
@@ -582,12 +580,8 @@ static void modeset_draw(int fd, int duration)
 	 * introduced the page_flip_handler, so we use that. */
 	ev.version = 2;
 	ev.page_flip_handler = modeset_page_flip_event;
-
 	/* redraw all outputs */
 	for (iter = modeset_list; iter; iter = iter->next) {
-		// iter->r = rand() % 0xff;
-		// iter->g = rand() % 0xff;
-		// iter->b = rand() % 0xff;
 		iter->r = 0xff;
 		iter->g = 0xff;
 		iter->b = 0xff;
@@ -675,31 +669,29 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	struct modeset_buf *buf;
 	unsigned int j, k, off;
 	int ret;
-
-	// dev->r = next_color(&dev->r_up, dev->r, 20);
-	// dev->g = next_color(&dev->g_up, dev->g, 10);
-	// dev->b = next_color(&dev->b_up, dev->b, 5);
-	// dev->r = begin->bit == '0' ? 0xff:0;
-	// dev->g = begin->bit == '0' ? 0xff:0;
-	// dev->b = begin->bit == '0' ? 0xff:0;
-	// if (begin->next == NULL) begin = (struct bit_ele*) begin->first_bit;
-	// else begin = begin->next;
+	char bit;
 
 	buf = &dev->bufs[dev->front_buf ^ 1];
+	// printf("%d %d\n", buf->width, buf->height);
 	for (j = 0; j < buf->height; ++j) {
 		for (k = 0; k < buf->width; ++k) {
-			char bit = get_bit_by_pixel(k, j, location_data, buf->width, buf->height);
+			bit = get_bit_by_pixel(k, j, location_data, buf->width, buf->height);
 			dev->r = bit == '0' ? 0xff:0;
 			dev->g = bit == '0' ? 0xff:0;
 			dev->b = bit == '0' ? 0xff:0;
+			// dev->r = 0;
+			// dev->g = 0;
+			// dev->b = 0;
 			off = buf->stride * j + k * 4;
 			*(uint32_t*)&buf->map[off] =
 				     (dev->r << 16) | (dev->g << 8) | dev->b;
+			// break;
 		}
+		// break;
 	}
 
 	move_next(location_data);
-
+	
 	ret = drmModePageFlip(fd, dev->crtc, buf->fb,
 			      DRM_MODE_PAGE_FLIP_EVENT, dev);
 	if (ret) {
