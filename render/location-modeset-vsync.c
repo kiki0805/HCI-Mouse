@@ -455,7 +455,7 @@ int main(int argc, char **argv)
         move_next(location_data);
     }
 	printf("Load done.\n");
-	printf("Used memory: %dMB\n", BITS_NUM*WIDTH*HEIGHT/8/1000/1000);
+	printf("Used memory: %fMB\n", (double)BITS_NUM*WIDTH*HEIGHT*sizeof(char)/8/1000/1000);
 
 	/* check which DRM device to open */
 	if (argc > 1)
@@ -710,7 +710,7 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	}
 
 	bit_index ++;
-	if(bit_index == 18) bit_index = 0;
+	if(bit_index == BITS_NUM) bit_index = 0;
 	// move_next(location_data);
 	
 	ret = drmModePageFlip(fd, dev->crtc, buf->fb,
