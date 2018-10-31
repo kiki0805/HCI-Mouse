@@ -50,6 +50,8 @@ static void modeset_draw(int fd, int duration);
 static void modeset_draw_dev(int fd, struct modeset_dev *dev);
 static void modeset_cleanup(int fd);
 struct bit_ele* begin;
+struct RGB_val fixed_color;
+struct RGB_val complement_colors[2];
 
 /*
  * modeset_open() stays the same.
@@ -92,8 +94,7 @@ static int modeset_open(int *out, const char *node)
  * \cleanup variable is true if the device is currently cleaned up and no more
  * pageflips should be scheduled. They are used to synchronize the cleanup
  * routines.
- */
-
+*/
 struct modeset_buf {
 	uint32_t width;
 	uint32_t height;
@@ -437,6 +438,11 @@ int main(int argc, char **argv)
     // printf("File Path: ");
 	// scanf("%s", file_path);
     begin = read_swap_data(file_path);
+	fixed_color = init_RGB(128, 128, 128);
+	printf("Fixed color(RGB): (%d, %d, %d)\n", fixed_color.R, fixed_color.G, fixed_color.B);
+	pick_with_alpha(complement_colors, fixed_color, 0.3);
+	printf("Complement colors(RGB): (%u, %u, %u) ", complement_colors[0].R, complement_colors[0].G, complement_colors[0].B);
+	printf("and (%u, %u, %u)\n", complement_colors[1].R, complement_colors[1].G, complement_colors[1].B);
 
 	/* check which DRM device to open */
 	if (argc > 1)
@@ -673,9 +679,12 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	// dev->r = next_color(&dev->r_up, dev->r, 20);
 	// dev->g = next_color(&dev->g_up, dev->g, 10);
 	// dev->b = next_color(&dev->b_up, dev->b, 5);
-	dev->r = begin->bit == '0' ? 0xff:0;
-	dev->g = begin->bit == '0' ? 0xff:0;
-	dev->b = begin->bit == '0' ? 0xff:0;
+	dev->r = begin->bit == '0' ? (unsigned int)complement_colors[0].R:(unsigned int)complement_colors[1].R;
+	dev->g = begin->bit == '0' ? (unsigned int)complement_colors[0].G:(unsigned int)complement_colors[1].G;
+	dev->b = begin->bit == '0' ? (unsigned int)complement_colors[0].B:(unsigned int)complement_colors[1].B;
+	//dev->r = begin->bit == '0' ? 255:0;
+	//dev->g = begin->bit == '0' ? 255:0;
+	//dev->b = begin->bit == '0' ? 255:0;
 	if (begin->next == NULL) begin = (struct bit_ele*) begin->first_bit;
 	else begin = begin->next;
 

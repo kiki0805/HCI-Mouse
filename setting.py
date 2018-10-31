@@ -5,7 +5,7 @@ DETAILS = True #False
 INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = False #True
 CRC4 = False #True #False
-fiveBsixB = True #True
+fiveBsixB = False #True
 GRAPHICS = False # True
 TESTING_MODE = False #True
 FORCED_EXIT = False
@@ -33,7 +33,7 @@ else:
 
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
-SIZE = (2, 2) # (256, 256)
+SIZE = (32, 32) # (256, 256)
 CRC_LEN = 4
 
 
