@@ -5,9 +5,9 @@ DETAILS = True #False
 INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = False #True
 CRC4 = False #True #False
-fiveBsixB = False #True
+fiveBsixB = True #True
 GRAPHICS = False # True
-TESTING_MODE = False #True
+TESTING_MODE = True #False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:

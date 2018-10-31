@@ -440,7 +440,7 @@ int main(int argc, char **argv)
     begin = read_swap_data(file_path);
 	fixed_color = init_RGB(128, 128, 128);
 	printf("Fixed color(RGB): (%d, %d, %d)\n", fixed_color.R, fixed_color.G, fixed_color.B);
-	pick_with_alpha(complement_colors, fixed_color, 0.3);
+	pick_with_alpha(complement_colors, fixed_color, 0.1);
 	printf("Complement colors(RGB): (%u, %u, %u) ", complement_colors[0].R, complement_colors[0].G, complement_colors[0].B);
 	printf("and (%u, %u, %u)\n", complement_colors[1].R, complement_colors[1].G, complement_colors[1].B);
 

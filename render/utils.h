@@ -365,6 +365,11 @@ void pick_with_alpha(struct RGB_val* colors, struct RGB_val origial_val, float a
     printf("CIE(x,y,Y): %f, %f, %f\n", x2, y2, Y2);
     colors[0] = CIE_2_RGB(init_CIE_directly(x1, y1, Y1));
     colors[1] = CIE_2_RGB(init_CIE_directly(x2, y2, Y2));
+    if (colors[0].R + colors[0].G + colors[0].B < colors[1].R + colors[1].G + colors[1].B) {
+        struct RGB_val temp = init_RGB(colors[0].R, colors[0].G, colors[0].B);
+        colors[0] = colors[1];
+        colors[1] = temp;
+    }
 }
 
 void print_RGB(struct RGB_val rgb_v) {
