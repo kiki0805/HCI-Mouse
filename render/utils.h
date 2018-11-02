@@ -13,6 +13,12 @@
 #include <assert.h>
 
 #define BLOCK_SIZE 2
+#define GLOBAL_RANGE 258
+#define STEP 3
+#define COUNT 636056
+
+int RGB_arr[(GLOBAL_RANGE / STEP) * (GLOBAL_RANGE / STEP) * (GLOBAL_RANGE / STEP)][3];
+int current_index;
 static pthread_mutex_t mutex;
 
 bool REPETITION = true;
@@ -370,6 +376,7 @@ void pick_with_alpha(struct RGB_val* colors, struct RGB_val origial_val, float a
         colors[0] = colors[1];
         colors[1] = temp;
     }
+    assert(colors[0].R + colors[0].G + colors[0].B >= colors[1].R + colors[1].G + colors[1].B);
 }
 
 void print_RGB(struct RGB_val rgb_v) {
@@ -381,3 +388,62 @@ void print_CIE(struct CIE_val cie_v) {
     printf("CIE(x, y, Y): (%f, %f, %f)\n", cie_v.x, cie_v.y, cie_v.Y);
     printf("CIE(X, Y, Z): (%f, %f, %f)\n", cie_v.X, cie_v.Y, cie_v.Z);
 }
+
+
+//////////////////////////////////////////
+/////////For Chromatic Test///////////////
+//////////////////////////////////////////
+
+void permutation(int* range1, int* range2, int* range3, int size1, int size2, int size3) {
+    int arr_len1 = size1;
+    int arr_len2 = size2;
+    int arr_len3 = size3;
+
+    int ele_index_not_1;
+    if(arr_len1 != 1) ele_index_not_1 = 1;
+    else if(arr_len2 != 1) ele_index_not_1 = 2;
+    else if(arr_len3 != 1) ele_index_not_1 = 3;
+    else ele_index_not_1 = 0;
+
+    if(ele_index_not_1 == 1){
+        int temp_range[1];
+        for(int i = 0; i < arr_len1; i++) {
+            temp_range[0] = range1[i];
+            permutation(temp_range, range2, range3, 1, size2, size3);
+        }
+    } 
+    else if(ele_index_not_1 == 2) {
+        int temp_range[1];
+        for(int i = 0; i < arr_len2; i++) {
+            temp_range[0] = range2[i];
+            permutation(range1, temp_range, range3, 1, 1, size3);
+        }
+    } 
+    else if(ele_index_not_1 == 3) {
+        int temp_range[1];
+        for(int i = 0; i < arr_len3; i++) {
+            temp_range[0] = range3[i];
+            permutation(range1, range2, temp_range, 1, 1, 1);
+        }
+    } 
+    // Base case
+    else if(ele_index_not_1 == 0) {
+        RGB_arr[current_index][0] = range1[0];
+        RGB_arr[current_index][1] = range2[0];
+        RGB_arr[current_index][2] = range3[0];
+        current_index ++;
+    } 
+    else printf("Unknown\n");
+}
+
+void permutation_init(int step) {
+    assert(GLOBAL_RANGE % step == 0);
+    int range[GLOBAL_RANGE / step];
+    for(int i = 0; i < GLOBAL_RANGE/step; i++) {
+        range[i] = i * step;
+    }
+    // printf("Initial len: %d\n", GLOBAL_RANGE / step);
+    int size = GLOBAL_RANGE / step;
+    permutation(range, range, range, size, size, size);
+}
+

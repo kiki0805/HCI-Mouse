@@ -6,8 +6,8 @@ INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = False #True
 CRC4 = False #True #False
 fiveBsixB = True #True
-GRAPHICS = False # True
-TESTING_MODE = True #False #True
+GRAPHICS = True #False # True
+TESTING_MODE = False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
