@@ -176,6 +176,7 @@ static int modeset_prepare(int fd)
 		/* free connector data and link device into global list */
 		drmModeFreeConnector(conn);
 		dev->next = modeset_list;
+		
 		modeset_list = dev;
 	}
 
@@ -466,8 +467,15 @@ int main(int argc, char **argv)
 	for (iter = modeset_list; iter; iter = iter->next) {
 		iter->saved_crtc = drmModeGetCrtc(fd, iter->crtc);
 		buf = &iter->bufs[iter->front_buf];
-		ret = drmModeSetCrtc(fd, iter->crtc, buf->fb, 0, 0,
-				     &iter->conn, 1, &iter->mode);
+		drmModeModeInfo temp_mode = iter->mode;
+		temp_mode.vrefresh = 120;
+		struct modeset_buf *temp_buf;
+		*temp_buf = *buf;
+		temp_buf->height = 384;
+		temp_buf->width = 680;
+		ret = drmModeSetCrtc(fd, iter->crtc, temp_buf->fb, 0, 0,
+				     &iter->conn, 1, &temp_mode);
+		printf("Frame Rate%d\n",iter->mode.vrefresh);
 		if (ret)
 			fprintf(stderr, "cannot set CRTC for connector %u (%d): %m\n",
 				iter->conn, errno);

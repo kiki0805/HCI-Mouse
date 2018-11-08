@@ -301,32 +301,3 @@ for n in range(im_id):
     num = str((n+1))
     im.save('location__' + num.zfill(4) + '.png')
 
-if val_mode != '':
-    # out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mp4' 
-    out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.mkv' 
-    # out_name = 'one_value_'+ val_mode + '_' + str(rate) + '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) + 'x.avi'
-else:
-    # out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mp4'
-    out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.mkv'
-    # out_name = 'location_' + str(rate)+ '_' + str(SIZE[0]) + 'x' + str(SIZE[1]) +  '_' +  str(ZOOM) +  '.avi'
-
-
-if MANCHESTER_MODE:
-    out_name = 'Manchester_' + out_name
-
-if CRC4:
-    out_name = 'CRC4_' + out_name
-
-if fiveBsixB:
-    out_name = 'fiveBsixB_' + out_name
-
-# os.system('ffmpeg -r ' + str(rate) + ' -i location__%04d.png -vcodec libx264 -crf 0 test.mkv')
-# os.system('ffmpeg -r ' + str(rate) + ' -f image2  -i location__%02d.png -vcodec libx264 -crf 0 -pix_fmt yuv420p test.mp4') # crf 10
-# os.system('ffmpeg -f concat -i new.txt -c copy ' + out_name)
-# os.system('ffmpeg -framerate ' + str(rate) + ' -i location__%02d.png -vcodec copy test.mkv')
-# os.system('ffmpeg -f concat -i new_mkv.txt -c copy ' + out_name)
-# os.system('ffmpeg -r ' + str(rate) + ' -i location__%02d.png -c:v huffyuv test.avi')
-# os.system('ffmpeg -f concat -i new_avi.txt -c copy ' + out_name)
-
-# ffmpeg -r 50 -stream_loop 100 -i location__%02d.png -c:v huffyuv test.avi
-
