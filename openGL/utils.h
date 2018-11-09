@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#define BLOCK_SIZE 2
+#define BLOCK_SIZE 32
 #define GLOBAL_RANGE 258
 #define STEP 3
 #define COUNT 636056

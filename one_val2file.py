@@ -18,5 +18,9 @@ print('Decoded data(' +  str(len(data)) + '): ' + data)
 with open(SHARE_PATH, 'w') as f:
     f.write(data)
     f.write('\n')
+
+with open('openGL/share_data', 'w') as f:
+    f.write(data)
+    f.write('\n')
 print('Finish writing ' + SHARE_PATH)
 

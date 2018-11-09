@@ -36,7 +36,7 @@
 #include <xf86drmMode.h>
 #include "utils.h"
 
-#define BITS_NUM 54 // 18 * 3
+#define BITS_NUM 72 // 18 * 3
 #define WIDTH 1366
 #define HEIGHT 768
 

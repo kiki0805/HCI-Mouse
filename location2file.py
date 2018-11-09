@@ -68,6 +68,13 @@ def write_nparray(arr):
             f.write(''.join(str_list))
             f.write('\n')
     f.close()
+    f = open('openGL/share_data_location', 'w')
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            str_list = [str(i) for i in arr[i][j]]
+            f.write(''.join(str_list))
+            f.write('\n')
+    f.close()
 
 
 if fiveBsixB:
@@ -78,8 +85,8 @@ if fiveBsixB:
     print('\tline x * SIZE + y ( from 0 ).')
     print('Line n ( from 0 ) stores location data of:')
     print('\tblock (floor(n / SIZE), n - SIZE * floor(n / SIZE)).')
+    print('Finish writing ' + SHARE_PATH_LOCATION + ' and openGL/share_data_location')
 else:
     print('Not supported yet...')
-    data = raw_data + crc_cal(raw_data)
+    # data = raw_data + crc_cal(raw_data)
 
-print('Finish writing ' + SHARE_PATH)

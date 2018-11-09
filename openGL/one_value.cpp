@@ -5,8 +5,11 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <assert.h>
+#include "utils.h"
 
-// gcc test.c -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread -ldl
+// gcc one_value.c -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread -ldl
+
+struct bit_ele* begin;
 
 const char *vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
@@ -31,6 +34,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 int main() {
+    char file_path[] = "share_data";
+    begin = read_swap_data(file_path);
     int init_ret = glfwInit();
     assert(init_ret == 1);
     
@@ -120,14 +125,21 @@ int main() {
 
     bool flag = true;
     glfwSwapInterval(1);
+    // wglSwapIntervalEXT(1);
     float timeValue = glfwGetTime();
     float current = timeValue;
     while (!glfwWindowShouldClose(window)) {
-        if(flag) 
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        else
+        if(begin->bit == '0') 
             glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        flag = !flag;
+        else
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        if (begin->next == NULL) begin = (struct bit_ele*) begin->first_bit;
+        else begin = begin->next;
+        // if(flag) 
+        //     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        // else
+        //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        // flag = !flag;
 
         current = glfwGetTime();
         if(current-timeValue > (float)1.0/60.0 + 0.001) {
@@ -154,5 +166,6 @@ int main() {
     }
 
     glfwTerminate();
+    free_bit_arr((struct bit_ele*)begin->first_bit);
     return 0;
 }
