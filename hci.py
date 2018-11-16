@@ -142,18 +142,18 @@ class SlideArray:
             self.line.set_ydata(y[-self.draw_interval:])
 
     def check_bit(self, sample_slide):
-        # if self.init_timestamp and CHECK_BIT == 'BY_TIME':
-        #     x, y = divide_coordinate(self.window)
-        #     if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
-        #         if y[-1] != y[-2]: return
-        #         bit = '1' if y[-1] == one else '0'
-        #         if bit == '1':
-        #             sample_slide.push(np.array([[x[-1], one]]))
-        #         else:
-        #             sample_slide.push(np.array([[x[-1], zero]]))
-        #         self.init_timestamp = x[-1]
-        #         return bit
-        #     return
+        if self.init_timestamp and CHECK_BIT == 'BY_TIME':
+            x, y = divide_coordinate(self.window)
+            if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
+                # if y[-1] != y[-2]: return
+                bit = '1' if y[-1] == one else '0'
+                if bit == '1':
+                    sample_slide.push(np.array([[x[-1], one]]))
+                else:
+                    sample_slide.push(np.array([[x[-1], zero]]))
+                self.init_timestamp = x[-1]
+                return bit
+            return
         if not self.is_full():
             return None
         x, y = divide_coordinate(self.window)
