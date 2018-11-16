@@ -1,10 +1,12 @@
 // #include <glad/glad.h>
+#ifdef _WIN32
+    #include "pch.h"
+#endif
 #include <GL/glew.h>
 #ifdef __linux__ 
     #include <GL/glxew.h>
 #elif _WIN32
     #include <GL/wglew.h>
-    #include <pch.h>
 #else
 
 #endif
@@ -85,6 +87,8 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    free_bit_arr((struct bit_ele*)::begin->first_bit);
 
     glfwTerminate();
     return 0;

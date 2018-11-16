@@ -144,16 +144,52 @@ class SlideArray:
     def check_bit(self, sample_slide):
         if self.init_timestamp and CHECK_BIT == 'BY_TIME':
             x, y = divide_coordinate(self.window)
-            if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
-                # if y[-1] != y[-2]: return
-                bit = '1' if y[-1] == one else '0'
-                if bit == '1':
-                    sample_slide.push(np.array([[x[-1], one]]))
-                else:
-                    sample_slide.push(np.array([[x[-1], zero]]))
-                self.init_timestamp = x[-1]
-                return bit
+            ########################### METHOD 1 ####################
+            # if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
+            #     bit = '1' if y[-1] == one else '0'
+            #     if bit == '1':
+            #         sample_slide.push(np.array([[x[-1], one]]))
+            #     else:
+            #         sample_slide.push(np.array([[x[-1], zero]]))
+            #     self.init_timestamp = x[-1]
+            #     return bit
+            
+            ########################## METHOD 2 #####################
+            mid_index = int(x.size/2)
+            if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE:
+            ########################## METHOD 2.1 #####################
+            #     bit = '1' if y[mid_index] == one else '0'
+            #     if bit == '1':
+            #         sample_slide.push(np.array([[x[mid_index], one]]))
+            #     else:
+            #         sample_slide.push(np.array([[x[mid_index], zero]]))
+            #     self.init_timestamp = x[mid_index]
+            #     return bit
+            ######################## METHOD 2.2 ############################
+                num_one = 0
+                num_zero = 0
+                l = 3
+                r = 8
+                for e in y[l:r].tolist():
+                    if e == one:
+                        num_one += 1
+                    else:
+                        num_zero += 1
+
+                pct = 0.6 if r - l == 3 else 0.7
+                if num_one / (r-l) >= pct:
+                    sample_slide.push(np.array([[x[mid_index], one]]))
+                    self.init_timestamp = x[mid_index]
+                    return '1'
+                elif num_zero / (r-l) >= pct:
+                    sample_slide.push(np.array([[x[mid_index], zero]]))
+                    self.init_timestamp = x[mid_index]
+                    return '0'
+            ####################################################################
             return
+
+
+
         if not self.is_full():
             return None
         x, y = divide_coordinate(self.window)
@@ -165,50 +201,18 @@ class SlideArray:
             else:
                 num_zero += 1
 
-        pct = 0.9 if not self.init_timestamp else 0.7
-        if num_one / y.size >= pct:
-            # if self.last_detected < self.window.size * pct:
-            #     self.last_detected += 1
-            #     return None
-            if not self.init_timestamp and num_one / y.size == 0.9:
-                self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == zero \
-                    else x[math.floor((x.size - 1) / 2) + 1]
-            elif not self.init_timestamp:
-                return None
-            elif x[-math.floor((x.size - 1) / 2)] - self.init_timestamp >= 1 / FRAME_RATE * 0.8:
-                # first one later than 1/frame_rate + init
-                first = first_one_larger_than(x, self.init_timestamp + 1 / FRAME_RATE)
-                self.init_timestamp = (first + x[-math.floor((x.size - 1) / 2)]) / 2
-            else:
-                return None
-            self.last_detected = 0
+        pct = 0.9
+        if num_one / y.size == pct:
+            self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == zero \
+                else x[math.floor((x.size - 1) / 2) + 1]
             sample_slide.push(np.array([[self.init_timestamp, one]]))
-            # if CHECK_BIT == 'BY_TIME':
-            #     self.init_timestamp = x.mean()
             return '1'
-        elif num_zero / y.size >= pct:
-            if not self.init_timestamp and num_zero / y.size == 0.9:
-                self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == one \
-                    else x[math.floor((x.size - 1) / 2) + 1]
-            elif not self.init_timestamp:
-                return None
-            elif x[-math.floor((x.size - 1) / 2)] - self.init_timestamp >= 1 / FRAME_RATE * 0.8:
-                # self.init_timestamp = x.mean()
-                first = first_one_larger_than(x, self.init_timestamp + 1 / FRAME_RATE)
-                self.init_timestamp = (first + x[-math.floor((x.size - 1) / 2)]) / 2
-            else:
-                return None
-            # if self.last_detected < self.window.size * pct:
-            #     self.last_detected += 1
-            #     return None
-            self.last_detected = 0
+        elif not self.init_timestamp and num_zero / y.size == 0.9:
+            self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == one \
+                else x[math.floor((x.size - 1) / 2) + 1]
             sample_slide.push(np.array([[self.init_timestamp, zero]]))
-            # if CHECK_BIT == 'BY_TIME':
-            #     self.init_timestamp = x.mean()
             return '0'
-        else:
-            self.last_detected += 1
-            return None
+        return None
 
 class BitSlideArray:
     def __init__(self, window, size, location_mod=False):

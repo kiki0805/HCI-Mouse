@@ -6,8 +6,8 @@ INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = False #True
 CRC4 = False #True #False
 fiveBsixB = True #True
-GRAPHICS = True # True
-TESTING_MODE = False #True
+GRAPHICS = True # False # True
+TESTING_MODE = True #False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -19,7 +19,7 @@ if TESTING_MODE:
 
 LOCATION_SLIDE_WINDOW_SIZE = 10
 BITS_NUM = 10
-FRAME_RATE = 60 * 4
+FRAME_RATE = 240
 MOUSE_FRAME_RATE = 2800 # 2400
 
 if MANCHESTER_MODE:
