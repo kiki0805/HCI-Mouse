@@ -23,13 +23,32 @@ struct bit_ele* begin;
 int main() {
     int init_ret = glfwInit();
     assert(init_ret == 1);
+
+    int monitorCount;
+    GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
+
+    int holographic_screen = -1;
+    for(int i=0; i<monitorCount; i++){
+        int screen_x, screen_y;
+        const GLFWvidmode * mode = glfwGetVideoMode(pMonitor[i]);
+        screen_x = mode->width;
+        screen_y = mode->height;
+        std::cout << "Screen size is X = " << screen_x << ", Y = " << screen_y << std::endl;
+        if(screen_x==1920 && screen_y==1080){
+            holographic_screen = i;
+        }
+    }
+    std::cout << holographic_screen << std::endl;
+
     
-    GLFWwindow* window = glfwCreateWindow(800, 600, "My Title", NULL, NULL);
+    // GLFWwindow* window = glfwCreateWindow(800, 600, "My Title", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Holographic projection", pMonitor[holographic_screen], NULL);
     if (!window) {
         printf("Window or OpenGL context creation failed\n");
     }
     glfwMakeContextCurrent(window);
-    glViewport(0, 0, 800, 600);
+    // glViewport(0, 0, 800, 600);
+    glViewport(0, 0, 1366, 768);
 
     // if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
     //     std::cout << "Failed to initialize OpenGL context" << std::endl;
