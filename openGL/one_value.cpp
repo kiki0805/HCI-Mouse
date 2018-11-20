@@ -1,15 +1,17 @@
-// #include <glad/glad.h>
-#ifdef _WIN32
-    #include "pch.h"
-#endif
-#include <GL/glew.h>
-#ifdef __linux__ 
-    #include <GL/glxew.h>
-#elif _WIN32
-    #include <GL/wglew.h>
-#else
+// #include <glad/glad.h> 
+//////////////////// WINDOWS
+// #include "pch.h"
+// #include <GL/glew.h>
+// #include <GL/wglew.h>
+// #define OS_STRING "Windows"
 
-#endif
+//////////////////UBUNTU
+#include <GL/glew.h>
+#include <GL/glxew.h>
+#define OS_STRING "Ubuntu"
+
+//////////////////////////////
+
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
@@ -40,15 +42,20 @@ int main() {
     }
     std::cout << holographic_screen << std::endl;
 
-    
-    // GLFWwindow* window = glfwCreateWindow(800, 600, "My Title", NULL, NULL);
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Holographic projection", pMonitor[holographic_screen], NULL);
+    GLFWwindow* window;
+    if (OS_STRING == "Ubuntu")
+        window = glfwCreateWindow(800, 600, "My Title", NULL, NULL);
+    else
+        window = glfwCreateWindow(1920, 1080, "Holographic projection", pMonitor[holographic_screen], NULL);
     if (!window) {
         printf("Window or OpenGL context creation failed\n");
     }
     glfwMakeContextCurrent(window);
-    // glViewport(0, 0, 800, 600);
-    glViewport(0, 0, 1366, 768);
+    if (OS_STRING == "Ubuntu")
+        glViewport(0, 0, 800, 600);
+        // glViewport(0, 0, 1366, 768);
+    else
+        glViewport(0, 0, 1920, 1080);
 
     // if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
     //     std::cout << "Failed to initialize OpenGL context" << std::endl;
@@ -86,15 +93,24 @@ int main() {
 #endif
     
     // bool flag = true;
-    char file_path[] = "share_data";
-    ::begin = read_swap_data(file_path);
+    // char file_path[] = "share_data";
+    char file_path[] = "filtered_data";
+    // ::begin = read_swap_data(file_path);
+    vector<double> data = read_filtered_data(file_path);
+    int cnt = 0;
     while (!glfwWindowShouldClose(window)) {
-        if(::begin->bit == '0') 
-            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        else
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        if (::begin->next == NULL) ::begin = (struct bit_ele*) ::begin->first_bit;
-        else ::begin = ::begin->next;
+        if (cnt == 25) cnt = 0;
+        double v = data[cnt];
+        glClearColor(v, v, v, 1.0f);
+        cnt ++;
+        /////////////////////////////////////////////////////////
+        // if(::begin->bit == '0') 
+        //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        // else
+        //     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        // if (::begin->next == NULL) ::begin = (struct bit_ele*) ::begin->first_bit;
+        // else ::begin = ::begin->next;
+        ////////////////////////////////////////////////////////
         // if(flag) 
         //     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         // else
@@ -107,7 +123,7 @@ int main() {
         glfwPollEvents();
     }
 
-    free_bit_arr((struct bit_ele*)::begin->first_bit);
+    // free_bit_arr((struct bit_ele*)::begin->first_bit);
 
     glfwTerminate();
     return 0;

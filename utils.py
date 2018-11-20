@@ -1,5 +1,6 @@
 import os
 from crccheck.crc import Crc4Itu
+from scipy.fftpack import fft,ifft
 from setting import *
 import numpy as np
 import math
@@ -154,4 +155,17 @@ def first_one_larger_than(x, compare_num):
     for i in x:
         if i >= compare_num:
             return i
+
+############################################
+################## DSP #####################
+############################################
+def filter_normalize(complex_arr):
+    assert complex_arr.size == 25
+    a1 = fft(complex_arr)
+    a1[1:4]=0
+    a1[22:25]=0
+    a2 = ifft(a1).real
+    a2 = a2 - a2.mean()
+    a2 = a2 / 2 + 0.5
+    return a2
 

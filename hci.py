@@ -39,6 +39,7 @@ def zero_bit_array(size):
     return np.array([zero] * size)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
+#device = usb.core.find(idVendor=0x2188, idProduct=0x0ae1)
 
 if device.is_kernel_driver_active(0):
     device.detach_kernel_driver(0)
@@ -82,6 +83,8 @@ class SlideArray:
         self.last_detected = -1
         self.location_mod = location_mod
         self.init_timestamp = None
+        self.window_of_last_one = None
+        self.window_of_last_zero = None
         if location_mod:
             self.occur_times = {}
             if self.window != np.array([]):
@@ -141,6 +144,28 @@ class SlideArray:
             self.line.set_xdata(x[-self.draw_interval:])
             self.line.set_ydata(y[-self.draw_interval:])
 
+    def learn_len_one(self):
+        return 10
+        if self.window_of_last_one is None:
+            return 10
+        count = 0
+        x, y = divide_coordinate(self.window_of_last_one)
+        for i in y.tolist():
+            if i == one:
+                count += 1
+        return count
+
+    def learn_len_zero(self):
+        return 5
+        if self.window_of_last_zero is None:
+            return 5
+        count = 0
+        x, y = divide_coordinate(self.window_of_last_zero)
+        for i in y.tolist():
+            if i == zero:
+                count += 1
+        return count
+
     def check_bit(self, sample_slide):
         if self.init_timestamp and CHECK_BIT == 'BY_TIME':
             x, y = divide_coordinate(self.window)
@@ -156,7 +181,8 @@ class SlideArray:
             
             ########################## METHOD 2 #####################
             mid_index = int(x.size/2)
-            if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE:
+            if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE * 0.9:
+            # if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE:
             ########################## METHOD 2.1 #####################
             #     bit = '1' if y[mid_index] == one else '0'
             #     if bit == '1':
@@ -166,24 +192,81 @@ class SlideArray:
             #     self.init_timestamp = x[mid_index]
             #     return bit
             ######################## METHOD 2.2 ############################
-                num_one = 0
+                # num_one = 0
+                # num_zero = 0
+                # l = 3
+                # r = 8
+                # for e in y[l:r].tolist():
+                #     if e == one:
+                #         num_one += 1
+                #     else:
+                #         num_zero += 1
+
+                # pct = 0.6 if r - l == 3 else 0.7
+                # if num_one / (r-l) >= pct:
+                #     sample_slide.push(np.array([[x[mid_index], one]]))
+                #     self.init_timestamp = x[mid_index]
+                #     return '1'
+                # elif num_zero / (r-l) >= pct:
+                #     sample_slide.push(np.array([[x[mid_index], zero]]))
+                #     self.init_timestamp = x[mid_index]
+                #     return '0'
+            ############################ METHOD 2.3 #########################
+                # num_one = 0 
+                # num_zero = 0
+                # len_zero = 5
+                # len_one = 10
+                # pct = 0.9
+
+                # left_zero = math.floor((y.size-len_zero)/2)
+                # for e in y[left_zero:left_zero + len_zero].tolist():
+                #     if e == zero:
+                #         num_zero += 1
+
+                # left_one = math.floor((y.size-len_one)/2)
+                # for e in y[left_one:left_one + len_one].tolist():
+                #     if e == one:
+                #         num_one += 1
+
+                # if num_one / len_one >= pct:
+                #     sample_slide.push(np.array([[x[mid_index], one]]))
+                #     self.init_timestamp = x[mid_index]
+                #     return '1'
+                # elif num_zero / len_zero >= pct:
+                #     sample_slide.push(np.array([[x[mid_index], zero]]))
+                #     self.init_timestamp = x[mid_index]
+                #     return '0'
+            ###################### METHOD 2.4 ##################################
+            # learn last bit occupies how many samples
+            # len_zero: min(between [5,10])
+            # len_one: min(between [8,13])
+                num_one = 0 
                 num_zero = 0
-                l = 3
-                r = 8
-                for e in y[l:r].tolist():
-                    if e == one:
-                        num_one += 1
-                    else:
+                len_zero = self.learn_len_zero() - 1
+                len_one = self.learn_len_one()
+                assert len_zero != 0
+                assert len_one != 0
+                pct = 0.8
+
+                left_zero = math.floor((y.size-len_zero)/2)
+                for e in y[left_zero:left_zero + len_zero].tolist():
+                    if e == zero:
                         num_zero += 1
 
-                pct = 0.6 if r - l == 3 else 0.7
-                if num_one / (r-l) >= pct:
+                left_one = math.floor((y.size-len_one)/2)
+                for e in y[left_one:left_one + len_one].tolist():
+                    if e == one:
+                        num_one += 1
+
+                if num_one / len_one >= pct:
                     sample_slide.push(np.array([[x[mid_index], one]]))
                     self.init_timestamp = x[mid_index]
+                    self.window_of_last_one = self.window
                     return '1'
-                elif num_zero / (r-l) >= pct:
+                elif num_zero / len_zero >= pct:
                     sample_slide.push(np.array([[x[mid_index], zero]]))
                     self.init_timestamp = x[mid_index]
+                    self.window_of_last_zero = self.window
                     return '0'
             ####################################################################
             return
@@ -500,7 +583,8 @@ def update():
                         continue
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     x, y = divide_coordinate(frames_m.window)
-                    y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
+                    y_mean.push(np.array([[x[-1], 160]]))
+                    # y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
                     # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
@@ -583,6 +667,7 @@ global_count = 0
 if LOOP:
     dur = 999999999
 
+# time1 = time.time()
 while time.time() - start < dur:
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                      bRequest = 0x01,
@@ -590,7 +675,11 @@ while time.time() - start < dur:
                      wIndex = 0x0D, #PIX_GRAB register value
                      data_or_wLength = 1
                      )
-    #time.sleep(0.0003)
+
+    # time2 = time.time()
+    # if time2 - time1 > 1/240:
+    #     print(time2 - time1)
+    # time1 = time.time()
     q.put((response, time.time()))
     global_count += 1
 

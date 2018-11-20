@@ -11,6 +11,13 @@
 #include <math.h>
 #include <pthread.h>
 #include <assert.h>
+#include <complex>
+#include <iostream>
+#include <valarray>
+#include <fstream>
+#include <vector>
+#include <cstdlib>
+ 
 
 #define BLOCK_SIZE 32
 #define GLOBAL_RANGE 258
@@ -39,6 +46,25 @@ struct bit_map {
     struct bit_ele* ele_arr[BLOCK_SIZE][BLOCK_SIZE];
     // int curr_index;
 };
+
+
+std::vector<double> read_filtered_data(char* file_path) {
+    std::ifstream ifile(file_path, std::ios::in);
+    std::vector<double> scores;
+
+    //check to see that the file was opened correctly:
+    if (!ifile.is_open()) {
+        std::cerr << "There was a problem opening the input file!\n";
+        exit(1);//exit or do additional error checking
+    }
+
+    double num = 0.0;
+    //keep storing values from the text file so long as data exists:
+    while (ifile >> num) {
+        scores.push_back(num);
+    }
+    return scores;
+}
 
 
 struct bit_ele* read_swap_data(char* file_path) { // output: the first bit

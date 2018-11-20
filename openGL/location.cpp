@@ -1,15 +1,8 @@
 // #include <glad/glad.h>
-#ifdef _WIN32
-    #include "pch.h"
-#endif
+// #include "pch.h"
 #include <GL/glew.h>
-#ifdef __linux__ 
-    #include <GL/glxew.h>
-#elif _WIN32
-    #include <GL/wglew.h>
-#else
-
-#endif
+#include <GL/glxew.h>
+// #include <GL/wglew.h>
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
