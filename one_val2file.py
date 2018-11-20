@@ -12,6 +12,10 @@ if fiveBsixB:
 elif CRC4:
     print('Using CRC4...')
     data = raw_data + crc_cal(raw_data)
+elif MANCHESTER_MODE:
+    print('Using Manchester...')
+    data = PREAMBLE_STR + Manchester_encode(raw_data)
+
 
 print('Raw data(' +  str(len(raw_data)) + '): ' + raw_data)
 print('Decoded data(' +  str(len(data)) + '): ' + data)
