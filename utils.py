@@ -4,7 +4,17 @@ from scipy.fftpack import fft,ifft
 from setting import *
 import numpy as np
 import math
+from scipy.signal import savgol_filter
 
+def smooth(y):
+    if y.size < 15:
+        return y
+    return savgol_filter(y, 15, 3)
+
+# def smooth(y, box_pts):
+#     box = np.ones(box_pts)/box_pts
+#     y_smooth = np.convolve(y, box, mode='same')
+#     return y_smooth
 
 # ceil based on 0.5
 def half_ceil(raw):
@@ -165,7 +175,10 @@ def filter_normalize(complex_arr):
     a1[1:4]=0
     a1[22:25]=0
     a2 = ifft(a1).real
-    a2 = a2 - a2.mean()
-    a2 = a2 / 2 + 0.5
+    # a2 = a2 - a2.mean()
+    # a2 = a2 / 2 + 0.5
+    amax = a2.max()
+    amin = a2.min()
+    a2 = [(i-amin)/(amax-amin) for i in a2]
     return a2
 
