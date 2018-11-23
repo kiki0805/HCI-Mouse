@@ -5,11 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
 #include <math.h>
-#include <pthread.h>
 #include <assert.h>
 #include <complex>
 #include <iostream>
@@ -18,7 +16,6 @@
 #include <vector>
 #include <cstdlib>
  
-
 #define BLOCK_SIZE 32
 #define GLOBAL_RANGE 258
 #define STEP 3
@@ -26,7 +23,6 @@
 
 int RGB_arr[(GLOBAL_RANGE / STEP) * (GLOBAL_RANGE / STEP) * (GLOBAL_RANGE / STEP)][3];
 int current_index;
-static pthread_mutex_t mutex;
 
 bool REPETITION = true;
 int repetition_time = 0; 
@@ -241,7 +237,6 @@ void move_next(struct bit_map* big_map) {
         }
     }
     if(go_first) {
-        pthread_mutex_lock(&mutex);
         if(repetition_time == 0) {
             repetition_time = 1;
             printf("Shift horizentally...\n");
@@ -258,7 +253,6 @@ void move_next(struct bit_map* big_map) {
             repetition_time = 0;
             printf("Restore original Location\n");
         }
-        pthread_mutex_unlock(&mutex);
     }
 }
 
@@ -427,7 +421,7 @@ void print_CIE(struct CIE_val cie_v) {
 //////////////////////////////////////////
 /////////For Chromatic Test///////////////
 //////////////////////////////////////////
-
+#ifdef __linux__ 
 void permutation(int* range1, int* range2, int* range3, int size1, int size2, int size3) {
     int arr_len1 = size1;
     int arr_len2 = size2;
@@ -480,4 +474,9 @@ void permutation_init(int step) {
     int size = GLOBAL_RANGE / step;
     permutation(range, range, range, size, size, size);
 }
+
+#endif
+
+
+
 
