@@ -6,6 +6,7 @@
 *.mkv
 *.ipynb
 *.png
+!test.png
 *.mp4
 *.pyc
 modeset
