@@ -4,6 +4,7 @@ from scipy.fftpack import fft,ifft
 from setting import *
 import numpy as np
 import math
+import time
 from scipy.signal import savgol_filter
 
 def smooth(y):
@@ -182,3 +183,24 @@ def filter_normalize(complex_arr):
     a2 = [(i-amin)/(amax-amin) for i in a2]
     return a2
 
+##########################################
+######## Report Utils ###################
+###########################################
+def test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val):
+    location_range = hld(possible_dataB[0], SIZE, '1', '0')
+    delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
+    for i in possible_dataB:
+        dataB_list.append(i)
+    for i in possible_dataD:
+        dataD_list.append(i)
+    delay_list.append(delay)
+    location_list.append((location_range[1][1], location_range[0][1]))
+    temp_arr = np.array(dataD_list)
+    print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
+    print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
+    print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
+    correct_bit_num_arr = []
+    for i in dataB_list:
+        correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
+    print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
+    print('Average Delay: ' + str(np.array(delay_list).mean()))

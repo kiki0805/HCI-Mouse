@@ -29,8 +29,8 @@ preamble = np.array(PREAMBLE_LIST)
 times_interpolate = TIMES_INTERPOLATE
 
 
-one = 125
-zero = 200
+one = 130
+zero = 240
 
 def one_bit_array(size):
     return np.array([one] * size)
@@ -145,7 +145,7 @@ class SlideArray:
             self.line.set_ydata(y[-self.draw_interval:])
 
     def learn_len_one(self):
-        return 10
+        return 5
         if self.window_of_last_one is None:
             return 10
         count = 0
@@ -156,7 +156,7 @@ class SlideArray:
         return count
 
     def learn_len_zero(self):
-        return 5
+        return 3
         if self.window_of_last_zero is None:
             return 5
         count = 0
@@ -491,22 +491,26 @@ if TESTING_MODE:
 
 
 def update():
+    advanced_time = FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.005
     global location_list, dataB_list, dataD_list, delay_list
     global q 
     global x, y, ax, y_fixed
     raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, MOUSE_FRAME_RATE)  # maintain raw frames within around 2 seconds
     # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
     frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2 / 10)) # maintain frames within 2 seconds after interpolation
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)) # maintain frames within 2 seconds after interpolation
     y_mean = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line3, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2/ 10)) # maintain frames within 2 seconds after interpolation
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE /16)-int(advanced_time)) # maintain frames within 2 seconds after interpolation
     one_bit = SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE), line4, \
             math.floor(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE)) # maintain frames within 2 seconds after interpolation
     sample_arr = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line5, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2/ 10), scatter_mode=True) # maintain frames within 2 seconds after interpolation
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)-int(advanced_time), scatter_mode=True) # maintain frames within 2 seconds after interpolation
+    ################### TEST ##################
+    smooth_data =  SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line6, \
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)-int(advanced_time))
 
     binary_arr =  SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line1, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2 / 10)) # maintain frames within 2 seconds after interpolation
+            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)-int(advanced_time)) # maintain frames within 2 seconds after interpolation
 
     # print('[ DEBUG ] Window size: ', end='')
     # print(int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2))
@@ -557,7 +561,7 @@ def update():
             end_probe = lasttime_interpolated + INTERPOLATION_INTERVAL
             condition = np.logical_and(raw_frames_m.window[:, 0]>=lasttime_interpolated, raw_frames_m.window[:, 0]<end_probe+EXTRA_LEN)
             # condition = raw_frames_m.window[:, 0]>lasttime_interpolated
-
+            lasttime_interpolated = end_probe
             raw_frames_m_not_interpolated = raw_frames_m.window[condition]
             if EXTRA_LEN != 0:
                 frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated, interval=INTERPOLATION_INTERVAL)
@@ -566,8 +570,12 @@ def update():
             # frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
             # print(frames_m_interpolated.shape)
 
-
             l = len(frames_m_interpolated)
+            assert l == INTERPOLATION_INTERVAL * FRAMES_PER_SECOND_AFTER_INTERPOLATE
+            assert frames_m_interpolated[0][0] >= frames_m.window[-1][0]
+            # if frames_m_interpolated[0][0] == frames_m.window[-1][0]:
+            #     frames_m_interpolated[0][1] = frames_m.window[-1][1]
+                # frames_m.window[-1][1] = frames_m_interpolated[0][1]
             temp_x = np.array([])
             temp_y = np.array([])
             for i in range(l + 1):
@@ -581,20 +589,53 @@ def update():
                 if temp_x.size % POINTS_TO_COMBINE == 0 or i == l:
                     if temp_x.size == 0:
                         continue
+                    assert temp_x.mean() >= frames_m.window[-1][0]
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
+                    temp_x = np.array([])
+                    temp_y = np.array([])
+
+                    ######################################################
                     x, y = divide_coordinate(frames_m.window)
-                    y_mean.push(np.array([[x[-1], 160]]))
-                    # y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
+                    y = smooth(y)
+                    smooth_data.window = get_coordinate(x, y)
+                    # y_mean.push(np.array([[x[-1], 160]]))
                     # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+
+                    ##############################
+                    ####### Wait 0.01s ###########
+                    ##############################
+                    
+                    if x.size <= advanced_time + MEAN_WIDTH / 2:
+                        continue
+                    ################ MEAN WAY 1 ######################################
+                    # x = x[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
+                    # y = y[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
+                    # y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
+                    ################ MEAN WAY 2 ######################################
+                    # print(y.size)
+                    # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2))
+                    # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2))
+                    # print(y[-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2): \
+                    #     -int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2)])
+                    mid_interval = y[-int(advanced_time + MEAN_WIDTH / 2): \
+                        -int(advanced_time - MEAN_WIDTH / 2)].mean()
+                    x = x[:-int(advanced_time)]
+                    y = y[:-int(advanced_time)]
+                    y_mean.push(np.array([[x[-1], mid_interval]]))
+                    # print(mid_interval)
+                    
                     if y_mean.window.size == 2:
                         one_bit.push(np.array([[x[-1], one]]))
 
-                    elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
+                    # elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
+                    # elif abs(y_mean.window[-1][1] - y[-1]) < 5:
+                    elif abs(y_mean.window[-1][1] - y[-1]) < 5:
                         if one_bit.window.size != 0:
                             one_bit.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
                         else:
                             one_bit.push(np.array([[x[-1], one]]))
-                    elif y_mean.window[-1][1] < frames_m.window[-1][1]:
+                    # elif y_mean.window[-1][1] < frames_m.window[-1][1]:
+                    elif y_mean.window[-1][1] < y[-1]:
                         one_bit.push(np.array([[x[-1], zero]]))
                     else:
                         one_bit.push(np.array([[x[-1], one]]))
@@ -616,6 +657,7 @@ def update():
                             print(possible_dataB[0])
                             location_range = hld(possible_dataB[0], SIZE, '1', '0')
                             if TESTING_MODE:
+                                test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
                                 delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
                                 for i in possible_dataB:
                                     dataB_list.append(i)
@@ -635,26 +677,25 @@ def update():
                             if DETAILS:
                                 print(possible_dataB[0])
                                 print(possible_dataD[0])
-                                print('delay: ' + str(time.time() - divide_coordinate(one_bit.window)[0].mean()))
+                                print('delay: ' + str(time.time() - \
+                                    divide_coordinate(one_bit.window)[0].mean()))
                                 print('Current Location: ', end='')
                                 print(location_range[1][1], location_range[0][1])
                             location_arr.push((location_range[1][1], location_range[0][1]))
-
-                    temp_x = np.array([])
-                    temp_y = np.array([])
+                    ###############################################
 
                     if GRAPHICS and not raw_frames_m.line:
                         # one_bit.update_line_data()
+                        smooth_data.update_line_data()
                         binary_arr.update_line_data()
                         y_mean.update_line_data()
                         sample_arr.update_line_data()
-                        frames_m.update_line_data()
+                        # frames_m.update_line_data()
                         ax.relim() # renew the data limits
                         ax.autoscale_view(True, True, True) # rescale plot view
                         plt.draw() # plot new figure
                         plt.pause(1e-17)
 
-            lasttime_interpolated = end_probe
             # lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
             # lasttime_interpolated = half_floor(raw_frames_m_not_interpolated[-1][0])
 q = Queue()
