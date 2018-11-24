@@ -13,6 +13,8 @@ class Image4Render {
         int*** pixel_arr;
         bool assigned;
         Mat raw_img;
+        int min_color;
+        int max_color;
 
         Image4Render(int w, int h) {
             width = w;
@@ -23,7 +25,7 @@ class Image4Render {
             }
             for(int i=0; i < w; i++) {
                 for (int j=0; j < h; j++)
-                    *(*(pixel_arr + i) + j) = (int*) malloc(3 * sizeof(int*));
+                    *(*(pixel_arr + i) + j) = (int*) malloc(3 * sizeof(int));
             }
             assigned = false;
         }
@@ -43,12 +45,15 @@ class Image4Render {
 
         void assign_pixel_value(Mat img) {
             Vec3b pixel;
+            min_color = 255;
+            max_color = 0;
             for(int i = 0; i < img.cols; i++) {
                 for(int j = 0; j < img.rows; j++) {
                     pixel = img.at<Vec3b>(i, j);
                     pixel_arr[i][j][0] = (int)pixel.val[0];
                     pixel_arr[i][j][1] = (int)pixel.val[1];
                     pixel_arr[i][j][2] = (int)pixel.val[2];
+                    // if (pixel_arr[i][j][0] > min)
                 }
             }
             assigned = true;
@@ -125,3 +130,5 @@ Image4Render read_pixels_from_image(string img_file) {
 void add_complementary(Image4Render* raw_img) {
 
 }
+
+
