@@ -92,17 +92,17 @@ int main() {
 
 #endif
     
-    // bool flag = true;
+    bool flag = true;
     // char file_path[] = "share_data";
     char file_path[] = "filtered_data";
     // ::begin = read_swap_data(file_path);
     vector<double> data = read_filtered_data(file_path);
     int cnt = 0;
     while (!glfwWindowShouldClose(window)) {
-        if (cnt == 25) cnt = 0;
-        double v = data[cnt];
-        glClearColor(v, v, v, 1.0f);
-        cnt ++;
+        // if (cnt == 25) cnt = 0;
+        // double v = data[cnt];
+        // glClearColor(v, v, v, 1.0f);
+        // cnt ++;
         /////////////////////////////////////////////////////////
         // if(::begin->bit == '0') 
         //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -111,11 +111,12 @@ int main() {
         // if (::begin->next == NULL) ::begin = (struct bit_ele*) ::begin->first_bit;
         // else ::begin = ::begin->next;
         ////////////////////////////////////////////////////////
-        // if(flag) 
-        //     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        // else
-        //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        // flag = !flag;
+        if(flag) 
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        else
+            // glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        flag = !flag;
 
         glClear(GL_COLOR_BUFFER_BIT);
 

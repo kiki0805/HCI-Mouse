@@ -5,6 +5,12 @@
 
 ## TODO
 
+- ImageProcessing: for imperceptibility & decodability test
+- display: final use
+
+
+---
+
 - 动态加载图层 
     - https://blog.csdn.net/meccaendless/article/details/80238997
     - https://my.oschina.net/mickelfeng/blog/1929917
