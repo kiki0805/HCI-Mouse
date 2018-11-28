@@ -1,23 +1,26 @@
-//////////////////// WINDOWS
+#ifdef _WIN32
 // #include "pch.h"
-// #include <GL/glew.h>
-// #include <GL/wglew.h>
-// #define OS_STRING "Windows"
+#include <GL/glew.h>
+#include <GL/wglew.h>
+#define OS_STRING "Windows"
+#endif
 
+#ifdef __linux__
 //////////////////// UBUNTU
 #include <GL/glew.h>
 #include <GL/glxew.h>
 #define OS_STRING "Ubuntu"
-
+#endif
 //////////////////////////////
 
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
+#include <cassert>
 #include <iostream>
 // #include "utils.h"
-#include "layer_utils.h"
-#include "data_generator.h"
+// #include "layer_utils.h"
+// #include "data_generator.h"
 // g++ display.cpp -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread -ldl `pkg-config --cflags --libs opencv`
 
 using namespace std;
