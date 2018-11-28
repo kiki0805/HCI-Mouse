@@ -44,7 +44,7 @@ int main() {
 
     GLFWwindow* window;
     if (OS_STRING == "Ubuntu")
-        window = glfwCreateWindow(800, 600, "My Title", NULL, NULL);
+        window = glfwCreateWindow(300, 300, "My Title", NULL, NULL);
     else
         window = glfwCreateWindow(1920, 1080, "Holographic projection", pMonitor[holographic_screen], NULL);
     if (!window) {
@@ -52,7 +52,7 @@ int main() {
     }
     glfwMakeContextCurrent(window);
     if (OS_STRING == "Ubuntu")
-        glViewport(0, 0, 800, 600);
+        glViewport(0, 0, 300, 300);
         // glViewport(0, 0, 1366, 768);
     else
         glViewport(0, 0, 1920, 1080);

@@ -12,7 +12,7 @@
 #include <iostream>
 #include <algorithm>
 
-#define BIT_NUM 12
+#define BIT_NUM 2
 using namespace std;
 
 // g++ image_test.cpp -o test -Ibuild/include build/src/glad.c -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread -ldl `pkg-config --cflags --libs opencv`
@@ -26,44 +26,52 @@ void assign_value(GLfloat** colors_map, int*** pixel_arr, int n, int color_index
 
 int main( void )
 {
-    Image4Render img_data = read_pixels_from_image("test-4.png");
-    int*** pixel_arr1 = (int***) malloc(sizeof(int**) * img_data.width);
-    for(int i = 0; i < img_data.width; i++)
-        *(pixel_arr1 + i) = (int**) malloc(sizeof(int*) * img_data.height);
-    for(int i = 0; i < img_data.width; i++) {
-        for (int j = 0; j < img_data.height; j++) {
-            *(*(pixel_arr1 + i) + j) = (int*) malloc(sizeof(int) * 3);
-            pixel_arr1[i][j][0] = img_data.pixel_arr[i][j][0];
-            pixel_arr1[i][j][1] = img_data.pixel_arr[i][j][1];
-            pixel_arr1[i][j][2] = img_data.pixel_arr[i][j][2];
-        }
-    }
+    // Image4Render img_data = read_pixels_from_image("test-4.png");
+    // int*** pixel_arr1 = (int***) malloc(sizeof(int**) * img_data.width);
+    // for(int i = 0; i < img_data.width; i++)
+    //     *(pixel_arr1 + i) = (int**) malloc(sizeof(int*) * img_data.height);
+    // for(int i = 0; i < img_data.width; i++) {
+    //     for (int j = 0; j < img_data.height; j++) {
+    //         *(*(pixel_arr1 + i) + j) = (int*) malloc(sizeof(int) * 3);
+    //         pixel_arr1[i][j][0] = img_data.pixel_arr[i][j][0];
+    //         pixel_arr1[i][j][1] = img_data.pixel_arr[i][j][1];
+    //         pixel_arr1[i][j][2] = img_data.pixel_arr[i][j][2];
+    //     }
+    // }
 
-    img_data.change_region(100, 100, 300, 300, -30, false, false);
-    int*** pixel_arr0 = (int***) malloc(sizeof(int**) * img_data.width);
-    for(int i = 0; i < img_data.width; i++)
-        *(pixel_arr0 + i) = (int**) malloc(sizeof(int*) * img_data.height);
-    for(int i = 0; i < img_data.width; i++) {
-        for (int j = 0; j < img_data.height; j++) {
-            *(*(pixel_arr0 + i) + j) = (int*) malloc(sizeof(int) * 3);
-            pixel_arr0[i][j][0] = img_data.pixel_arr[i][j][0];
-            pixel_arr0[i][j][1] = img_data.pixel_arr[i][j][1];
-            pixel_arr0[i][j][2] = img_data.pixel_arr[i][j][2];
-        }
-    }
+    // img_data.change_region(100, 100, 300, 300, -30, false, false);
+    // int*** pixel_arr0 = (int***) malloc(sizeof(int**) * img_data.width);
+    // for(int i = 0; i < img_data.width; i++)
+    //     *(pixel_arr0 + i) = (int**) malloc(sizeof(int*) * img_data.height);
+    // for(int i = 0; i < img_data.width; i++) {
+    //     for (int j = 0; j < img_data.height; j++) {
+    //         *(*(pixel_arr0 + i) + j) = (int*) malloc(sizeof(int) * 3);
+    //         pixel_arr0[i][j][0] = img_data.pixel_arr[i][j][0];
+    //         pixel_arr0[i][j][1] = img_data.pixel_arr[i][j][1];
+    //         pixel_arr0[i][j][2] = img_data.pixel_arr[i][j][2];
+    //     }
+    // }
 
-    img_data.change_region(100, 100, 300, 300, 60, false, false);
-    int*** pixel_arr2 = (int***) malloc(sizeof(int**) * img_data.width);
-    for(int i = 0; i < img_data.width; i++)
-        *(pixel_arr2 + i) = (int**) malloc(sizeof(int*) * img_data.height);
-    for(int i = 0; i < img_data.width; i++) {
-        for (int j = 0; j < img_data.height; j++) {
-            *(*(pixel_arr2 + i) + j) = (int*) malloc(sizeof(int) * 3);
-            pixel_arr2[i][j][0] = img_data.pixel_arr[i][j][0];
-            pixel_arr2[i][j][1] = img_data.pixel_arr[i][j][1];
-            pixel_arr2[i][j][2] = img_data.pixel_arr[i][j][2];
-        }
-    }
+    // img_data.change_region(100, 100, 300, 300, 60, false, false);
+    // int*** pixel_arr2 = (int***) malloc(sizeof(int**) * img_data.width);
+    // for(int i = 0; i < img_data.width; i++)
+    //     *(pixel_arr2 + i) = (int**) malloc(sizeof(int*) * img_data.height);
+    // for(int i = 0; i < img_data.width; i++) {
+    //     for (int j = 0; j < img_data.height; j++) {
+    //         *(*(pixel_arr2 + i) + j) = (int*) malloc(sizeof(int) * 3);
+    //         pixel_arr2[i][j][0] = img_data.pixel_arr[i][j][0];
+    //         pixel_arr2[i][j][1] = img_data.pixel_arr[i][j][1];
+    //         pixel_arr2[i][j][2] = img_data.pixel_arr[i][j][2];
+    //     }
+    // }
+    Image4Render img_data = Image4Render(300, 300);
+    char n[] = "new_im";
+    img_data.read_from_file(n);
+
+    Image4Render img_data2 = Image4Render(300, 300);
+    char n2[] = "new_im2";
+    img_data2.read_from_file(n2);
+
 
     int init_ret = glfwInit();
     assert(init_ret == 1);
@@ -123,6 +131,17 @@ int main( void )
                 // colors_map[n][color_index + 1] = 0;
                 // colors_map[n][color_index + 2] = 0;
 
+                if (n==0) {
+                colors_map[n][color_index] = (float) img_data.pixel_arr[i][j][0] / 255.0;
+                colors_map[n][color_index + 1] = (float) img_data.pixel_arr[i][j][1] / 255.0;
+                colors_map[n][color_index + 2] = (float) img_data.pixel_arr[i][j][2] / 255.0;
+                }
+                else {
+                    colors_map[n][color_index] = (float) img_data2.pixel_arr[i][j][0] / 255.0;
+                colors_map[n][color_index + 1] = (float) img_data2.pixel_arr[i][j][1] / 255.0;
+                colors_map[n][color_index + 2] = (float) img_data2.pixel_arr[i][j][2] / 255.0;
+                }
+
                 // colors_map[n][color_index] = (float)pixel_arr0[i][j][2] / 255.0;
                 // colors_map[n][color_index + 1] = (float)pixel_arr0[i][j][1] / 255.0;
                 // colors_map[n][color_index + 2] = (float)pixel_arr0[i][j][0] / 255.0;
@@ -133,22 +152,22 @@ int main( void )
                 // colors_map[n][color_index + 1] = (float)pixel_arr2[i][j][1] / 255.0;
                 // colors_map[n][color_index + 2] = (float)pixel_arr2[i][j][0] / 255.0;
 
-                if(n == 0) {
-                    assign_value(colors_map, pixel_arr0, n, color_index, i, j);
-                }
-                else if(n == 1) {
-                    assign_value(colors_map, pixel_arr2, n, color_index, i, j);
-                }
-                else if(n == 2) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
-                else if(n == 3) assign_value(colors_map, pixel_arr2, n, color_index, i, j);
-                else if(n == 4) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
-                else if(n == 5) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
-                else if(n == 6) assign_value(colors_map, pixel_arr2, n, color_index, i, j); 
-                else if(n == 7) assign_value(colors_map, pixel_arr2, n, color_index, i, j);
-                else if(n == 8) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
-                else if(n == 9) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
-                else if(n == 10) assign_value(colors_map, pixel_arr2, n, color_index, i, j); 
-                else if(n == 11) assign_value(colors_map, pixel_arr2, n, color_index, i, j);
+                // if(n == 0) {
+                //     assign_value(colors_map, pixel_arr0, n, color_index, i, j);
+                // }
+                // else if(n == 1) {
+                //     assign_value(colors_map, pixel_arr2, n, color_index, i, j);
+                // }
+                // else if(n == 2) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
+                // else if(n == 3) assign_value(colors_map, pixel_arr2, n, color_index, i, j);
+                // else if(n == 4) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
+                // else if(n == 5) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
+                // else if(n == 6) assign_value(colors_map, pixel_arr2, n, color_index, i, j); 
+                // else if(n == 7) assign_value(colors_map, pixel_arr2, n, color_index, i, j);
+                // else if(n == 8) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
+                // else if(n == 9) assign_value(colors_map, pixel_arr0, n, color_index, i, j);
+                // else if(n == 10) assign_value(colors_map, pixel_arr2, n, color_index, i, j); 
+                // else if(n == 11) assign_value(colors_map, pixel_arr2, n, color_index, i, j);
                 // {
                 //     colors_map[n][color_index] = (float)pixel_arr1[i][j][2] / 255.0;
                 //     colors_map[n][color_index + 1] = (float)pixel_arr1[i][j][1] / 255.0;
