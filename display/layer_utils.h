@@ -1,12 +1,12 @@
 #ifndef _LAYER_UTILS_H__
 #define _LAYER_UTILS_H__
 
-#include <opencv4/opencv2/core/core.hpp>
-#include <opencv4/opencv2/imgproc/imgproc.hpp>
-#include <opencv4/opencv2/highgui/highgui.hpp>
-// #include <opencv2/core.hpp>
-// #include <opencv2/imgproc.hpp>
-// #include <opencv2/highgui.hpp>
+// #include <opencv4/opencv2/core/core.hpp>
+// #include <opencv4/opencv2/imgproc/imgproc.hpp>
+// #include <opencv4/opencv2/highgui/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 #include <string>
 #include <assert.h>
 
@@ -108,6 +108,7 @@ DataLayerSlice convert_blocks2slice(DataBlock** blocks, int m, int n) {
         Return DataLayerSlice slice 
             with offset in blocks[i][j] assigned to slice.offset_matrix[i][j]
     */
+   return DataLayerSlice(0,0,1,1);
 }
 
 void show_layer(BaseLayer, DataLayer) {

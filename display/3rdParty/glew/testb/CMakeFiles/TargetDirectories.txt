@@ -1,0 +1,11 @@
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/glewinfo.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/glew.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/glew_s.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/uninstall.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/visualinfo.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/install/local.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/install.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/edit_cache.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/rebuild_cache.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/list_install_components.dir
+D:/projects/HCI-Mouse/display/3rdParty/glew/testb/CMakeFiles/install/strip.dir

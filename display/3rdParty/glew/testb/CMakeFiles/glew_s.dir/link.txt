@@ -1,0 +1,2 @@
+C:/msys64/mingw64/bin/ar.exe qc lib/libglew32.a  CMakeFiles/glew_s.dir/D_/projects/HCI-Mouse/display/3rdParty/glew/src/glew.c.obj CMakeFiles/glew_s.dir/D_/projects/HCI-Mouse/display/3rdParty/glew/build/glew.rc.obj
+C:/msys64/mingw64/bin/ranlib.exe lib/libglew32.a
