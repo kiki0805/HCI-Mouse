@@ -6,11 +6,6 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-#this is a workaround for OpenCVConfig.cmake cannot figure out the right building system
-if(WIN32)
-  set(OpenCV_ARCH x64 CACHE STRING " " FORCE)
-  set(OpenCV_RUNTIME vc15 CACHE STRING " " FORCE)
-endif()
 find_package(OpenCV REQUIRED)
 message(STATUS opencv_inc " " ${OpenCV_INCLUDE_DIRS})
 
@@ -48,11 +43,21 @@ elseif(CMAKE_SYSTEM MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "BSD")
   endif()
 endif()
 
-#add all our source file here
+add_definitions(-DNPNX_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data")
+
+#uncomment this to disable V_SYNC
+#add_definitions(-DNPNX_BENCHMARK) 
+
+#add source file here
 add_executable(
   display 
-  smallsample.cpp
+
+  main.cpp
+  shader.cpp
+  renderer.cpp
+  layerobject.cpp
 )
+
 target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 if (NOT MSVC)
   target_compile_options(display PRIVATE -Wl,-rpath=./)
