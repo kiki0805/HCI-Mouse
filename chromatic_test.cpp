@@ -18,7 +18,7 @@
 #include <assert.h>
 #include "utils.h"
 #include <iostream>
-// g++ one_value.cpp -o one -Ibuild/include build/src/glad.c -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread -ldl
+// g++ chromatic_test.cpp -o ctest -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread -ldl
 
 using namespace std;
 struct bit_ele* begin;
@@ -91,32 +91,19 @@ int main() {
 #else
 
 #endif
-    
-    bool flag = true;
-    // char file_path[] = "share_data";
-    char file_path[] = "filtered_data";
-    // ::begin = read_swap_data(file_path);
-    vector<double> data = read_filtered_data(file_path);
-    int cnt = 0;
+
+    printf("Initializing the RGB array...\n");
+    permutation_init(STEP);
+    printf("Initialization done.\n");
+    int current_count = 0;
+
     while (!glfwWindowShouldClose(window)) {
-        // if (cnt == 25) cnt = 0;
-        // double v = data[cnt];
-        // glClearColor(v, v, v, 1.0f);
-        // cnt ++;
-        /////////////////////////////////////////////////////////
-        // if(::begin->bit == '0') 
-        //     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        // else
-        //     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        // if (::begin->next == NULL) ::begin = (struct bit_ele*) ::begin->first_bit;
-        // else ::begin = ::begin->next;
-        ////////////////////////////////////////////////////////
-        if(flag) 
+        if(current_count != COUNT) {
+            glClearColor((float)RGB_arr[current_count][0] / 255.0, (float)RGB_arr[current_count][1] / 255.0, (float)RGB_arr[current_count][2] / 255.0, 1.0f);
+            current_count ++;
+        } else {
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        else
-            // glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        flag = !flag;
+        }
 
         glClear(GL_COLOR_BUFFER_BIT);
 

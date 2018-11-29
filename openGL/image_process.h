@@ -2,6 +2,8 @@
 #include <opencv4/opencv2/highgui/highgui.hpp>
 #include <opencv4/opencv2/imgproc/imgproc.hpp>
 // #include <string>
+#include <iostream>
+#include <fstream>
 
 using namespace cv;
 using namespace std;
@@ -75,6 +77,32 @@ class Image4Render {
             return mat;
         }
 
+        void read_from_file(char* file_name) {
+            FILE *f;
+            unsigned char char_buff;
+            f = fopen(file_name, "r");
+            // if (!f.is_open()) {
+            //     cerr << "There was a problem opening the input file!\n";
+            //     exit(1);//exit or do additional error checking
+            // }
+            if (f == NULL) {
+                return;
+            }
+            int count = 0;
+            for(int i = 0; i < width; i++) {
+                for(int j = 0; j < height; j++) {
+                    for(int k = 0; k < 3; k++) {
+
+                        // f >> char_buff;
+                        char_buff = fgetc(f);
+                        // cout <<count<<" "<<(int)char_buff<<endl;
+                        pixel_arr[i][j][k] = (int)char_buff;
+                        count ++;
+                    }
+                }
+            }
+        }
+
         void change_region(int x_start, int y_start, int x_end, int y_end, int value, bool show, bool bordered) {
             assert(assigned);
             for(int i = x_start; i < x_end; i++) {
@@ -114,8 +142,8 @@ class Image4Render {
 Image4Render read_pixels_from_image(string img_file) {
     Mat img = imread(img_file, CV_LOAD_IMAGE_COLOR);
 #ifdef __linux__ 
-    resize(img, img, Size(500, 500));
-    Image4Render img_data = Image4Render(500, 500);
+    resize(img, img, Size(300, 300));
+    Image4Render img_data = Image4Render(300, 300);
 #elif _WIN32
     resize(img, img, Size(1920, 1080));
     Image4Render img_data = Image4Render(1920, 1080);

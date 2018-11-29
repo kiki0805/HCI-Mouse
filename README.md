@@ -6,7 +6,7 @@
 ## TODO
 
 - ImageProcessing: for imperceptibility & decodability test
-- display: final use
+- display: final transmitter
 
 
 ---
