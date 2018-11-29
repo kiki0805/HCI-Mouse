@@ -45,6 +45,10 @@ endif()
 
 add_definitions(-DNPNX_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data")
 
+if (NOT WIN32 AND NOT APPLE) 
+add_compile_options(-std=c++11)
+endif()
+
 #uncomment this to disable V_SYNC
 #add_definitions(-DNPNX_BENCHMARK) 
 
