@@ -107,7 +107,7 @@ def write_to_file(img, name):
             for j in range(c):
                 for k in range(3):
                     f.write(struct.pack('B', im_arr[i][j][k]))
-                    print(count, im_arr[i][j][k])
+                    # print(count, im_arr[i][j][k])
                     count += 1
 
 size = (300, 300)
