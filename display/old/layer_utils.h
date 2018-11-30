@@ -104,7 +104,7 @@ class DataLayer {
 
 DataLayerSlice convert_blocks2slice(DataBlock** blocks, int m, int n) {
     /*
-        Param: blocks is a m*n arr
+        Param: blocks is a m*n arr--------------------------------------------------------------------------------------------------------------------------
         Return DataLayerSlice slice 
             with offset in blocks[i][j] assigned to slice.offset_matrix[i][j]
     */
