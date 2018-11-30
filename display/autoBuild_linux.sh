@@ -6,4 +6,4 @@ mkdir -p build
 cd build
 
 cmake ..
-cmake --build . --config release
+cmake --build .
