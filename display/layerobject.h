@@ -18,6 +18,7 @@ public:
   
   int Draw(const int nbFrames);
   virtual int DrawGL(const int nbFrames) = 0;
+  virtual bool Updated(const int nbFrames);
 
   int defaultInitialize(const int VBOOffset, const int EBOOffset);
 

@@ -128,21 +128,22 @@ int main()
   int nbFrames = 0;
   int lastNbFrames = 0;
   double lastTime = glfwGetTime();
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
 
+    // if (renderer.Updated(nbFrames) || postRenderer.Updated(nbFrames)) {
     renderer.Draw(nbFrames);
     postRenderer.Draw(nbFrames);
+    // }
 
     nbFrames++;
     double thisTime = glfwGetTime();
     double deltaTime = thisTime - lastTime;
-    if (deltaTime > 1.0)
-    {
+    if (deltaTime > 1.0) {
       glfwSetWindowTitle(window, std::to_string((nbFrames - lastNbFrames) / deltaTime).c_str());
       lastNbFrames = nbFrames;
       lastTime = thisTime;
     }
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }

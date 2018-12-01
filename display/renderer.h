@@ -18,6 +18,7 @@ public:
   int AddLayer(LayerObject * layer);
   void Initialize();
   
+  bool Updated(const int nbFrames);
   void Draw(const int nbFrames);
 
 private:

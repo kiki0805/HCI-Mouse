@@ -59,8 +59,15 @@ void Renderer::Draw(const int nbFrames)
     glBindTexture(GL_TEXTURE_2D, mDefaultTexture[i]); 
   }
   glBindVertexArray(mVAO);
-  for (auto iter = mLayers.begin(); iter != mLayers.end(); ++iter)
-  {
+  for (auto iter = mLayers.begin(); iter != mLayers.end(); ++iter) {
     iter->second->Draw(nbFrames);
   }
+}
+
+bool Renderer::Updated(const int nbFrames)
+{
+  for (auto iter = mLayers.begin(); iter != mLayers.end(); ++iter) {
+    if (iter->second->Updated(nbFrames)) return true; 
+  }
+  return false;
 }

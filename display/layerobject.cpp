@@ -46,8 +46,13 @@ int LayerObject::Draw(const int nbFrames) {
   return 0;
 }
 
+bool LayerObject::Updated(const int nbFrames){
+  return nbFrames < 5 || (visibleCallback(nbFrames - 1) ^ visibleCallback(nbFrames)) 
+    || (visibleCallback(nbFrames - 2) ^ visibleCallback(nbFrames));
+}
+
 RectLayer::RectLayer(float left, float bottom, float right, float top, float z)
-  : LayerObject(z)
+    : LayerObject(z)
 {
   mVBOBuffer.assign({
     left, bottom, 1.0f, 0.0f, 0.0f,
