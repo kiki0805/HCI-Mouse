@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <map>
-
+#include "common.h"
 #include "shader.h"
 
 namespace npnx {
@@ -12,7 +12,7 @@ class LayerObject;
 
 class Renderer {
 public:
-  explicit Renderer(Shader *defaultShader);
+  explicit Renderer(Shader *defaultShader, unsigned int target_FBO);
   ~Renderer();
   
   int AddLayer(LayerObject * layer);
@@ -25,11 +25,12 @@ private:
   bool mInitialized = false;
   std::map<float, LayerObject *> mLayers;
 
-public:  
+public:
   std::vector<float> mVBOBuffer;
   std::vector<GLuint> mEBOBuffer;
-  unsigned int mVAO, mVBO, mEBO;
+  unsigned int mVAO, mVBO, mEBO, mFBO;
   Shader *mDefaultShader;
+  std::vector<GLuint> mDefaultTexture; //default texture binding for default shader, GL_TEXTUREi is binding to mDefaultTexture[i];
 };
 
 

@@ -50,7 +50,7 @@ add_compile_options(-std=c++11)
 endif()
 
 #uncomment this to disable V_SYNC
-#add_definitions(-DNPNX_BENCHMARK) 
+add_definitions(-DNPNX_BENCHMARK) 
 
 #add source file here
 add_executable(
@@ -60,6 +60,7 @@ add_executable(
   shader.cpp
   renderer.cpp
   layerobject.cpp
+  imageUtils.cpp
 )
 
 target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
