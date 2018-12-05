@@ -140,12 +140,24 @@ int main()
   postRenderer.AddLayer(&postBaseRect);
 
   npnx::RectLayer postRect(-0.6f, -0.1f, -0.3f, 0.433f, 999.9f);
-  postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("hitcircle.png")));
+  unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("hitcircle.png"));
+  postRect.mTexture.push_back(circleTex);
   postRect.visibleCallback = [](int nbFrames) {
     return (nbFrames & 3) < 2;
   };
+  npnx::RectLayer postRect2(-0.1f, -0.1f, 0.2f, 0.433f, 99.9f);
+  postRect2.mTexture.push_back(circleTex);
+  postRect2.visibleCallback = [](int nbFrames) {
+	  return (nbFrames & 1) < 1;
+  };
+  npnx::RectLayer postRect3(0.4f, -0.1f, 0.7f, 0.433f, 9.9f);
+  postRect3.mTexture.push_back(circleTex);
+  postRect3.visibleCallback = [](int nbFrames) {
+	  return (nbFrames & 7) < 4;
+  };
+  postRenderer.AddLayer(&postRect3);
+  postRenderer.AddLayer(&postRect2);
   postRenderer.AddLayer(&postRect);
-
 // ------------------------------------------------//
   renderer.Initialize();
   postRenderer.Initialize();
