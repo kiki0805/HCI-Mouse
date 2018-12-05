@@ -29,7 +29,32 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "hello", NULL, NULL);
+  int monitorCount;
+  GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
+
+  int holographic_screen = -1;
+  for(int i=0; i<monitorCount; i++){
+      int screen_x, screen_y;
+      const GLFWvidmode * mode = glfwGetVideoMode(pMonitor[i]);
+      screen_x = mode->width;
+      screen_y = mode->height;
+      std::cout << "Screen size is X = " << screen_x << ", Y = " << screen_y << std::endl;
+      if(screen_x==WINDOW_WIDTH && screen_y==WINDOW_HEIGHT){
+          holographic_screen = i;
+      }
+  }
+  NPNX_LOG(holographic_screen);
+
+  GLFWwindow* window;
+#if (defined __linux__ || defined NPNX_BENCHMARK)
+  window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+
+#else
+  if (holographic_screen == -1)
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+  else
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Holographic projection", pMonitor[holographic_screen], NULL);
+#endif  
   NPNX_ASSERT(window);
   glfwMakeContextCurrent(window);
 

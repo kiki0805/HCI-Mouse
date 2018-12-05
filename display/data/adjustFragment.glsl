@@ -14,5 +14,5 @@ void main()
   // Position ranges [-1.0, 1.0].
   vec4 rawColor = texture(rawScreen, (Position.xy + vec2(1.0, 1.0)) / vec2(2,2));
   FragColor = rawColor * letThrough +
-    vec4((vec3(1,1,1) - rawColor.xyz) * texture(texture0, TexCoord) + rawColor.xyz, 1.0) * (1 - letThrough);
+    vec4((vec3(1,1,1) - rawColor.xyz) * texture(texture0, TexCoord).xyz + rawColor.xyz, 1.0) * (1 - letThrough);
 }
