@@ -1,36 +1,25 @@
 #include "common.h"
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 #include <string>
+#include <memory>
+#include <cassert>
 
 #include "layerobject.h"
 #include "shader.h"
 #include "renderer.h"
+#include "imageUtils.h"
 
-
-// I want to set the NPNX_DATA_PATH by cmake scripts so that we don't need to care about 
+// the NPNX_DATA_PATH is set by cmake scripts so that we don't need to care about 
 // where are the binary files in.
 #ifndef NPNX_DATA_PATH
 #define NPNX_DATA_PATH "./data"
 #endif
 
-unsigned int makeTexture(unsigned char *buffer, int width, int height) 
-{
-  //only for BGR 3 channel image with 8bit fixed point depth.
-  //if you have another format, write another function by copying most of this one.
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, buffer);
-  glGenerateMipmap(GL_TEXTURE_2D); 
-  return texture;
-}
+// CAUTION : Use this will make the pointer invalid immediately after the caller end.
+//  which means if the caller save this pointer for another use after the call, it will be a SEGFAULT.
+#define NPNX_FETCH_DATA(A) ((std::string((NPNX_DATA_PATH)) + "/" + (A)).c_str())
+
+void generateFBO(unsigned int & FBO, unsigned int & texColorBuffer);
 
 int main() 
 {
@@ -76,67 +65,84 @@ int main()
 #endif
 
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-  cv::Mat img;
-  img = cv::imread((std::string(NPNX_DATA_PATH)+"/test.png").c_str());
-  NPNX_LOG(img.rows);
-  NPNX_LOG(img.cols);
-  NPNX_LOG(img.channels());
-  NPNX_LOG(img.isContinuous());
-  NPNX_LOG(img.rows * img.cols * img.channels() * img.elemSize1());
-  unsigned char *picBuffer = new unsigned char[img.rows * img.cols * img.channels() * img.elemSize1()];
-  memcpy(picBuffer, img.data, img.rows * img.cols * img.channels() * img.elemSize1());
+  // glEnable(GL_BLEND);
+  // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+  
 
   npnx::Shader defaultShader;
-  defaultShader.LoadShader((std::string(NPNX_DATA_PATH)+"/defaultVertex.glsl").c_str(), 
-    (std::string(NPNX_DATA_PATH)+"/defaultFragment.glsl").c_str());
+  defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
   defaultShader.Use();
-  glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture1"), 0);
+  glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture0"), 0);
 
-  npnx::Renderer renderer(&defaultShader);
+  npnx::Shader adjustShader;
+  adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment.glsl"));
+  adjustShader.Use();
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "texture0"), 0);
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "rawScreen"), 1);
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "letThrough"), 0);
 
-// --------------- Add your layer here--------------//  
+  unsigned int fbo0, fboColorTex0;
+  generateFBO(fbo0, fboColorTex0); 
+
+  npnx::Renderer renderer(&defaultShader, fbo0);
+  npnx::Renderer postRenderer(&adjustShader, 0);
+  postRenderer.mDefaultTexture.assign({0, fboColorTex0});
+
+  // --------------- Add your layer here--------------//  
   npnx::RectLayer baseRect(-1.0f, -1.0f, 1.0f, 1.0f, -1.0f);
-  baseRect.mTexture = makeTexture(picBuffer, img.cols, img.rows);
+  baseRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
   renderer.AddLayer(&baseRect);
 
-//randomly generate a picBuffer
-unsigned char *anotherBuffer = new unsigned char[600 * 600 * 3];
-for (int i=0; i<600 * 600 * 3; i++) {
-  anotherBuffer[i] = rand() & 255;
-}
-
-  npnx::RectLayer upperRect(-0.5f, -0.1f, 0.3f, 0.4f, 0.0f);
-  upperRect.mTexture = makeTexture(anotherBuffer, 600, 600);
+  npnx::RectLayer upperRect(-0.5f, -0.1f, -0.2f, 0.8f, 0.0f);
+  std::unique_ptr<unsigned char> anotherBuffer(new unsigned char[600 * 600 * 3]);
+  generateRandomArray(anotherBuffer.get(), 600 * 600 * 3, 0, 255);
+  upperRect.mTexture.push_back(makeTexture(anotherBuffer.get(), 600, 600, 3));
   upperRect.visibleCallback = [] (int nbFrames) {
-    return (nbFrames & 3) < 2;
+    return (nbFrames & 255) < 128;
   };
   renderer.AddLayer(&upperRect);
 
+  npnx::RectLayer postBaseRect(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
+  postBaseRect.beforeDraw = [&] (const int nbFrames) {
+    glUniform1i(glGetUniformLocation(postBaseRect.mParent->mDefaultShader->mShader, "letThrough"), 1);
+    return 0;
+  };
+  postBaseRect.afterDraw = [&] (const int nbFrames) {
+    glUniform1i(glGetUniformLocation(postBaseRect.mParent->mDefaultShader->mShader, "letThrough"), 0);
+    return 0;
+  };
+  postBaseRect.mTexture.push_back(0);
+  postRenderer.AddLayer(&postBaseRect);
+
+  npnx::RectLayer postRect(-0.6f, -0.1f, -0.3f, 0.433f, 999.9f);
+  postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("hitcircle.png")));
+  postRect.visibleCallback = [](int nbFrames) {
+    return (nbFrames & 3) < 2;
+  };
+  postRenderer.AddLayer(&postRect);
+
 // ------------------------------------------------//
-  delete [] picBuffer;
   renderer.Initialize();
+  postRenderer.Initialize();
 
   int nbFrames = 0;
   int lastNbFrames = 0;
   double lastTime = glfwGetTime();
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
 
-    glClearColor(0.5f, 0.5f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    // if (renderer.Updated(nbFrames) || postRenderer.Updated(nbFrames)) {
+    renderer.Draw(nbFrames);
+    postRenderer.Draw(nbFrames);
+    // }
 
     nbFrames++;
     double thisTime = glfwGetTime();
     double deltaTime = thisTime - lastTime;
-    if (deltaTime > 1.0)
-    {
+    if (deltaTime > 1.0) {
       glfwSetWindowTitle(window, std::to_string((nbFrames - lastNbFrames) / deltaTime).c_str());
       lastNbFrames = nbFrames;
       lastTime = thisTime;
     }
-
-    renderer.Draw(nbFrames);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -144,4 +150,31 @@ for (int i=0; i<600 * 600 * 3; i++) {
 
   glfwTerminate();
   return 0;
+}
+
+void generateFBO(unsigned int &fbo, unsigned int &texColorBuffer)
+{
+  glGenFramebuffers(1, &fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+  // generate texture
+  glGenTextures(1, &texColorBuffer);
+  glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+  // attach it to currently bound framebuffer object
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0);
+
+  unsigned int rbo;
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WINDOW_WIDTH, WINDOW_HEIGHT);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  NPNX_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
