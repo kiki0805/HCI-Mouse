@@ -14,11 +14,12 @@ void main()
   // Position ranges [-1.0, 1.0].
   vec4 rawColor = texture(rawScreen, (Position.xy + vec2(1.0, 1.0)) / vec2(2,2));
   vec4 newColor = texture(texture0, TexCoord);
-  if (Position.y > -0.1) {
-    newColor *= vec4(1.0, 0.0, 0.0, 1.0);
+  if (Position.y > -0.0) {
+    newColor *= vec4(1.0, 0.2, 0.0, 1.0);
   } else {
-    newColor *= vec4(0.0, 0.0, 1.0, 1.0);
+    newColor *= vec4(0.0, 0.5, 1.0, 1.0);
   }
+  if (newColor.w < 0.1) newColor.w = 0;
   newColor.xyz = rawColor.xyz * newColor.xyz;
   newColor.xyz = rawColor.xyz * (1 - newColor.w) + newColor.xyz * (newColor.w);
   FragColor = vec4(rawColor.xyz, 1.0) * letThrough +
