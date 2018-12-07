@@ -14,4 +14,6 @@ void generateRandomArray(T *array, const size_t size, const int lb = 0, const in
   }
 }
 
+void generateFBO(unsigned int &fbo, unsigned int &texColorBuffer);
+
 #endif // !DISPLAY_IMAGEUTILS_H_ 

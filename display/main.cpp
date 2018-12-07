@@ -9,18 +9,6 @@
 #include "renderer.h"
 #include "imageUtils.h"
 
-// the NPNX_DATA_PATH is set by cmake scripts so that we don't need to care about 
-// where are the binary files in.
-#ifndef NPNX_DATA_PATH
-#define NPNX_DATA_PATH "./data"
-#endif
-
-// CAUTION : Use this will make the pointer invalid immediately after the caller end.
-//  which means if the caller save this pointer for another use after the call, it will be a SEGFAULT.
-#define NPNX_FETCH_DATA(A) ((std::string((NPNX_DATA_PATH)) + "/" + (A)).c_str())
-
-void generateFBO(unsigned int & FBO, unsigned int & texColorBuffer);
-
 int main() 
 {
   NPNX_LOG(NPNX_DATA_PATH);
@@ -150,31 +138,4 @@ int main()
 
   glfwTerminate();
   return 0;
-}
-
-void generateFBO(unsigned int &fbo, unsigned int &texColorBuffer)
-{
-  glGenFramebuffers(1, &fbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-  // generate texture
-  glGenTextures(1, &texColorBuffer);
-  glBindTexture(GL_TEXTURE_2D, texColorBuffer);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-  glBindTexture(GL_TEXTURE_2D, texColorBuffer);
-  // attach it to currently bound framebuffer object
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0);
-
-  unsigned int rbo;
-  glGenRenderbuffers(1, &rbo);
-  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WINDOW_WIDTH, WINDOW_HEIGHT);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-  glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-  NPNX_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
