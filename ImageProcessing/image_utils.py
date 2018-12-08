@@ -23,8 +23,8 @@ def bind_colors(im):
     r, c, n = im_arr.shape
     for i in range(r):
         for j in range(c):
-            im_arr[i][j][0] = int((255 - 50) * (im_arr[i][j][0] / 255) + 50)
-            im_arr[i][j][0] = int((255 - 2 * span) * (im_arr[i][j][0] / 255) + span)
+            im_arr[i][j][0] = int((205 - 50) * (im_arr[i][j][0] / 255) + 50)
+            im_arr[i][j][1] = int((255 - 2 * span) * (im_arr[i][j][1] / 255) + span)
             # im_arr[i][j][0] = int((255 - 2 * span) * (im_arr[i][j][0] / 255) + span)
             # if im_arr[i][j][0] <= 63 or im_arr[i][j][0] >= 193 or \
             #     im_arr[i][j][1] <= 63 or im_arr[i][j][1] >= 193 or \
@@ -34,9 +34,22 @@ def bind_colors(im):
     return Image.fromarray(im_arr)
 
 def get_best_colors(RGB_color):
-    min_diff = min(255-RGB_color[1],RGB_color[1]-0)
-    return (RGB_color[0], RGB_color[1] - min_diff, RGB_color[2]), \
-        (RGB_color[0], RGB_color[1] + min_diff, RGB_color[2])
+    # min_diff = min(255-RGB_color[1],RGB_color[1]-0)
+    # return (RGB_color[0], RGB_color[1] - min_diff, RGB_color[2]), \
+    #     (RGB_color[0], RGB_color[1] + min_diff, RGB_color[2])
+
+    # min_diff = min(255-RGB_color[0],RGB_color[0]-0)
+    # return (RGB_color[0] - min_diff, RGB_color[1], RGB_color[2]), \
+    #     (RGB_color[0] + min_diff, RGB_color[1], RGB_color[2])
+
+    # min_diff = min(255-RGB_color[2],RGB_color[2]-0)
+    # return (RGB_color[0], RGB_color[1], RGB_color[2] - min_diff), \
+    #     (RGB_color[0], RGB_color[1], RGB_color[2] + min_diff)
+
+    min_diff = min([255-RGB_color[2],RGB_color[2]-0,255-RGB_color[0],\
+        RGB_color[0]-0,255-RGB_color[1],RGB_color[1]-0])
+    return (RGB_color[0] - min_diff, RGB_color[1]- min_diff, RGB_color[2] - min_diff), \
+        (RGB_color[0] + min_diff, RGB_color[1]+ min_diff, RGB_color[2] + min_diff)
 
 def read_resize_img(img_name, size):
     from PIL import Image
@@ -183,10 +196,10 @@ def write_to_file(img, name):
 
 # size = (300, 300)
 # cut = (0, 0, size[1], size[0] / 2)
-im = read_resize_img('test.png', (1920, 1080))
+im = read_resize_img('test-0.png', (1080, 1080))
 new_im = bind_colors(im)
 im1, im2 = get_complement_imgs(new_im)
-# new_im.save('new.png')
+new_im.save('new.png')
 im1.save('im1.png')
 im2.save('im2.png')
 # delta_lightness
@@ -197,8 +210,8 @@ im2.save('im2.png')
 # new_im, new_im2 = update_img(im, ch_mat)
 # new_im.save('test_0_new.png')
 # new_im2.save('test_0_new2.png')
-# write_to_file(new_im, '../openGL/new_im')
-# write_to_file(new_im2, '../openGL/new_im2')
+write_to_file(im1, '../openGL/new_im_1080_rgb')
+write_to_file(im2, '../openGL/new_im2_1080_rgb')
 
 # Lab_v = convert_RGB2Lab(RGBValue(RGB=(1, 1, 1)))
 # print(Lab_v.L, Lab_v.a, Lab_v.b)
