@@ -2,8 +2,6 @@
 
 - 稍微漂亮的名字的是：基于鼠标光电传感器的新型人机交互，实际上就是用鼠标（receiver）采集灰度像素值，用屏幕（transmitter）发送信号的一个信道。
 
-
-
 ## Code Tree & Data Structure
 
 - 主要分成transmitter和receiver两个部分来写
@@ -71,14 +69,7 @@ main.cpp 中底图和上层图对应 renderer 和 postRenderer。renderer的结�
 
 - Goals: 
 
-  - ~~给定一组时域上的偏移值空间数组可以和底图融合显示~~
   - [TODO] 接受信号，更新底图，这个部分暂时还用不到，现在的代码里还没有涉及
   - [TODO] 图元2D Transform支持(矩阵实现)，color 支持。
   - [TODO] 设计好看的UI。
   - [TODO] 游戏逻辑和ui绘制
-
-- ~~我编译了一下可以运行了，但是还什么都没有显示，需要完善下代码~~
-
-- ~~环境配置在ubuntu和win下有些不同，头文件可能需要改~~
-
-- 现在主要的任务是把显示端的信号调制和编码固定下来，我先用老的代码测试着，等`/display`部分写完善了再把算法补充进来。
