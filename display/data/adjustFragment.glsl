@@ -14,6 +14,6 @@ void main()
   // Position ranges [-1.0, 1.0].
   vec4 rawColor = texture(rawScreen, (Position.xy + vec2(1.0, 1.0)) / vec2(2,2));
   FragColor = rawColor * letThrough +
-    vec4((vec3(1,1,1) - rawColor.xyz) * texture(texture0, TexCoord).xyz + rawColor.xyz, 1.0) * (1 - letThrough);
-  //caution: FragColor.w should always be 1.0, otherwise we need to disable gl_blend.
+    vec4(rawColor.xyz * texture(texture0, TexCoord).xyz, texture(texture0, TexCoord).w) * (1 - letThrough);
+  //caution: FragColor.w should always be newColor.w so the gl_blend will be correct
 }

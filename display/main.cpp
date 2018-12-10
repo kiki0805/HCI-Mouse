@@ -53,8 +53,8 @@ int main()
 #endif
 
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-  // glEnable(GL_BLEND);
-  // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+  glEnable(GL_BLEND);
+  glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
   
 
   npnx::Shader defaultShader;
@@ -103,7 +103,7 @@ int main()
   postRenderer.AddLayer(&postBaseRect);
 
   npnx::RectLayer postRect(-0.6f, -0.1f, -0.3f, 0.433f, 999.9f);
-  postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("hitcircle.png")));
+  postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("0.png")));
   postRect.visibleCallback = [](int nbFrames) {
     return (nbFrames & 3) < 2;
   };
