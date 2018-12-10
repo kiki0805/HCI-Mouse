@@ -17,7 +17,32 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "hello", NULL, NULL);
+  int monitorCount;
+  GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
+
+  int holographic_screen = -1;
+  for(int i=0; i<monitorCount; i++){
+      int screen_x, screen_y;
+      const GLFWvidmode * mode = glfwGetVideoMode(pMonitor[i]);
+      screen_x = mode->width;
+      screen_y = mode->height;
+      std::cout << "Screen size is X = " << screen_x << ", Y = " << screen_y << std::endl;
+      if(screen_x==WINDOW_WIDTH && screen_y==WINDOW_HEIGHT){
+          holographic_screen = i;
+      }
+  }
+  NPNX_LOG(holographic_screen);
+
+  GLFWwindow* window;
+#if (defined __linux__ || defined NPNX_BENCHMARK)
+  window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+
+#else
+  if (holographic_screen == -1)
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+  else
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Holographic projection", pMonitor[holographic_screen], NULL);
+#endif  
   NPNX_ASSERT(window);
   glfwMakeContextCurrent(window);
 
@@ -103,12 +128,24 @@ int main()
   postRenderer.AddLayer(&postBaseRect);
 
   npnx::RectLayer postRect(-0.6f, -0.1f, -0.3f, 0.433f, 999.9f);
-  postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("0.png")));
+  unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("0.png"));
+  postRect.mTexture.push_back(circleTex);
   postRect.visibleCallback = [](int nbFrames) {
     return (nbFrames & 3) < 2;
   };
+  npnx::RectLayer postRect2(-0.1f, -0.1f, 0.2f, 0.433f, 99.9f);
+  postRect2.mTexture.push_back(circleTex);
+  postRect2.visibleCallback = [](int nbFrames) {
+	  return (nbFrames & 1) < 1;
+  };
+  npnx::RectLayer postRect3(0.4f, -0.1f, 0.7f, 0.433f, 9.9f);
+  postRect3.mTexture.push_back(circleTex);
+  postRect3.visibleCallback = [](int nbFrames) {
+	  return (nbFrames & 7) < 4;
+  };
+  postRenderer.AddLayer(&postRect3);
+  postRenderer.AddLayer(&postRect2);
   postRenderer.AddLayer(&postRect);
-
 // ------------------------------------------------//
   renderer.Initialize();
   postRenderer.Initialize();

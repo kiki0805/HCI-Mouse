@@ -536,6 +536,7 @@ def update():
             return
 
         val = int.from_bytes(response, 'big')
+        # print(val)
         val_fixed = val
         if val_fixed < 128:
             val_fixed += 128
@@ -543,8 +544,8 @@ def update():
             continue
 
         if raw_frames_m.line:
-            print(timestamp - time_last_get)
-            time_last_get = timestamp
+            # print(timestamp - time_last_get)
+            # time_last_get = timestamp
             raw_frames_m.update_line_data()
             ax.relim() # renew the data limits
             ax.autoscale_view(True, True, True) # rescale plot view
@@ -571,8 +572,8 @@ def update():
             # print(frames_m_interpolated.shape)
 
             l = len(frames_m_interpolated)
-            assert l == INTERPOLATION_INTERVAL * FRAMES_PER_SECOND_AFTER_INTERPOLATE
-            assert frames_m_interpolated[0][0] >= frames_m.window[-1][0]
+            # assert l == INTERPOLATION_INTERVAL * FRAMES_PER_SECOND_AFTER_INTERPOLATE
+            # assert frames_m_interpolated[0][0] >= frames_m.window[-1][0]
             # if frames_m_interpolated[0][0] == frames_m.window[-1][0]:
             #     frames_m_interpolated[0][1] = frames_m.window[-1][1]
                 # frames_m.window[-1][1] = frames_m_interpolated[0][1]
@@ -589,108 +590,108 @@ def update():
                 if temp_x.size % POINTS_TO_COMBINE == 0 or i == l:
                     if temp_x.size == 0:
                         continue
-                    assert temp_x.mean() >= frames_m.window[-1][0]
+                    # assert temp_x.mean() >= frames_m.window[-1][0]
                     frames_m.push(np.array([[temp_x.mean(), temp_y.mean()]]))
                     temp_x = np.array([])
                     temp_y = np.array([])
 
                     ######################################################
-                    x, y = divide_coordinate(frames_m.window)
-                    y = smooth(y)
-                    smooth_data.window = get_coordinate(x, y)
-                    # y_mean.push(np.array([[x[-1], 160]]))
-                    # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    # x, y = divide_coordinate(frames_m.window)
+                    # y = smooth(y)
+                    # smooth_data.window = get_coordinate(x, y)
+                    # # y_mean.push(np.array([[x[-1], 160]]))
+                    # # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
 
-                    ##############################
-                    ####### Wait 0.01s ###########
-                    ##############################
+                    # ##############################
+                    # ####### Wait 0.01s ###########
+                    # ##############################
                     
-                    if x.size <= advanced_time + MEAN_WIDTH / 2:
-                        continue
-                    ################ MEAN WAY 1 ######################################
-                    # x = x[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
-                    # y = y[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
-                    # y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
-                    ################ MEAN WAY 2 ######################################
-                    # print(y.size)
-                    # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2))
-                    # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2))
-                    # print(y[-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2): \
-                    #     -int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2)])
-                    mid_interval = y[-int(advanced_time + MEAN_WIDTH / 2): \
-                        -int(advanced_time - MEAN_WIDTH / 2)].mean()
-                    x = x[:-int(advanced_time)]
-                    y = y[:-int(advanced_time)]
-                    y_mean.push(np.array([[x[-1], mid_interval]]))
-                    # print(mid_interval)
+                    # if x.size <= advanced_time + MEAN_WIDTH / 2:
+                    #     continue
+                    # ################ MEAN WAY 1 ######################################
+                    # # x = x[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
+                    # # y = y[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
+                    # # y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
+                    # ################ MEAN WAY 2 ######################################
+                    # # print(y.size)
+                    # # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2))
+                    # # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2))
+                    # # print(y[-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2): \
+                    # #     -int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2)])
+                    # mid_interval = y[-int(advanced_time + MEAN_WIDTH / 2): \
+                    #     -int(advanced_time - MEAN_WIDTH / 2)].mean()
+                    # x = x[:-int(advanced_time)]
+                    # y = y[:-int(advanced_time)]
+                    # y_mean.push(np.array([[x[-1], mid_interval]]))
+                    # # print(mid_interval)
                     
-                    if y_mean.window.size == 2:
-                        one_bit.push(np.array([[x[-1], one]]))
+                    # if y_mean.window.size == 2:
+                    #     one_bit.push(np.array([[x[-1], one]]))
 
-                    # elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
+                    # # elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
+                    # # elif abs(y_mean.window[-1][1] - y[-1]) < 5:
                     # elif abs(y_mean.window[-1][1] - y[-1]) < 5:
-                    elif abs(y_mean.window[-1][1] - y[-1]) < 5:
-                        if one_bit.window.size != 0:
-                            one_bit.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
-                        else:
-                            one_bit.push(np.array([[x[-1], one]]))
-                    # elif y_mean.window[-1][1] < frames_m.window[-1][1]:
-                    elif y_mean.window[-1][1] < y[-1]:
-                        one_bit.push(np.array([[x[-1], zero]]))
-                    else:
-                        one_bit.push(np.array([[x[-1], one]]))
+                    #     if one_bit.window.size != 0:
+                    #         one_bit.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
+                    #     else:
+                    #         one_bit.push(np.array([[x[-1], one]]))
+                    # # elif y_mean.window[-1][1] < frames_m.window[-1][1]:
+                    # elif y_mean.window[-1][1] < y[-1]:
+                    #     one_bit.push(np.array([[x[-1], zero]]))
+                    # else:
+                    #     one_bit.push(np.array([[x[-1], one]]))
 
-                    binary_arr.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
-                    # fix
-                    if one_bit.window.size > 4:
-                        if one_bit.window[-2][1] != one_bit.window[-1][1] and \
-                                one_bit.window[-2][1] != one_bit.window[-3][1]:
-                                    one_bit.window[-2][1] = one_bit.window[-1][1]
-                                    binary_arr.window[-2][1] = binary_arr.window[-1][1]
+                    # binary_arr.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
+                    # # fix
+                    # if one_bit.window.size > 4:
+                    #     if one_bit.window[-2][1] != one_bit.window[-1][1] and \
+                    #             one_bit.window[-2][1] != one_bit.window[-3][1]:
+                    #                 one_bit.window[-2][1] = one_bit.window[-1][1]
+                    #                 binary_arr.window[-2][1] = binary_arr.window[-1][1]
 
-                    result = bit_arr.update(one_bit, sample_arr)
-                    if result:
-                        possible_dataB = result[0] 
-                        possible_dataD = result[1]
-                        if possible_dataB != []:
-                            #if DETAILS:
-                            print(possible_dataB[0])
-                            location_range = hld(possible_dataB[0], SIZE, '1', '0')
-                            if TESTING_MODE:
-                                test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
-                                delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
-                                for i in possible_dataB:
-                                    dataB_list.append(i)
-                                for i in possible_dataD:
-                                    dataD_list.append(i)
-                                delay_list.append(delay)
-                                location_list.append((location_range[1][1], location_range[0][1]))
-                                temp_arr = np.array(dataD_list)
-                                print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
-                                print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
-                                print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
-                                correct_bit_num_arr = []
-                                for i in dataB_list:
-                                    correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
-                                print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
-                                print('Average Delay: ' + str(np.array(delay_list).mean()))
-                            if DETAILS:
-                                print(possible_dataB[0])
-                                print(possible_dataD[0])
-                                print('delay: ' + str(time.time() - \
-                                    divide_coordinate(one_bit.window)[0].mean()))
-                                print('Current Location: ', end='')
-                                print(location_range[1][1], location_range[0][1])
-                            location_arr.push((location_range[1][1], location_range[0][1]))
+                    # result = bit_arr.update(one_bit, sample_arr)
+                    # if result:
+                    #     possible_dataB = result[0] 
+                    #     possible_dataD = result[1]
+                    #     if possible_dataB != []:
+                    #         #if DETAILS:
+                    #         print(possible_dataB[0])
+                    #         location_range = hld(possible_dataB[0], SIZE, '1', '0')
+                    #         if TESTING_MODE:
+                    #             test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
+                    #             delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
+                    #             for i in possible_dataB:
+                    #                 dataB_list.append(i)
+                    #             for i in possible_dataD:
+                    #                 dataD_list.append(i)
+                    #             delay_list.append(delay)
+                    #             location_list.append((location_range[1][1], location_range[0][1]))
+                    #             temp_arr = np.array(dataD_list)
+                    #             print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
+                    #             print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
+                    #             print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
+                    #             correct_bit_num_arr = []
+                    #             for i in dataB_list:
+                    #                 correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
+                    #             print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
+                    #             print('Average Delay: ' + str(np.array(delay_list).mean()))
+                    #         if DETAILS:
+                    #             print(possible_dataB[0])
+                    #             print(possible_dataD[0])
+                    #             print('delay: ' + str(time.time() - \
+                    #                 divide_coordinate(one_bit.window)[0].mean()))
+                    #             print('Current Location: ', end='')
+                    #             print(location_range[1][1], location_range[0][1])
+                    #         location_arr.push((location_range[1][1], location_range[0][1]))
                     ###############################################
 
                     if GRAPHICS and not raw_frames_m.line:
                         # one_bit.update_line_data()
-                        smooth_data.update_line_data()
-                        binary_arr.update_line_data()
-                        y_mean.update_line_data()
-                        sample_arr.update_line_data()
-                        # frames_m.update_line_data()
+                        # smooth_data.update_line_data()
+                        # binary_arr.update_line_data()
+                        # y_mean.update_line_data()
+                        # sample_arr.update_line_data()
+                        frames_m.update_line_data()
                         ax.relim() # renew the data limits
                         ax.autoscale_view(True, True, True) # rescale plot view
                         plt.draw() # plot new figure
@@ -716,7 +717,7 @@ while time.time() - start < dur:
                      wIndex = 0x0D, #PIX_GRAB register value
                      data_or_wLength = 1
                      )
-
+    init()
     # time2 = time.time()
     # if time2 - time1 > 1/240:
     #     print(time2 - time1)
