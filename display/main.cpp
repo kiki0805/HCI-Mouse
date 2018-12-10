@@ -1,36 +1,13 @@
 #include "common.h"
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 #include <string>
+#include <memory>
+#include <cassert>
 
 #include "layerobject.h"
 #include "shader.h"
 #include "renderer.h"
-
-
-// I want to set the NPNX_DATA_PATH by cmake scripts so that we don't need to care about 
-// where are the binary files in.
-#ifndef NPNX_DATA_PATH
-#define NPNX_DATA_PATH "./data"
-#endif
-
-unsigned int makeTexture(unsigned char *buffer, int width, int height) 
-{
-  //only for BGR 3 channel image with 8bit fixed point depth.
-  //if you have another format, write another function by copying most of this one.
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, buffer);
-  glGenerateMipmap(GL_TEXTURE_2D); 
-  return texture;
-}
+#include "imageUtils.h"
 
 int main() 
 {
@@ -40,7 +17,32 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "hello", NULL, NULL);
+  int monitorCount;
+  GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
+
+  int holographic_screen = -1;
+  for(int i=0; i<monitorCount; i++){
+      int screen_x, screen_y;
+      const GLFWvidmode * mode = glfwGetVideoMode(pMonitor[i]);
+      screen_x = mode->width;
+      screen_y = mode->height;
+      std::cout << "Screen size is X = " << screen_x << ", Y = " << screen_y << std::endl;
+      if(screen_x==WINDOW_WIDTH && screen_y==WINDOW_HEIGHT){
+          holographic_screen = i;
+      }
+  }
+  NPNX_LOG(holographic_screen);
+
+  GLFWwindow* window;
+#if (defined __linux__ || defined NPNX_BENCHMARK)
+  window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+
+#else
+  if (holographic_screen == -1)
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+  else
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Holographic projection", pMonitor[holographic_screen], NULL);
+#endif  
   NPNX_ASSERT(window);
   glfwMakeContextCurrent(window);
 
@@ -76,67 +78,96 @@ int main()
 #endif
 
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-  cv::Mat img;
-  img = cv::imread((std::string(NPNX_DATA_PATH)+"/test.png").c_str());
-  NPNX_LOG(img.rows);
-  NPNX_LOG(img.cols);
-  NPNX_LOG(img.channels());
-  NPNX_LOG(img.isContinuous());
-  NPNX_LOG(img.rows * img.cols * img.channels() * img.elemSize1());
-  unsigned char *picBuffer = new unsigned char[img.rows * img.cols * img.channels() * img.elemSize1()];
-  memcpy(picBuffer, img.data, img.rows * img.cols * img.channels() * img.elemSize1());
+  // glEnable(GL_BLEND);
+  // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+  
 
   npnx::Shader defaultShader;
-  defaultShader.LoadShader((std::string(NPNX_DATA_PATH)+"/defaultVertex.glsl").c_str(), 
-    (std::string(NPNX_DATA_PATH)+"/defaultFragment.glsl").c_str());
+  defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
   defaultShader.Use();
-  glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture1"), 0);
+  glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture0"), 0);
 
-  npnx::Renderer renderer(&defaultShader);
+  npnx::Shader adjustShader;
+  adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment.glsl"));
+  adjustShader.Use();
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "texture0"), 0);
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "rawScreen"), 1);
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "letThrough"), 0);
 
-// --------------- Add your layer here--------------//  
+  unsigned int fbo0, fboColorTex0;
+  generateFBO(fbo0, fboColorTex0); 
+
+  npnx::Renderer renderer(&defaultShader, fbo0);
+  npnx::Renderer postRenderer(&adjustShader, 0);
+  postRenderer.mDefaultTexture.assign({0, fboColorTex0});
+
+  // --------------- Add your layer here--------------//  
   npnx::RectLayer baseRect(-1.0f, -1.0f, 1.0f, 1.0f, -1.0f);
-  baseRect.mTexture = makeTexture(picBuffer, img.cols, img.rows);
+  baseRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
   renderer.AddLayer(&baseRect);
 
-//randomly generate a picBuffer
-unsigned char *anotherBuffer = new unsigned char[600 * 600 * 3];
-for (int i=0; i<600 * 600 * 3; i++) {
-  anotherBuffer[i] = rand() & 255;
-}
-
-  npnx::RectLayer upperRect(-0.5f, -0.1f, 0.3f, 0.4f, 0.0f);
-  upperRect.mTexture = makeTexture(anotherBuffer, 600, 600);
+  npnx::RectLayer upperRect(-0.5f, -0.1f, -0.2f, 0.8f, 0.0f);
+  std::unique_ptr<unsigned char> anotherBuffer(new unsigned char[600 * 600 * 3]);
+  generateRandomArray(anotherBuffer.get(), 600 * 600 * 3, 0, 255);
+  upperRect.mTexture.push_back(makeTexture(anotherBuffer.get(), 600, 600, 3));
   upperRect.visibleCallback = [] (int nbFrames) {
-    return (nbFrames & 3) < 2;
+    return (nbFrames & 255) < 128;
   };
   renderer.AddLayer(&upperRect);
 
+  npnx::RectLayer postBaseRect(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
+  postBaseRect.beforeDraw = [&] (const int nbFrames) {
+    glUniform1i(glGetUniformLocation(postBaseRect.mParent->mDefaultShader->mShader, "letThrough"), 1);
+    return 0;
+  };
+  postBaseRect.afterDraw = [&] (const int nbFrames) {
+    glUniform1i(glGetUniformLocation(postBaseRect.mParent->mDefaultShader->mShader, "letThrough"), 0);
+    return 0;
+  };
+  postBaseRect.mTexture.push_back(0);
+  postRenderer.AddLayer(&postBaseRect);
+
+  npnx::RectLayer postRect(-0.6f, -0.1f, -0.3f, 0.433f, 999.9f);
+  unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("hitcircle.png"));
+  postRect.mTexture.push_back(circleTex);
+  postRect.visibleCallback = [](int nbFrames) {
+    return (nbFrames & 3) < 2;
+  };
+  npnx::RectLayer postRect2(-0.1f, -0.1f, 0.2f, 0.433f, 99.9f);
+  postRect2.mTexture.push_back(circleTex);
+  postRect2.visibleCallback = [](int nbFrames) {
+	  return (nbFrames & 1) < 1;
+  };
+  npnx::RectLayer postRect3(0.4f, -0.1f, 0.7f, 0.433f, 9.9f);
+  postRect3.mTexture.push_back(circleTex);
+  postRect3.visibleCallback = [](int nbFrames) {
+	  return (nbFrames & 7) < 4;
+  };
+  postRenderer.AddLayer(&postRect3);
+  postRenderer.AddLayer(&postRect2);
+  postRenderer.AddLayer(&postRect);
 // ------------------------------------------------//
-  delete [] picBuffer;
   renderer.Initialize();
+  postRenderer.Initialize();
 
   int nbFrames = 0;
   int lastNbFrames = 0;
   double lastTime = glfwGetTime();
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
 
-    glClearColor(0.5f, 0.5f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    // if (renderer.Updated(nbFrames) || postRenderer.Updated(nbFrames)) {
+    renderer.Draw(nbFrames);
+    postRenderer.Draw(nbFrames);
+    // }
 
     nbFrames++;
     double thisTime = glfwGetTime();
     double deltaTime = thisTime - lastTime;
-    if (deltaTime > 1.0)
-    {
+    if (deltaTime > 1.0) {
       glfwSetWindowTitle(window, std::to_string((nbFrames - lastNbFrames) / deltaTime).c_str());
       lastNbFrames = nbFrames;
       lastTime = thisTime;
     }
-
-    renderer.Draw(nbFrames);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

@@ -4,8 +4,9 @@
 
 using namespace npnx;
 
-Renderer::Renderer(Shader *defaultShader):
-  mDefaultShader(defaultShader)
+Renderer::Renderer(Shader *defaultShader, unsigned int target_FBO):
+  mDefaultShader(defaultShader),
+  mFBO(target_FBO)
 {}
 
 Renderer::~Renderer()
@@ -21,7 +22,7 @@ int Renderer::AddLayer(LayerObject *layer)
 void Renderer::Initialize()
 {
   for(auto iter = mLayers.begin(); iter != mLayers.end(); ++iter) {
-    iter->second->Initialize(mVBOBuffer.size() / 5, mEBOBuffer.size());
+    iter->second->Initialize((int)mVBOBuffer.size() / 5, (int)mEBOBuffer.size());
   }
 
   // NPNX_LOG(mVBOBuffer.size());
@@ -51,9 +52,22 @@ void Renderer::Initialize()
 
 void Renderer::Draw(const int nbFrames)
 {
+  glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
   mDefaultShader->Use();
-  for (auto iter = mLayers.begin(); iter != mLayers.end(); ++iter)
-  {
+  for(int i = 0; i < mDefaultTexture.size(); i++) {
+    glActiveTexture(GL_TEXTURE0 + i);
+    glBindTexture(GL_TEXTURE_2D, mDefaultTexture[i]); 
+  }
+  glBindVertexArray(mVAO);
+  for (auto iter = mLayers.begin(); iter != mLayers.end(); ++iter) {
     iter->second->Draw(nbFrames);
   }
+}
+
+bool Renderer::Updated(const int nbFrames)
+{
+  for (auto iter = mLayers.begin(); iter != mLayers.end(); ++iter) {
+    if (iter->second->Updated(nbFrames)) return true; 
+  }
+  return false;
 }

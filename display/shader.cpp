@@ -32,6 +32,9 @@ int Shader::LoadShader(const char * vertexShaderPath, const char *fragmentShader
 
   ifstream fragmentFile(fragmentShaderPath);
   NPNX_ASSERT(fragmentFile);
+
+  NPNX_LOG(vertexShaderPath);
+  NPNX_LOG(fragmentShaderPath);
   
   stringstream vBuffer, fBuffer;
   string vCode, fCode;
@@ -56,7 +59,7 @@ int Shader::LoadShader(const char * vertexShaderPath, const char *fragmentShader
   if (!success)
   {
     glGetShaderInfoLog(vShader, 8192, NULL, log);
-    NPNX_ASSERT_LOG(false, log);
+    NPNX_ASSERT_LOG(!"vertex shader error", log);
   }
 
   unsigned int fShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -66,7 +69,7 @@ int Shader::LoadShader(const char * vertexShaderPath, const char *fragmentShader
   if (!success)
   {
     glGetShaderInfoLog(fShader, 8192, NULL, log);
-    NPNX_ASSERT_LOG(false, log);
+    NPNX_ASSERT_LOG(!"frag shader error", log);
   }
 
   mShader = glCreateProgram();
@@ -77,7 +80,7 @@ int Shader::LoadShader(const char * vertexShaderPath, const char *fragmentShader
   if (!success)
   {
     glGetProgramInfoLog(mShader, 8192, NULL, log);
-    NPNX_ASSERT(log);
+    NPNX_ASSERT_LOG(!"linking error",log);
   }
   glDeleteShader(vShader);
   glDeleteShader(fShader);

@@ -24,3 +24,4 @@ share_data_location
 filtered_data
 display/build
 display/.vscode
+!display/data/*

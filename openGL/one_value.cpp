@@ -1,14 +1,14 @@
 // #include <glad/glad.h> 
 //////////////////// WINDOWS
-// #include "pch.h"
-// #include <GL/glew.h>
-// #include <GL/wglew.h>
-// #define OS_STRING "Windows"
+#include "pch.h"
+#include <GL/glew.h>
+#include <GL/wglew.h>
+#define OS_STRING "Windows"
 
 //////////////////UBUNTU
-#include <GL/glew.h>
-#include <GL/glxew.h>
-#define OS_STRING "Ubuntu"
+// #include <GL/glew.h>
+// #include <GL/glxew.h>
+// #define OS_STRING "Ubuntu"
 
 //////////////////////////////
 
