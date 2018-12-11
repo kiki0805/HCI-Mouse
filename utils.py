@@ -94,13 +94,13 @@ def bit_str2num(bits_str):
 
 
 def num2bin(num, bit_num): # return str
-    current = ''
-    while num != 0:
-        current = str(int(num % 2)) + current
-        num /= 2
-    while len(current) < bit_num:
-        current = '0' + current
-    return current[-bit_num:]
+    current = "{0:b}".format(num)
+    if not FREQ:
+        while len(current) < bit_num:
+            current = '0' + current
+        return current[-bit_num:]
+    else:
+        return current
 
 
 def crc_cal(num, binary=True, bit_num=10):
@@ -170,37 +170,45 @@ def first_one_larger_than(x, compare_num):
 ############################################
 ################## DSP #####################
 ############################################
+import matplotlib.pyplot as plt
 def filter_normalize(complex_arr):
-    assert complex_arr.size == 25
-    a1 = fft(complex_arr)
-    a1[1:4]=0
-    a1[22:25]=0
-    a2 = ifft(a1).real
+
+    plt.figure()
+    plt.plot(list(range(len(complex_arr))), abs(fft(complex_arr)), marker='o')
+    plt.show()
+    print('Default length is 8 in FREQ and 4 in MANCHESTER')
+    l = input('cut length: ')
+    if l != '':
+        while l != '':
+            l = int(l)
+            plt.subplot(1,2,1)
+            plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
+            a1 = fft(complex_arr)
+            a1[1:1 + l]=0
+            a1[complex_arr.size - l:complex_arr.size]=0
+            a2 = ifft(a1).real
+            plt.plot(list(range(len(a2))), a2, marker='x')
+            plt.subplot(1,2,2)
+            plt.plot(list(range(len(a1))), abs(fft(complex_arr)))
+            plt.plot(list(range(len(a2))),abs(fft(a2)))
+            plt.show()
+            l = input('update cut length? ')
+    else:
+        if FREQ:
+            l = 8
+        else:
+            l = 4
+    
+    print(ifft(a1))
     # a2 = a2 - a2.mean()
     # a2 = a2 / 2 + 0.5
     amax = a2.max()
     amin = a2.min()
-    a2 = [(i-amin)/(amax-amin) for i in a2]
+    a2 = [(0.7 + (1.3 - 0.7) * (i - amin)/(amax - amin)) / 2 for i in a2]
     return a2
 
 ##########################################
 ######## Report Utils ###################
 ###########################################
 def test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val):
-    location_range = hld(possible_dataB[0], SIZE, '1', '0')
-    delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
-    for i in possible_dataB:
-        dataB_list.append(i)
-    for i in possible_dataD:
-        dataD_list.append(i)
-    delay_list.append(delay)
-    location_list.append((location_range[1][1], location_range[0][1]))
-    temp_arr = np.array(dataD_list)
-    print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
-    print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
-    print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
-    correct_bit_num_arr = []
-    for i in dataB_list:
-        correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
-    print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
-    print('Average Delay: ' + str(np.array(delay_list).mean()))
+    pass
