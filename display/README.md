@@ -53,7 +53,7 @@ makeTexture 系列函数
 话是这么说，我目前的shader设计是每个rect绑定各自GL_TEXTURE0, 所以只用一张贴图的话也不用做这个操作。
 
 同时因为是按z-index顺序绘制，所以如果多个图元使用一组shader和texture，可以放在一起，在第一个之前和最后一个之后做读取和恢复。
-
+****
 这非常容易，因为我提供了beforeDraw和afterDraw函数指针接口, 参数是当前帧序号，可以传个lambda进去非常方便，Draw 会按照beforeDraw DrawGL afterDraw 来调用， DrawGL本身是虚函数。
 
 目前可以对layer做的操作只有 visibleCallback, 来决定每一帧画不画。但是如果重载drawGL, 就可以定义每个layer每一帧的行为，并且可以继承出更多类型的图元。
@@ -69,7 +69,7 @@ main.cpp 中底图和上层图对应 renderer 和 postRenderer。renderer的结�
 
 - Goals: 
 
-  - [TODO] 接受信号，更新底图，这个部分暂时还用不到，现在的代码里还没有涉及
+  - [TODO] 进程间通信机制
   - [TODO] 图元2D Transform支持(矩阵实现)，color 支持。
+  - [TODO] TextLayer实现。
   - [TODO] 设计好看的UI。
-  - [TODO] 游戏逻辑和ui绘制
