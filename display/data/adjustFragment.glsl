@@ -11,9 +11,16 @@ uniform int letThrough;
 
 void main()
 {
-  // Position ranges [-1.0, 1.0].
-  vec4 rawColor = texture(rawScreen, (Position.xy + vec2(1.0, 1.0)) / vec2(2,2));
-  FragColor = rawColor * letThrough +
-    vec4(texture(texture0, TexCoord).xyz, texture(texture0, TexCoord).w) * (1 - letThrough);
-  //caution: FragColor.w should always be newColor.w so the gl_blend will be correct
+    // Position ranges [-1.0, 1.0].
+    vec4 rawColor = texture(rawScreen, (Position.xy + vec2(1.0, 1.0)) / vec2(2,2));
+    if (letThrough == 1) {
+        FragColor = rawColor;
+    } else {
+        float temp = texture(texture0, TexCoord).x;
+        if (temp == 1.0f) FragColor = rawColor * 0.7;
+        else if (temp == 0.0f) FragColor = rawColor * 1.3;
+        else FragColor = temp * rawColor * 2;
+    }
+    //vec4(texture(texture0, TexCoord).xyz, texture(texture0, TexCoord).w) * (1 - letThrough);
+    //caution: FragColor.w should always be newColor.w so the gl_blend will be correct
 }

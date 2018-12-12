@@ -1,13 +1,19 @@
 # Trial
-print('Choose Coding Method:')
+#CODING_METHOD = 'FREQ'
+CODING_METHOD = 'MANCHESTER_MODE'
+print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
 print('\t1. FREQ')
 print('\t2. MANCHESTER_MODE')
+print('\t3. 10B12B')
 chose_num = input()
-if chose_num == '': 
-    #CODING_METHOD = 'FREQ'
-    CODING_METHOD = 'MANCHESTER_MODE'
-else:
-    CODING_METHOD = 'MANCHESTER_MODE' if int(chose_num) == 2 else 'FREQ'
+if chose_num != '':
+    if int(chose_num) == 2:
+        CODING_METHOD = 'MANCHESTER_MODE'
+    elif int(chose_num) == 3:
+        CODING_METHOD = 'fiveBsixB'
+    elif int(chose_num) == 1:
+        CODING_METHOD = 'FREQ'
+    # CODING_METHOD = 'MANCHESTER_MODE' if int(chose_num) == 2 else 'FREQ'
 LOOP = False# True
 DETAILS = True #False
 INTERPOLATION_DEBUG = True
@@ -15,7 +21,11 @@ MANCHESTER_MODE = CODING_METHOD == 'MANCHESTER_MODE'
 CRC4 = CODING_METHOD == 'CRC4'
 fiveBsixB = CODING_METHOD == 'fiveBsixB'
 FREQ = CODING_METHOD == 'FREQ'
-FILTER = True
+
+FILTER_sure = input('Turn on FILTER? ')
+FILTER = False if FILTER_sure == '' else True
+
+FILTER_H = False
 GRAPHICS = True #False # True
 TESTING_MODE = True
 FORCED_EXIT = False

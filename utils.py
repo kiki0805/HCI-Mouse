@@ -7,6 +7,53 @@ import math
 import time
 from scipy.signal import savgol_filter
 
+def add_NRZI(tenBtwlB, fixed_len=False):
+    # last_bit = '0'
+    # new_code = ''
+    # for i in tenBtwlB:
+    #     if i == '0':
+    #         new_code += last_bit
+    #     elif last_bit == '0':
+    #         new_code = new_code + '01' 
+    #     else:
+    #         new_code = new_code + '10'
+    #     last_bit = new_code[-1]
+    # if fixed_len:
+    #     while len(new_code) < BITS_NUM:
+    #         new_code = '0' + new_code
+    #     if len(new_code) > BITS_NUM:
+    #         print('overflow')
+    #     return new_code[-BITS_NUM:]
+    # return new_code
+    last_bit = '0'
+    new_code = ''
+    for i in tenBtwlB:
+        if i == '0':
+            new_code += '010'
+        else:
+            new_code = new_code + '101'
+        last_bit = new_code[-1]
+    if fixed_len:
+        while len(new_code) < BITS_NUM:
+            new_code = '0' + new_code
+        if len(new_code) > BITS_NUM:
+            print('overflow')
+        return new_code[-BITS_NUM:]
+    return new_code
+
+# def add_NRZ(tenBtwlB):
+#     last_bit = '0'
+#     new_code = ''
+#     for i in tenBtwlB:
+#         if i == last_bit:
+#             new_code += last_bit
+#         elif last_bit == '1':
+#             new_code = new_code + '0'
+#         else:
+#             new_code = new_code + '1'
+#         last_bit = new_code[-1]
+#     return new_code
+
 def smooth(y):
     if y.size < 15:
         return y
@@ -54,6 +101,7 @@ def Manchester_encode(raw_bit_str): # input: str, output: str
     new_bit_str = ['Unassigned'] * len(raw_bit_str)
     for i in range(len(raw_bit_str)):
         bit = raw_bit_str[i]
+        # new_bit_str[i] = '01' if bit == '0' else '10'
         new_bit_str[i] = '01' if bit == '0' else '10'
     return ''.join(new_bit_str)
 
@@ -172,33 +220,54 @@ def first_one_larger_than(x, compare_num):
 ############################################
 import matplotlib.pyplot as plt
 def filter_normalize(complex_arr):
-
-    plt.figure()
-    plt.plot(list(range(len(complex_arr))), abs(fft(complex_arr)), marker='o')
-    plt.show()
     print('Default length is 8 in FREQ and 4 in MANCHESTER')
+    show = input('If show figures? Default is off. ')
+    show = True if show != '' else False
+    if show:
+        plt.figure()
+        plt.plot(list(range(len(complex_arr))), complex_arr, marker='o')
+        plt.figure()
+        plt.plot(list(range(len(complex_arr))), abs(fft(complex_arr)), marker='o')
+        plt.show()
     l = input('cut length: ')
     if l != '':
         while l != '':
             l = int(l)
-            plt.subplot(1,2,1)
-            plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
             a1 = fft(complex_arr)
             a1[1:1 + l]=0
             a1[complex_arr.size - l:complex_arr.size]=0
             a2 = ifft(a1).real
-            plt.plot(list(range(len(a2))), a2, marker='x')
-            plt.subplot(1,2,2)
-            plt.plot(list(range(len(a1))), abs(fft(complex_arr)))
-            plt.plot(list(range(len(a2))),abs(fft(a2)))
-            plt.show()
+            if show:
+                plt.subplot(1,2,1)
+                plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
+                plt.plot(list(range(len(a2))), a2, marker='x')
+                plt.subplot(1,2,2)
+                plt.plot(list(range(len(a1))), abs(fft(complex_arr)), marker='x')
+                plt.plot(list(range(len(a2))),abs(fft(a2)), marker='x')
+                plt.show()
             l = input('update cut length? ')
     else:
         if FREQ:
             l = 8
         else:
             l = 4
+        a1 = fft(complex_arr)
+        a1[1:1 + l]=0
+        a1[complex_arr.size - l:complex_arr.size]=0
+        a2 = ifft(a1).real
+        if show:
+            plt.subplot(1,2,1)
+            plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
+            plt.plot(list(range(len(a2))), a2, marker='x')
+            plt.subplot(1,2,2)
+            plt.plot(list(range(len(a1))), abs(fft(complex_arr)), marker='x')
+            plt.plot(list(range(len(a2))),abs(fft(a2)), marker='x')
+            plt.show()
     
+    if show:
+        new_arr = np.concatenate((a2, a2))
+        plt.plot(list(range(len(new_arr))),abs(fft(new_arr)), marker='x')
+        plt.show()
     print(ifft(a1))
     # a2 = a2 - a2.mean()
     # a2 = a2 / 2 + 0.5
@@ -206,6 +275,7 @@ def filter_normalize(complex_arr):
     amin = a2.min()
     a2 = [(0.7 + (1.3 - 0.7) * (i - amin)/(amax - amin)) / 2 for i in a2]
     return a2
+
 
 ##########################################
 ######## Report Utils ###################
