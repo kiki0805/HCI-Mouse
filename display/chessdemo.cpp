@@ -14,8 +14,6 @@ namespace npnx {
   SimpleChess simpleChess;
 }
 
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
-
 int main()
 {
   NPNX_LOG(NPNX_DATA_PATH);
@@ -27,6 +25,7 @@ int main()
   GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "hello", NULL, NULL);
   NPNX_ASSERT(window);
   glfwMakeContextCurrent(window);
+  npnx::simpleChess.windowPtr = window;
 
   glewExperimental = GL_TRUE;
   GLenum err = glewInit();
@@ -65,7 +64,8 @@ int main()
 
   npnx::simpleChess.Init();
   glfwSetMouseButtonCallback(window, npnx::mouse_button_callback);
-  glfwSetKeyCallback(window, key_callback);
+  glfwSetCursorPosCallback(window, npnx::mouse_pos_callback);
+  glfwSetKeyCallback(window, npnx::key_callback);
 
   int nbFrames = 0;
   int lastNbFrames = 0;
@@ -91,27 +91,4 @@ int main()
 
   glfwTerminate();
   return 0;
-}
-
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
-  static int demomod = 0;
-  if (action == GLFW_RELEASE) {
-    switch (demomod) {
-      case 0:npnx::simpleChess.postLayer->visibleCallback = [](int nbFrames) {
-          return true;
-        };
-        break;
-      case 1:npnx::simpleChess.postLayer->visibleCallback = [](int nbFrames) {
-          return false;
-        }; 
-        break;
-      case 2:npnx::simpleChess.postLayer->visibleCallback = [](int nbFrames) {
-          return (nbFrames & 3) < 2;
-        };
-        break;
-    }
-    demomod++;
-    demomod%=3;
-  }
 }

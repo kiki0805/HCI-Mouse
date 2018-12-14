@@ -10,6 +10,11 @@
 
 namespace npnx {
 
+enum class CursorAdjustState
+{
+  INACTIVATED, READY, PUSHED
+};
+
 class SimpleChess{
 public:
   SimpleChess();
@@ -20,15 +25,20 @@ public:
   void CheckEnd();
 
 public:
+  GLFWwindow *windowPtr;
   bool inProgress = true;
   int nextColor = 1;
-  int chess[3][3] = {0};
-  float chessAnchor[3][3][2];
-  float heightSep = 0.57f;
-  float widthSep = 0.33f;
-  float coinHeight = 0.33f;
-  float coinWidth = 0.185f;
+  int chess[19][19] = {0};
+  float chessAnchor[19][19][2];
+  float heightSep = 0.053f / WINDOW_HEIGHT * WINDOW_WIDTH;
+  float widthSep = 0.053f;
+  float coinHeight = 0.053f / WINDOW_HEIGHT * WINDOW_WIDTH;
+  float coinWidth = 0.053f;
+  float rulerRatio = 0.3f;
   LayerObject *postLayer = NULL;
+
+  CursorAdjustState cursorState = CursorAdjustState::INACTIVATED;
+  double cursorOriginX = 0, cursorOriginY = 0, cursorSensitivityX = 1.0, cursorSensitivityY = 1.0;
 
 private: 
   std::vector<LayerObject *> layers;
@@ -39,7 +49,10 @@ private:
 
 extern SimpleChess simpleChess;
 
-void __cdecl mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
+void mouse_pos_callback(GLFWwindow *window, double x, double y);
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+
 }
 
 #endif // !DISPLAY_SIMPLECHESS_H
