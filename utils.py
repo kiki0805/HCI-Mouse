@@ -7,6 +7,53 @@ import math
 import time
 from scipy.signal import savgol_filter
 
+def add_NRZI(tenBtwlB, fixed_len=False):
+    # last_bit = '0'
+    # new_code = ''
+    # for i in tenBtwlB:
+    #     if i == '0':
+    #         new_code += last_bit
+    #     elif last_bit == '0':
+    #         new_code = new_code + '01' 
+    #     else:
+    #         new_code = new_code + '10'
+    #     last_bit = new_code[-1]
+    # if fixed_len:
+    #     while len(new_code) < BITS_NUM:
+    #         new_code = '0' + new_code
+    #     if len(new_code) > BITS_NUM:
+    #         print('overflow')
+    #     return new_code[-BITS_NUM:]
+    # return new_code
+    last_bit = '0'
+    new_code = ''
+    for i in tenBtwlB:
+        if i == '0':
+            new_code += '010'
+        else:
+            new_code = new_code + '101'
+        last_bit = new_code[-1]
+    if fixed_len:
+        while len(new_code) < BITS_NUM:
+            new_code = '0' + new_code
+        if len(new_code) > BITS_NUM:
+            print('overflow')
+        return new_code[-BITS_NUM:]
+    return new_code
+
+# def add_NRZ(tenBtwlB):
+#     last_bit = '0'
+#     new_code = ''
+#     for i in tenBtwlB:
+#         if i == last_bit:
+#             new_code += last_bit
+#         elif last_bit == '1':
+#             new_code = new_code + '0'
+#         else:
+#             new_code = new_code + '1'
+#         last_bit = new_code[-1]
+#     return new_code
+
 def smooth(y):
     if y.size < 15:
         return y
@@ -54,6 +101,7 @@ def Manchester_encode(raw_bit_str): # input: str, output: str
     new_bit_str = ['Unassigned'] * len(raw_bit_str)
     for i in range(len(raw_bit_str)):
         bit = raw_bit_str[i]
+        # new_bit_str[i] = '01' if bit == '0' else '10'
         new_bit_str[i] = '01' if bit == '0' else '10'
     return ''.join(new_bit_str)
 
@@ -94,13 +142,13 @@ def bit_str2num(bits_str):
 
 
 def num2bin(num, bit_num): # return str
-    current = ''
-    while num != 0:
-        current = str(int(num % 2)) + current
-        num /= 2
-    while len(current) < bit_num:
-        current = '0' + current
-    return current[-bit_num:]
+    current = "{0:b}".format(num)
+    if not FREQ:
+        while len(current) < bit_num:
+            current = '0' + current
+        return current[-bit_num:]
+    else:
+        return current
 
 
 def crc_cal(num, binary=True, bit_num=10):
@@ -170,37 +218,67 @@ def first_one_larger_than(x, compare_num):
 ############################################
 ################## DSP #####################
 ############################################
+import matplotlib.pyplot as plt
 def filter_normalize(complex_arr):
-    assert complex_arr.size == 25
-    a1 = fft(complex_arr)
-    a1[1:4]=0
-    a1[22:25]=0
-    a2 = ifft(a1).real
+    print('Default length is 8 in FREQ and 4 in MANCHESTER')
+    show = input('If show figures? Default is off. ')
+    show = True if show != '' else False
+    if show:
+        plt.figure()
+        plt.plot(list(range(len(complex_arr))), complex_arr, marker='o')
+        plt.figure()
+        plt.plot(list(range(len(complex_arr))), abs(fft(complex_arr)), marker='o')
+        plt.show()
+    l = input('cut length: ')
+    if l != '':
+        while l != '':
+            l = int(l)
+            a1 = fft(complex_arr)
+            a1[1:1 + l]=0
+            a1[complex_arr.size - l:complex_arr.size]=0
+            a2 = ifft(a1).real
+            if show:
+                plt.subplot(1,2,1)
+                plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
+                plt.plot(list(range(len(a2))), a2, marker='x')
+                plt.subplot(1,2,2)
+                plt.plot(list(range(len(a1))), abs(fft(complex_arr)), marker='x')
+                plt.plot(list(range(len(a2))),abs(fft(a2)), marker='x')
+                plt.show()
+            l = input('update cut length? ')
+    else:
+        if FREQ:
+            l = 8
+        else:
+            l = 4
+        a1 = fft(complex_arr)
+        a1[1:1 + l]=0
+        a1[complex_arr.size - l:complex_arr.size]=0
+        a2 = ifft(a1).real
+        if show:
+            plt.subplot(1,2,1)
+            plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
+            plt.plot(list(range(len(a2))), a2, marker='x')
+            plt.subplot(1,2,2)
+            plt.plot(list(range(len(a1))), abs(fft(complex_arr)), marker='x')
+            plt.plot(list(range(len(a2))),abs(fft(a2)), marker='x')
+            plt.show()
+    
+    if show:
+        new_arr = np.concatenate((a2, a2))
+        plt.plot(list(range(len(new_arr))),abs(fft(new_arr)), marker='x')
+        plt.show()
+    print(ifft(a1))
     # a2 = a2 - a2.mean()
     # a2 = a2 / 2 + 0.5
     amax = a2.max()
     amin = a2.min()
-    a2 = [(i-amin)/(amax-amin) for i in a2]
+    a2 = [(0.7 + (1.3 - 0.7) * (i - amin)/(amax - amin)) / 2 for i in a2]
     return a2
+
 
 ##########################################
 ######## Report Utils ###################
 ###########################################
 def test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val):
-    location_range = hld(possible_dataB[0], SIZE, '1', '0')
-    delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
-    for i in possible_dataB:
-        dataB_list.append(i)
-    for i in possible_dataD:
-        dataD_list.append(i)
-    delay_list.append(delay)
-    location_list.append((location_range[1][1], location_range[0][1]))
-    temp_arr = np.array(dataD_list)
-    print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
-    print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
-    print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
-    correct_bit_num_arr = []
-    for i in dataB_list:
-        correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
-    print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
-    print('Average Delay: ' + str(np.array(delay_list).mean()))
+    pass
