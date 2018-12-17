@@ -12,15 +12,9 @@ def interpolate_f(xy, mode='coordinate', longer_xy=None, interval=None):
     #     inter = interp1d(x, y, kind='nearest')
     # else:
     inter = interp1d(x, y, kind='linear')
-    if interval:
-        # x_extend = np.linspace(x[0], x[-1], \
-        #     num=math.ceil((x[-1] - x[0]) * FRAMES_PER_SECOND_AFTER_INTERPOLATE))
-        x_extend = np.linspace(x[0], x[0] + interval, \
-            num=math.ceil(interval * FRAMES_PER_SECOND_AFTER_INTERPOLATE))
-    else:
-        assert EXTRA_LEN == 0
-        x_extend = np.linspace(x[0], x[-1], \
-            num=math.ceil((x[-1] - x[0]) * FRAMES_PER_SECOND_AFTER_INTERPOLATE))
+    assert interval is not None
+    x_extend = np.linspace(x[0], x[0] + interval, \
+        num=math.ceil(interval * FRAMES_PER_SECOND_AFTER_INTERPOLATE))
     y_extend = inter(x_extend)
 
     if mode == 'coordinate':

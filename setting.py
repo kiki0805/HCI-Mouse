@@ -63,8 +63,9 @@ else:
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
 if DESIGNED_CODE:
-    # PREAMBLE_LIST = [1, -1, 1, -1]
-    PREAMBLE_LIST = []
+    PREAMBLE_LIST = [1, -1, 1, -1]
+    PREAMBLE_PATTERN = '1010'
+    # PREAMBLE_LIST = []
 import numpy as np
 PREAMBLE_NP = np.array(PREAMBLE_LIST)
 SIZE = (32, 32) # (256, 256)

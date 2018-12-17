@@ -1,582 +1,83 @@
 import usb.core
-import re
 import sys
 from interpolate_f import interpolate_f
 import threading
 from scipy.interpolate import interp1d
 from multiprocessing import Process, Queue
-import matplotlib.pyplot as plt
 from matplotlib import animation
 import time
 import math
 import numpy as np
 import usb.util
-from setting import *
-from utils import *
-from fiveBsixB_coding import *
+from constants import *
+from main_variables import *
+from Report import Report
 
-dur = input('Duration: ')
+dur = input('Duration(default is 10): ')
 dur = 10 if dur == '' else int(dur)
+
 if TESTING_MODE:
     fixed_val = int(input('[ TESTING MODE ] Fixed value: '))
     fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
-    ans_arr = np.array([])
-    dis_arr = np.array([]) 
-    delay_arr = np.array([])
+    report = Report(dur, fixed_val, fixed_bit_arr)
+    if DETAILS:
+        report.show_detail()
 
-
-preamble = np.array(PREAMBLE_LIST) 
-times_interpolate = TIMES_INTERPOLATE
-
-
-one = 130
-zero = 240
-
-def one_bit_array(size):
-    return np.array([one] * size)
-
-def zero_bit_array(size):
-    return np.array([zero] * size)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
-#device = usb.core.find(idVendor=0x2188, idProduct=0x0ae1)
 
 if device.is_kernel_driver_active(0):
     device.detach_kernel_driver(0)
 
 device.set_configuration()
 
-def init():
-    device.ctrl_transfer(bmRequestType = 0x40, #Write
-                                         bRequest = 0x01,
-                                         wValue = 0x0000,
-                                         wIndex = 0x0D, #PIX_GRAB register value
-                                         data_or_wLength = None
-                                         )
 
-init()
-
+# plt.legend()
+ax = plt.gca() # get most of the figure elements 
 plt.ion()
 
-line1, = plt.plot([], [], 'r', label='original') # plot the data and specify the 2d line
-line2, = plt.plot([], [], 'b', label='inter')
-line3, = plt.plot([], [], 'g', label='mean')
-line4, = plt.plot([], [], 'y', label='repaired')
-line5 = plt.scatter([], [], marker='x', color='black')
-line6, = plt.plot([], [], 'm')
-ax = plt.gca() # get most of the figure elements 
-x = np.array([])
-y = np.array([])
-y_fixed = np.array([])
-y_mean = np.array([])
 
-start = time.time()
-
-class SlideArray:
-    def __init__(self, window, size, line, draw_interval, ele_type='coordiante', location_mod=False, sample_line=None, scatter_mode=False):
-        self.scatter_mode = scatter_mode
-        self.sample_line = sample_line
-        self.window = window
-        self.draw_interval = draw_interval
-        self.line = line
-        self.size = size
-        self.last_detected = -1
-        self.location_mod = location_mod
-        self.init_timestamp = None
-        self.window_of_last_one = None
-        self.window_of_last_zero = None
-        if location_mod:
-            self.occur_times = {}
-            if self.window != np.array([]):
-                for ele in self.window:
-                    if ele not in self.occur_times:
-                        self.occur_times[ele] = 1
-                    else:
-                        self.occur_times[ele] += 1
-
-    def push(self, chunk_or_ele): # chunk for coordinate, ele for binary bits
-        assert chunk_or_ele.size <= self.size * 2
-        if self.window.size + chunk_or_ele.size > self.size * 2:
-            if self.location_mod:
-                print(self.window)
-                print(self.occur_times)
-                self.occur_times[self.window[0]] -= 1
-            self.window = self.window[int((chunk_or_ele.size + self.window.size) - self.size * 2):]
-        if self.window.size == 0:
-            self.window = chunk_or_ele
-        else:
-            self.window = np.concatenate((self.window, chunk_or_ele))
-        if self.location_mod:
-            if chunk_or_ele in self.occur_times:
-                self.occur_times[chunk_or_ele] += 1
-            else:
-                self.occur_times[chunk_or_ele] = 1
-
-    def is_full(self):
-        if self.window.size > self.size * 2:
-            print('outflow')
-        return self.window.size == self.size * 2
-
-    def most_frequent_ele(self):
-        assert self.location_mod
-        return max(self.occur_times, key=self.occur_times.get)
-
-    def reset(self):
-        self.window = np.array([])
-
-    def update_line_data(self):
-        if self.line is None:
-            return
-        if self.window.size == 0:
-            return
-
-        x, y = divide_coordinate(self.window)
-        if x.size < self.draw_interval:
-            if self.scatter_mode:
-                self.line.set_offsets(self.window)
-                return
-            self.line.set_xdata(x)
-            self.line.set_ydata(y)
-        else:
-            if self.scatter_mode:
-                self.line.set_offsets(self.window[-self.draw_interval:,:])
-                return
-            self.line.set_xdata(x[-self.draw_interval:])
-            self.line.set_ydata(y[-self.draw_interval:])
-
-    def learn_len_one(self):
-        return 5
-        if self.window_of_last_one is None:
-            return 10
-        count = 0
-        x, y = divide_coordinate(self.window_of_last_one)
-        for i in y.tolist():
-            if i == one:
-                count += 1
-        return count
-
-    def learn_len_zero(self):
-        return 3
-        if self.window_of_last_zero is None:
-            return 5
-        count = 0
-        x, y = divide_coordinate(self.window_of_last_zero)
-        for i in y.tolist():
-            if i == zero:
-                count += 1
-        return count
-
-    def check_bit(self, sample_slide):
-        if self.init_timestamp and CHECK_BIT == 'BY_TIME':
-            x, y = divide_coordinate(self.window)
-            ########################### METHOD 1 ####################
-            # if x[-1] >= self.init_timestamp + 1 / FRAME_RATE:
-            #     bit = '1' if y[-1] == one else '0'
-            #     if bit == '1':
-            #         sample_slide.push(np.array([[x[-1], one]]))
-            #     else:
-            #         sample_slide.push(np.array([[x[-1], zero]]))
-            #     self.init_timestamp = x[-1]
-            #     return bit
-            
-            ########################## METHOD 2 #####################
-            mid_index = int(x.size/2)
-            if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE * 0.9:
-            # if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE:
-            ########################## METHOD 2.1 #####################
-            #     bit = '1' if y[mid_index] == one else '0'
-            #     if bit == '1':
-            #         sample_slide.push(np.array([[x[mid_index], one]]))
-            #     else:
-            #         sample_slide.push(np.array([[x[mid_index], zero]]))
-            #     self.init_timestamp = x[mid_index]
-            #     return bit
-            ######################## METHOD 2.2 ############################
-                # num_one = 0
-                # num_zero = 0
-                # l = 3
-                # r = 8
-                # for e in y[l:r].tolist():
-                #     if e == one:
-                #         num_one += 1
-                #     else:
-                #         num_zero += 1
-
-                # pct = 0.6 if r - l == 3 else 0.7
-                # if num_one / (r-l) >= pct:
-                #     sample_slide.push(np.array([[x[mid_index], one]]))
-                #     self.init_timestamp = x[mid_index]
-                #     return '1'
-                # elif num_zero / (r-l) >= pct:
-                #     sample_slide.push(np.array([[x[mid_index], zero]]))
-                #     self.init_timestamp = x[mid_index]
-                #     return '0'
-            ############################ METHOD 2.3 #########################
-                # num_one = 0 
-                # num_zero = 0
-                # len_zero = 5
-                # len_one = 10
-                # pct = 0.9
-
-                # left_zero = math.floor((y.size-len_zero)/2)
-                # for e in y[left_zero:left_zero + len_zero].tolist():
-                #     if e == zero:
-                #         num_zero += 1
-
-                # left_one = math.floor((y.size-len_one)/2)
-                # for e in y[left_one:left_one + len_one].tolist():
-                #     if e == one:
-                #         num_one += 1
-
-                # if num_one / len_one >= pct:
-                #     sample_slide.push(np.array([[x[mid_index], one]]))
-                #     self.init_timestamp = x[mid_index]
-                #     return '1'
-                # elif num_zero / len_zero >= pct:
-                #     sample_slide.push(np.array([[x[mid_index], zero]]))
-                #     self.init_timestamp = x[mid_index]
-                #     return '0'
-            ###################### METHOD 2.4 ##################################
-            # learn last bit occupies how many samples
-            # len_zero: min(between [5,10])
-            # len_one: min(between [8,13])
-                num_one = 0 
-                num_zero = 0
-                len_zero = self.learn_len_zero() - 1
-                len_one = self.learn_len_one()
-                assert len_zero != 0
-                assert len_one != 0
-                pct = 0.8
-
-                left_zero = math.floor((y.size-len_zero)/2)
-                for e in y[left_zero:left_zero + len_zero].tolist():
-                    if e == zero:
-                        num_zero += 1
-
-                left_one = math.floor((y.size-len_one)/2)
-                for e in y[left_one:left_one + len_one].tolist():
-                    if e == one:
-                        num_one += 1
-
-                if num_one / len_one >= pct:
-                    sample_slide.push(np.array([[x[mid_index], one]]))
-                    self.init_timestamp = x[mid_index]
-                    self.window_of_last_one = self.window
-                    return '1'
-                elif num_zero / len_zero >= pct:
-                    sample_slide.push(np.array([[x[mid_index], zero]]))
-                    self.init_timestamp = x[mid_index]
-                    self.window_of_last_zero = self.window
-                    return '0'
-            ####################################################################
-            return
-
-
-
-        if not self.is_full():
-            return None
-        x, y = divide_coordinate(self.window)
-        num_one = 0
-        num_zero = 0
-        for e in y.tolist():
-            if e == one:
-                num_one += 1
-            else:
-                num_zero += 1
-
-        pct = 0.9
-        if num_one / y.size == pct:
-            self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == zero \
-                else x[math.floor((x.size - 1) / 2) + 1]
-            sample_slide.push(np.array([[self.init_timestamp, one]]))
-            return '1'
-        elif not self.init_timestamp and num_zero / y.size == 0.9:
-            self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == one \
-                else x[math.floor((x.size - 1) / 2) + 1]
-            sample_slide.push(np.array([[self.init_timestamp, zero]]))
-            return '0'
-        return None
-
-class BitSlideArray:
-    def __init__(self, window, size, location_mod=False):
-        if MANCHESTER_MODE:
-            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM * 2) + '}'
-        elif fiveBsixB:
-            # only for 10b12b
-            self.pattern = PREAMBLE_STR + '\d{12}'
-        elif CRC4:
-            self.pattern = None
-            self.pending_count = 0
-        else:
-            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM) + '}'  
-        self.window = window
-        self.size = size
-        self.last_detected = -1
-        self.location_mod = location_mod
-        if location_mod:
-            self.occur_times = {}
-            if self.window != np.array([]):
-                for ele in self.window:
-                    if ele not in self.occur_times:
-                        self.occur_times[ele] = 1
-                    else:
-                        self.occur_times[ele] += 1
-
-    def update(self, one_bit, sample_arr):
-        bit_detected = one_bit.check_bit(sample_arr)
-        if not bit_detected:
-           # if self.window.size != 0:
-           #     self.reset()
-            return
-        self.push(bit_detected)
-        return self.decode()
-
-    def decode(self):
-        if MANCHESTER_MODE:
-            temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM * 2:]
-            #if DETAILS:
-            #    print(temp_str)
-            sub_str = re.findall(self.pattern, temp_str)
-            if sub_str == []:
-                return
-            possible_dataB = []
-            possible_dataD = []
-            for i in sub_str:
-                i_removed_preamble = sim_fix(i[len(PREAMBLE_STR):])
-                if len(i_removed_preamble) != 2 * BITS_NUM:
-                    continue
-                bit_str = Manchester_decode(i_removed_preamble)
-                if not bit_str:
-                    continue
-                decoded_num = bit_str2num(bit_str)
-                if DETAILS:
-                    print(bit_str)
-                    print(decoded_num)
-                possible_dataB.append(bit_str)
-                possible_dataD.append(decoded_num)
-            return possible_dataB, possible_dataD
-        elif CRC4:
-            #if DETAILS:
-            #    print(temp_str)
-            if self.pending_count != 0:
-                self.pending_count -= 1
-                return
-            if len(self.window) < BITS_NUM + 4:
-                return
-            possible_dataB = []
-            possible_dataD = []
-            i_removed_preamble = ''.join(self.window)[-BITS_NUM-4:]
-            if not crc_validate(i_removed_preamble[:BITS_NUM], i_removed_preamble[-4:]):
-                return
-            bit_str = i_removed_preamble[:BITS_NUM]
-            decoded_num = bit_str2num(bit_str)
-            if DETAILS:
-                print(bit_str)
-                print(decoded_num)
-            possible_dataB.append(bit_str)
-            possible_dataD.append(decoded_num)
-            if possible_dataB != [] and possible_dataD != []:
-                self.pending_count = BITS_NUM + 4
-            return possible_dataB, possible_dataD
-        elif fiveBsixB:
-            # only for 10b12b
-            if len(self.window) < len(PREAMBLE_STR) + BITS_NUM + 2:
-                return
-            temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM - 2:]
-            #if DETAILS:
-            #    print(temp_str)
-            sub_str = re.findall(self.pattern, temp_str)
-            if sub_str == []:
-                return
-            possible_dataB = []
-            possible_dataD = []
-            for i in sub_str:
-                i_removed_preamble = i[len(PREAMBLE_STR):]
-                if len(i_removed_preamble) != 2 + BITS_NUM:
-                    continue
-                try:
-                    bit_str = REVERSE_DIC[i_removed_preamble]
-                except:
-                    continue
-                if not bit_str:
-                    continue
-                decoded_num = bit_str2num(bit_str)
-                if DETAILS:
-                    print(bit_str)
-                    print(decoded_num)
-                possible_dataB.append(bit_str)
-                possible_dataD.append(decoded_num)
-            return possible_dataB, possible_dataD
-        else:
-            bit_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM:]
-            if DETAILS:
-                print(bit_str)
-            sub_str = re.findall(self.pattern, bit_str)
-            decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
-            decoded_num = [bit_str2num(i) for i in decoded_data]
-            if decoded_data != []:
-                if DETAILS:
-                    print(decoded_data)
-                    print(decoded_num)
-                return decoded_data, decoded_num
-            
-
-    def push(self, ele):
-        if self.window.size >= self.size:
-            if self.location_mod:
-                print(self.window)
-                print(self.occur_times)
-                self.occur_times.pop(self.window[0])
-            self.window = np.delete(self.window, 0, axis=0)
-        self.window = np.append(self.window, ele)
-        if self.location_mod:
-            if ele in self.occur_times:
-                self.occur_times[ele] += 1
-            else:
-                self.occur_times[ele] = 1
-
-    def is_full(self):
-        return self.window.size == self.size
-
-    def most_frequent_ele(self):
-        assert self.location_mod
-        return max(self.occur_times, key=self.occur_times.get)
-
-    def reset(self):
-        self.window = np.array([])
-
-
-class TupleSlideArray:
-    def __init__(self, window, size, location_mod=False):
-        self.window = window
-        self.size = size
-        self.location_mod = location_mod
-        if location_mod:
-            self.occur_times = {}
-            if self.window != []:
-                for ele in self.window:
-                    if ele not in self.occur_times:
-                        self.occur_times[ele] = 1
-                    else:
-                        self.occur_times[ele] += 1
-
-    def push(self, ele):
-        if len(self.window) >= self.size * 2:
-            if self.location_mod:
-                self.occur_times[self.window[0]] -= 1
-            del self.window[0]
-        self.window.append(ele)
-        if self.location_mod:
-            if ele in self.occur_times:
-                self.occur_times[ele] += 1
-            else:
-                self.occur_times[ele] = 1
-
-    def is_full(self):
-        return len(self.window) == self.size * 2
-
-    def most_frequent_ele(self):
-        assert self.location_mod
-        return max(self.occur_times, key=self.occur_times.get)
-
-    def reset(self):
-        self.window = np.array([])
-
-location_arr = TupleSlideArray([], LOCATION_SLIDE_WINDOW_SIZE, True)
-if TESTING_MODE:
-    location_list = []
-    dataB_list = []
-    dataD_list = []
-    delay_list = []
-
-
-def update():
-    advanced_time = FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.005
-    global location_list, dataB_list, dataD_list, delay_list
-    global q 
-    global x, y, ax, y_fixed
-    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, MOUSE_FRAME_RATE)  # maintain raw frames within around 2 seconds
-    # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, None, int(MOUSE_FRAME_RATE / 2))  # maintain raw frames within around 2 seconds
-    frames_m = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line2, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)) # maintain frames within 2 seconds after interpolation
-    y_mean = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line3, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE /16)-int(advanced_time)) # maintain frames within 2 seconds after interpolation
-    one_bit = SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE), line4, \
-            math.floor(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE)) # maintain frames within 2 seconds after interpolation
-    sample_arr = SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line5, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)-int(advanced_time), scatter_mode=True) # maintain frames within 2 seconds after interpolation
-    ################### TEST ##################
-    smooth_data =  SlideArray(np.array([[]]), int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line6, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)-int(advanced_time))
-
-    binary_arr =  SlideArray(np.array([[]]), math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE * 2), line1, \
-            int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 16)-int(advanced_time)) # maintain frames within 2 seconds after interpolation
-
-    # print('[ DEBUG ] Window size: ', end='')
-    # print(int(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / 2))
-
-    if MANCHESTER_MODE:
-        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM * 2 + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
-    elif fiveBsixB:
-        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + 2 + len(PREAMBLE_STR)) * 2)
-    elif CRC4:
-        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + 4) * 2)
-    else:
-        bit_arr = BitSlideArray(np.array([[]]), (BITS_NUM + len(PREAMBLE_STR)) * 2) # maintain frames within 2 seconds after interpolation
-
+from main_variables import *
+def handle_data():
     max_pixel = 200
     min_pixel = 100
     if raw_frames_m.line:
         time_last_get = 0
     lasttime_interpolated = 0
     while True:
-
         response, timestamp = q.get()
         if not response:
             return
 
+        # Fix raw value
         val = int.from_bytes(response, 'big')
-        # print(val)
         val_fixed = val
         if val_fixed < 128:
             val_fixed += 128
         if val_fixed > 240:
             continue
 
-        if raw_frames_m.line:
-            # print(timestamp - time_last_get)
-            # time_last_get = timestamp
-            raw_frames_m.update_line_data()
-            ax.relim() # renew the data limits
-            ax.autoscale_view(True, True, True) # rescale plot view
-            plt.draw() # plot new figure
-            plt.pause(1e-17)
-
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
 
         if lasttime_interpolated == 0:
             frames_m.push(np.array([raw_frames_m.window[0]]))
-            # lasttime_interpolated = half_floor(raw_frames_m.window[0][0])
             lasttime_interpolated = raw_frames_m.window[0][0]
-        elif raw_frames_m.window[-1][0] - lasttime_interpolated > END_INTERVAL: # conduct once interpolation per 0.1 second
+        elif raw_frames_m.window[-1][0] - lasttime_interpolated > END_INTERVAL:
             end_probe = lasttime_interpolated + INTERPOLATION_INTERVAL
-            condition = np.logical_and(raw_frames_m.window[:, 0]>=lasttime_interpolated, raw_frames_m.window[:, 0]<end_probe+EXTRA_LEN)
-            # condition = raw_frames_m.window[:, 0]>lasttime_interpolated
+            condition = np.logical_and(raw_frames_m.window[:, 0] > lasttime_interpolated, \
+                raw_frames_m.window[:, 0] <= end_probe + EXTRA_LEN)
             lasttime_interpolated = end_probe
             raw_frames_m_not_interpolated = raw_frames_m.window[condition]
-            if EXTRA_LEN != 0:
-                frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated, interval=INTERPOLATION_INTERVAL)
-            else:
-                frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
-            # frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated)
-            # print(frames_m_interpolated.shape)
+            
+            assert EXTRA_LEN != 0
+            frames_m_interpolated = interpolate_f(raw_frames_m_not_interpolated, interval=INTERPOLATION_INTERVAL)
 
-            l = len(frames_m_interpolated)
-            # assert l == INTERPOLATION_INTERVAL * FRAMES_PER_SECOND_AFTER_INTERPOLATE
+            #l = len(frames_m_interpolated)
+            l = int(INTERPOLATION_INTERVAL * FRAMES_PER_SECOND_AFTER_INTERPOLATE)
             # assert frames_m_interpolated[0][0] >= frames_m.window[-1][0]
             # if frames_m_interpolated[0][0] == frames_m.window[-1][0]:
             #     frames_m_interpolated[0][1] = frames_m.window[-1][1]
-                # frames_m.window[-1][1] = frames_m_interpolated[0][1]
+            #     frames_m.window[-1][1] = frames_m_interpolated[0][1]
             temp_x = np.array([])
             temp_y = np.array([])
             for i in range(l + 1):
@@ -585,6 +86,8 @@ def update():
                     min_pixel = frames_m.window[:, 1].min()
 
                 if i < l:
+                    if frames_m_interpolated[i][0] < frames_m.window[-1][0]:
+                        continue
                     temp_x = np.append(temp_x, frames_m_interpolated[i][0])
                     temp_y = np.append(temp_y, frames_m_interpolated[i][1])
                 if temp_x.size % POINTS_TO_COMBINE == 0 or i == l:
@@ -596,37 +99,13 @@ def update():
                     temp_y = np.array([])
 
                     ######################################################
-                    # x, y = divide_coordinate(frames_m.window)
-                    # y = smooth(y)
-                    # smooth_data.window = get_coordinate(x, y)
+                    x, y = divide_coordinate(frames_m.window)
                     # # y_mean.push(np.array([[x[-1], 160]]))
                     # # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
 
-                    # ##############################
-                    # ####### Wait 0.01s ###########
-                    # ##############################
-                    
-                    # if x.size <= advanced_time + MEAN_WIDTH / 2:
-                    #     continue
-                    # ################ MEAN WAY 1 ######################################
-                    # # x = x[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
-                    # # y = y[:-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01)]
-                    # # y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
-                    # ################ MEAN WAY 2 ######################################
-                    # # print(y.size)
-                    # # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2))
-                    # # print(-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2))
-                    # # print(y[-int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01+MEAN_WIDTH/2): \
-                    # #     -int(FRAMES_PER_SECOND_AFTER_INTERPOLATE * 0.01-MEAN_WIDTH/2)])
-                    # mid_interval = y[-int(advanced_time + MEAN_WIDTH / 2): \
-                    #     -int(advanced_time - MEAN_WIDTH / 2)].mean()
-                    # x = x[:-int(advanced_time)]
-                    # y = y[:-int(advanced_time)]
-                    # y_mean.push(np.array([[x[-1], mid_interval]]))
-                    # # print(mid_interval)
-                    
-                    # if y_mean.window.size == 2:
-                    #     one_bit.push(np.array([[x[-1], one]]))
+                    y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
+                    if y_mean.window.shape[0] == 0:
+                        one_bit.push(np.array([[x[-1], ONE]]))
 
                     # # elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
                     # # elif abs(y_mean.window[-1][1] - y[-1]) < 5:
@@ -636,107 +115,81 @@ def update():
                     #     else:
                     #         one_bit.push(np.array([[x[-1], one]]))
                     # # elif y_mean.window[-1][1] < frames_m.window[-1][1]:
-                    # elif y_mean.window[-1][1] < y[-1]:
-                    #     one_bit.push(np.array([[x[-1], zero]]))
-                    # else:
-                    #     one_bit.push(np.array([[x[-1], one]]))
+                    elif y_mean.window[-1][1] < y[-1]:
+                        one_bit.push(np.array([[x[-1], ZERO]]))
+                    else:
+                        one_bit.push(np.array([[x[-1], ONE]]))
 
-                    # binary_arr.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
-                    # # fix
-                    # if one_bit.window.size > 4:
-                    #     if one_bit.window[-2][1] != one_bit.window[-1][1] and \
-                    #             one_bit.window[-2][1] != one_bit.window[-3][1]:
+                    binary_arr.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
+                    # Fix one bit error
+                    if one_bit.window.shape[0] > 2:
+                        if one_bit.window[-2][1] != one_bit.window[-1][1] and \
+                                one_bit.window[-2][1] != one_bit.window[-3][1]:
+                                    one_bit.window[-2][1] = one_bit.window[-1][1]
+                                    binary_arr.window[-2][1] = binary_arr.window[-1][1]
+                    
+                    # Fix two bits error
+                    # if one_bit.window.shape[0] > 4:
+                    #     if one_bit.window[-4][1] != one_bit.window[-3][1] and \
+                    #             one_bit.window[-1][1] != one_bit.window[-2][1]:
                     #                 one_bit.window[-2][1] = one_bit.window[-1][1]
+                    #                 one_bit.window[-3][1] = one_bit.window[-1][1]
                     #                 binary_arr.window[-2][1] = binary_arr.window[-1][1]
+                    #                 binary_arr.window[-3][1] = binary_arr.window[-1][1]
 
-                    # result = bit_arr.update(one_bit, sample_arr)
-                    # if result:
-                    #     possible_dataB = result[0] 
-                    #     possible_dataD = result[1]
-                    #     if possible_dataB != []:
-                    #         #if DETAILS:
-                    #         print(possible_dataB[0])
-                    #         location_range = hld(possible_dataB[0], SIZE, '1', '0')
-                    #         if TESTING_MODE:
-                    #             test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
-                    #             delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
-                    #             for i in possible_dataB:
-                    #                 dataB_list.append(i)
-                    #             for i in possible_dataD:
-                    #                 dataD_list.append(i)
-                    #             delay_list.append(delay)
-                    #             location_list.append((location_range[1][1], location_range[0][1]))
-                    #             temp_arr = np.array(dataD_list)
-                    #             print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
-                    #             print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
-                    #             print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
-                    #             correct_bit_num_arr = []
-                    #             for i in dataB_list:
-                    #                 correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
-                    #             print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
-                    #             print('Average Delay: ' + str(np.array(delay_list).mean()))
-                    #         if DETAILS:
-                    #             print(possible_dataB[0])
-                    #             print(possible_dataD[0])
-                    #             print('delay: ' + str(time.time() - \
-                    #                 divide_coordinate(one_bit.window)[0].mean()))
-                    #             print('Current Location: ', end='')
-                    #             print(location_range[1][1], location_range[0][1])
-                    #         location_arr.push((location_range[1][1], location_range[0][1]))
+                    result = bit_arr.update(one_bit, sample_arr)
+                    if result:
+                        possible_dataB = result[0] 
+                        possible_dataD = result[1]
+                        if possible_dataB != []:
+                            #if DETAILS:
+                            print(possible_dataB[0])
+                            if TESTING_MODE:
+                                report.get_test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
+                            
                     ###############################################
 
                     if GRAPHICS and not raw_frames_m.line:
-                        # one_bit.update_line_data()
-                        # smooth_data.update_line_data()
-                        # binary_arr.update_line_data()
-                        # y_mean.update_line_data()
-                        # sample_arr.update_line_data()
+                        one_bit.update_line_data()
+                        binary_arr.update_line_data()
+                        y_mean.update_line_data()
+                        sample_arr.update_line_data()
                         frames_m.update_line_data()
                         ax.relim() # renew the data limits
                         ax.autoscale_view(True, True, True) # rescale plot view
                         plt.draw() # plot new figure
                         plt.pause(1e-17)
 
-            # lasttime_interpolated = raw_frames_m_not_interpolated[-1][0]
-            # lasttime_interpolated = half_floor(raw_frames_m_not_interpolated[-1][0])
 q = Queue()
-p = Process(target=update) # for display
+p = Process(target=handle_data) # for display
 p.start()
 
 
 start = time.time()
 global_count = 0
-if LOOP:
-    dur = 999999999
 
-# time1 = time.time()
 while time.time() - start < dur:
+    device.ctrl_transfer(bmRequestType = 0x40, #Write
+                    bRequest = 0x01,
+                    wValue = 0x0000,
+                    wIndex = 0x0D, #PIX_GRAB register value
+                    data_or_wLength = None
+                    )
+
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
-                     bRequest = 0x01,
-                     wValue = 0x0000,
-                     wIndex = 0x0D, #PIX_GRAB register value
-                     data_or_wLength = 1
-                     )
-    init()
-    # time2 = time.time()
-    # if time2 - time1 > 1/240:
-    #     print(time2 - time1)
-    # time1 = time.time()
+                    bRequest = 0x01,
+                    wValue = 0x0000,
+                    wIndex = 0x0D, #PIX_GRAB register value
+                    data_or_wLength = 1
+                    )
     q.put((response, time.time()))
     global_count += 1
 
 print('Frame rate: ' + str(global_count / (time.time() - start)))
 
-# if TESTING_MODE:
-#     time.sleep(5)
-#     temp_arr = np.array(dataD_list)
-#     print('Total Num in ' + str(dur) + 's: ' + str(temp_arr.size))
-#     print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
-#     print('Correct Percentage: ' + str(sum(temp_arr == fixed_val) / temp_arr.size))
-#     correct_bit_num_arr = [sum(np.array([int(str_i) for str_i in list(i)]) == fixed_bit_arr) for i in dataB_list]
-#     print('Pencentage of Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
+if TESTING_MODE:
+    report.get_final_report()
 
-    
 
 if FORCED_EXIT:
     p.terminate()
