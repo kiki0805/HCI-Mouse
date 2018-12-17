@@ -1,18 +1,22 @@
 # Trial
 #CODING_METHOD = 'FREQ'
-CODING_METHOD = 'MANCHESTER_MODE'
-print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
-print('\t1. FREQ')
-print('\t2. MANCHESTER_MODE')
-print('\t3. 10B12B')
-chose_num = input()
-if chose_num != '':
-    if int(chose_num) == 2:
-        CODING_METHOD = 'MANCHESTER_MODE'
-    elif int(chose_num) == 3:
-        CODING_METHOD = 'fiveBsixB'
-    elif int(chose_num) == 1:
-        CODING_METHOD = 'FREQ'
+# CODING_METHOD = 'MANCHESTER_MODE'
+CODING_METHOD = 'DESIGNED_CODE'
+# print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
+# print('\t1. FREQ')
+# print('\t2. MANCHESTER_MODE')
+# print('\t3. 10B12B')
+# print('\t4. Designed Code')
+# chose_num = input()
+# if chose_num != '':
+#     if int(chose_num) == 4:
+#         CODING_METHOD = 'DESIGNED_CODE'
+#     elif int(chose_num) == 2:
+#         CODING_METHOD = 'MANCHESTER_MODE'
+#     elif int(chose_num) == 3:
+#         CODING_METHOD = 'fiveBsixB'
+#     elif int(chose_num) == 1:
+#         CODING_METHOD = 'FREQ'
     # CODING_METHOD = 'MANCHESTER_MODE' if int(chose_num) == 2 else 'FREQ'
 LOOP = False# True
 DETAILS = True #False
@@ -21,9 +25,11 @@ MANCHESTER_MODE = CODING_METHOD == 'MANCHESTER_MODE'
 CRC4 = CODING_METHOD == 'CRC4'
 fiveBsixB = CODING_METHOD == 'fiveBsixB'
 FREQ = CODING_METHOD == 'FREQ'
-
-FILTER_sure = input('Turn on FILTER? ')
-FILTER = False if FILTER_sure == '' else True
+DESIGNED_CODE = CODING_METHOD == 'DESIGNED_CODE'
+EXPEND = 3
+# FILTER_sure = input('Turn on FILTER? ')
+# FILTER = False if FILTER_sure == '' else True
+FILTER = True
 
 FILTER_H = False
 GRAPHICS = True #False # True
@@ -56,6 +62,9 @@ else:
 
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
+if DESIGNED_CODE:
+    # PREAMBLE_LIST = [1, -1, 1, -1]
+    PREAMBLE_LIST = []
 import numpy as np
 PREAMBLE_NP = np.array(PREAMBLE_LIST)
 SIZE = (32, 32) # (256, 256)

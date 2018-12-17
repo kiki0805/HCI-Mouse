@@ -4,34 +4,29 @@ from scipy.fftpack import fft,ifft
 from setting import *
 import numpy as np
 import math
+import random
 import time
 from scipy.signal import savgol_filter
 
+def designed_code(raw):
+    new_code = []
+    for i in raw:
+        if int(i) == 1:
+            new_code += [1, -1, -1]
+        else:
+            new_code += [1, 1, -1]
+    return PREAMBLE_LIST + new_code
+
 def add_NRZI(tenBtwlB, fixed_len=False):
-    # last_bit = '0'
-    # new_code = ''
-    # for i in tenBtwlB:
-    #     if i == '0':
-    #         new_code += last_bit
-    #     elif last_bit == '0':
-    #         new_code = new_code + '01' 
-    #     else:
-    #         new_code = new_code + '10'
-    #     last_bit = new_code[-1]
-    # if fixed_len:
-    #     while len(new_code) < BITS_NUM:
-    #         new_code = '0' + new_code
-    #     if len(new_code) > BITS_NUM:
-    #         print('overflow')
-    #     return new_code[-BITS_NUM:]
-    # return new_code
     last_bit = '0'
     new_code = ''
     for i in tenBtwlB:
         if i == '0':
-            new_code += '010'
+            new_code += last_bit * 2
+        elif last_bit == '0':
+            new_code = new_code + '01' 
         else:
-            new_code = new_code + '101'
+            new_code = new_code + '10'
         last_bit = new_code[-1]
     if fixed_len:
         while len(new_code) < BITS_NUM:
@@ -40,6 +35,23 @@ def add_NRZI(tenBtwlB, fixed_len=False):
             print('overflow')
         return new_code[-BITS_NUM:]
     return new_code
+    # last_bit = '0'
+    # new_code = ''
+    # for i in tenBtwlB:
+    #     if i == '0':
+    #         new_code += last_bit
+    #     elif last_bit == '0':
+    #         new_code = new_code + '1' 
+    #     else:
+    #         new_code = new_code + '0'
+    #     last_bit = new_code[-1]
+    # if fixed_len:
+    #     while len(new_code) < BITS_NUM:
+    #         new_code = '0' + new_code
+    #     if len(new_code) > BITS_NUM:
+    #         print('overflow')
+    #     return new_code[-BITS_NUM:]
+    # return new_code
 
 # def add_NRZ(tenBtwlB):
 #     last_bit = '0'
@@ -173,6 +185,106 @@ def crc_validate(num, crc, binary=True, bit_num=10):
         return True
     return False
 
+def hle(size):
+    assert math.log(size[0], 2) % 1 == 0
+    assert math.log(size[1], 2) % 1 == 0
+
+    width_divided = size[0]
+    height_divided = size[1]
+
+    imgs_arr = np.zeros((BITS_NUM, size[0], size[1]), dtype=np.int16)
+    [im_id, row, col] = imgs_arr.shape
+
+    turn = True
+    for n in range(im_id):
+        mod = width_divided / 2 if turn else height_divided / 2
+        if turn:
+            width_divided /= 2
+        else:
+            height_divided /= 2
+
+        if turn:
+            for j in range(col):
+                imgs_arr[n, :, j] = '0' if math.floor(j / mod) % 2 == 0 else '1'
+        else:
+            for i in range(row):
+                imgs_arr[n, i, :] = '0' if math.floor(i / mod) % 2 == 0 else '1'
+                
+        turn = not turn
+    return imgs_arr
+
+# per x, y, per bit
+# without preamble
+def hle_raw(size):
+    imgs_arr = np.zeros((size[0], size[1], BITS_NUM), dtype=np.int16)
+    raw_imgs_arr = hle(size)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            imgs_arr[i,j,:] = raw_imgs_arr[:,i,j]
+    return imgs_arr
+
+# per x, y, per bit      
+def raw_random_location(size):
+    bits_pool = np.zeros((pow(2, BITS_NUM), BITS_NUM))
+    index_pool = list(range(pow(2, BITS_NUM)))
+    for i in range(pow(2, BITS_NUM)):
+        bits = num2bin(i, BITS_NUM)
+        bits_pool[i] = np.array(list(bits))
+    data = np.zeros((size[0], size[1], BITS_NUM * EXPEND + PREAMBLE_NP.size), dtype=np.int16)
+    # print(index_pool)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            # random_index = random.choice(index_pool)
+            random_index = i * size[0] + j
+            # random_index = max(341, random_index)
+            # random_index = min(342, random_index)
+            if EXPEND == 6:
+                temp = bits_pool[random_index]
+                temp = [str(int(i)) for i in temp]
+                # print(temp)
+                # print(bits_pool[random_index])
+                encoded_str = designed_code(Manchester_encode(''.join(temp)))
+            else:
+                temp = bits_pool[random_index]
+                temp = [str(int(i)) for i in temp]
+                encoded_str = designed_code(''.join(temp))
+            data[i,j,:] = list(encoded_str)
+            # index_pool.remove(random_index)
+    return data
+
+
+# with preamble
+# per x,y, per bit
+def fiveBsixB_encode(size):
+    from fiveBsixB_coding import CODING_DIC
+    assert BITS_NUM == 10
+    raw_arr = hle_raw(size)
+    imgs_arr = np.zeros((size[0], size[1], len(PREAMBLE_STR) + 12), dtype=np.int16)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            temp_list = raw_arr[i,j,:].tolist()
+            temp_list = [str(i) for i in temp_list]
+            encoded_str = CODING_DIC[''.join(temp_list)]
+            encoded_list = PREAMBLE_STR + encoded_str
+            imgs_arr[i,j] = list(encoded_list)
+    return imgs_arr
+
+# without preamble
+# per x,y, per bit
+def designed_location_encode(size):
+    assert BITS_NUM == 10
+    raw_arr = hle_raw(size)
+    imgs_arr = np.zeros((size[0], size[1], BITS_NUM * EXPEND + PREAMBLE_NP.size), dtype=np.int16)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            temp_list = raw_arr[i,j,:].tolist()
+            temp_list = [str(i) for i in temp_list]
+            if EXPEND == 6:
+                encoded_str = designed_code(Manchester_encode(''.join(temp_list)))
+            else:
+                encoded_str = designed_code(''.join(temp_list))
+            imgs_arr[i,j] = list(encoded_str)
+    return imgs_arr
 
 def hld(bit_arr, size, bit_one, bit_zero):
     print(bit_arr)
@@ -219,22 +331,30 @@ def first_one_larger_than(x, compare_num):
 ################## DSP #####################
 ############################################
 import matplotlib.pyplot as plt
-def filter_normalize(complex_arr):
-    print('Default length is 8 in FREQ and 4 in MANCHESTER')
-    show = input('If show figures? Default is off. ')
-    show = True if show != '' else False
+def filter_normalize(complex_arr, quiet=False, nothing=False):
+    complex_arr = np.array(complex_arr)
+    if not quiet:
+        print('Default length is 8 in FREQ and 4 for others')
+        show = input('If show figures? Default is off. ')
+        print(complex_arr)
+        show = True if show != '' else False
+    else:
+        show = False
     if show:
         plt.figure()
         plt.plot(list(range(len(complex_arr))), complex_arr, marker='o')
         plt.figure()
         plt.plot(list(range(len(complex_arr))), abs(fft(complex_arr)), marker='o')
         plt.show()
-    l = input('cut length: ')
+    if not quiet:
+        l = input('cut length: ')
+    else:
+        l = ''
     if l != '':
         while l != '':
             l = int(l)
             a1 = fft(complex_arr)
-            a1[1:1 + l]=0
+            a1[0:1 + l]=0
             a1[complex_arr.size - l:complex_arr.size]=0
             a2 = ifft(a1).real
             if show:
@@ -250,9 +370,9 @@ def filter_normalize(complex_arr):
         if FREQ:
             l = 8
         else:
-            l = 4
+            l = 3
         a1 = fft(complex_arr)
-        a1[1:1 + l]=0
+        a1[0:1 + l]=0
         a1[complex_arr.size - l:complex_arr.size]=0
         a2 = ifft(a1).real
         if show:
@@ -268,12 +388,18 @@ def filter_normalize(complex_arr):
         new_arr = np.concatenate((a2, a2))
         plt.plot(list(range(len(new_arr))),abs(fft(new_arr)), marker='x')
         plt.show()
-    print(ifft(a1))
+    if not quiet:
+        print(ifft(a1))
     # a2 = a2 - a2.mean()
     # a2 = a2 / 2 + 0.5
-    amax = a2.max()
-    amin = a2.min()
+    if nothing:
+        a2 = complex_arr
+    amax = max(abs(a2.max()), abs(a2.min()))
+    amin = -amax
+
     a2 = [(0.7 + (1.3 - 0.7) * (i - amin)/(amax - amin)) / 2 for i in a2]
+    # print('a2 ', end='')
+    # print(a2)
     return a2
 
 
