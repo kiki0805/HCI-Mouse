@@ -10,39 +10,12 @@ import math
 import numpy as np
 import usb.util
 from constants import *
-from main_variables import *
 from Report import Report
-
-dur = input('Duration(default is 10): ')
-dur = 10 if dur == '' else int(dur)
-
-if TESTING_MODE:
-    fixed_val = int(input('[ TESTING MODE ] Fixed value: '))
-    fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
-    report = Report(dur, fixed_val, fixed_bit_arr)
-    if DETAILS:
-        report.show_detail()
-
-
-device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
-
-if device.is_kernel_driver_active(0):
-    device.detach_kernel_driver(0)
-
-device.set_configuration()
-
-
-# plt.legend()
-ax = plt.gca() # get most of the figure elements 
-plt.ion()
-
-
 from main_variables import *
+
 def handle_data():
     max_pixel = 200
     min_pixel = 100
-    if raw_frames_m.line:
-        time_last_get = 0
     lasttime_interpolated = 0
     while True:
         response, timestamp = q.get()
@@ -100,21 +73,12 @@ def handle_data():
 
                     ######################################################
                     x, y = divide_coordinate(frames_m.window)
-                    # # y_mean.push(np.array([[x[-1], 160]]))
-                    # # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
+                    # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
 
                     y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
                     if y_mean.window.shape[0] == 0:
                         one_bit.push(np.array([[x[-1], ONE]]))
 
-                    # # elif abs(y_mean.window[-1][1] - frames_m.window[-1][1]) < 5:
-                    # # elif abs(y_mean.window[-1][1] - y[-1]) < 5:
-                    # elif abs(y_mean.window[-1][1] - y[-1]) < 5:
-                    #     if one_bit.window.size != 0:
-                    #         one_bit.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
-                    #     else:
-                    #         one_bit.push(np.array([[x[-1], one]]))
-                    # # elif y_mean.window[-1][1] < frames_m.window[-1][1]:
                     elif y_mean.window[-1][1] < y[-1]:
                         one_bit.push(np.array([[x[-1], ZERO]]))
                     else:
@@ -143,7 +107,7 @@ def handle_data():
                         possible_dataD = result[1]
                         if possible_dataB != []:
                             #if DETAILS:
-                            print(possible_dataB[0])
+                            # print(possible_dataB[0])
                             if TESTING_MODE:
                                 report.get_test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
                             
@@ -160,37 +124,61 @@ def handle_data():
                         plt.draw() # plot new figure
                         plt.pause(1e-17)
 
-q = Queue()
-p = Process(target=handle_data) # for display
-p.start()
+
+if __name__ == '__main__':
+    dur = input('Duration(default is 10): ')
+    dur = 10 if dur == '' else int(dur)
+
+    if TESTING_MODE:
+        fixed_val = int(input('[ TESTING MODE ] Fixed value: '))
+        fixed_bit_arr = num2bin(fixed_val, BITS_NUM)
+        report = Report(dur, fixed_val, fixed_bit_arr)
+        if DETAILS:
+            report.show_detail()
 
 
-start = time.time()
-global_count = 0
+    device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
-while time.time() - start < dur:
-    device.ctrl_transfer(bmRequestType = 0x40, #Write
-                    bRequest = 0x01,
-                    wValue = 0x0000,
-                    wIndex = 0x0D, #PIX_GRAB register value
-                    data_or_wLength = None
-                    )
+    if device.is_kernel_driver_active(0):
+        device.detach_kernel_driver(0)
 
-    response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
-                    bRequest = 0x01,
-                    wValue = 0x0000,
-                    wIndex = 0x0D, #PIX_GRAB register value
-                    data_or_wLength = 1
-                    )
-    q.put((response, time.time()))
-    global_count += 1
-
-print('Frame rate: ' + str(global_count / (time.time() - start)))
-
-if TESTING_MODE:
-    report.get_final_report()
+    device.set_configuration()
 
 
-if FORCED_EXIT:
-    p.terminate()
+    # plt.legend()
+    ax = plt.gca() # get most of the figure elements 
+    plt.ion()
+    q = Queue()
+    p = Process(target=handle_data) # for display
+    p.start()
+
+
+    start = time.time()
+    global_count = 0
+
+    while time.time() - start < dur:
+        device.ctrl_transfer(bmRequestType = 0x40, #Write
+                        bRequest = 0x01,
+                        wValue = 0x0000,
+                        wIndex = 0x0D, #PIX_GRAB register value
+                        data_or_wLength = None
+                        )
+
+        response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
+                        bRequest = 0x01,
+                        wValue = 0x0000,
+                        wIndex = 0x0D, #PIX_GRAB register value
+                        data_or_wLength = 1
+                        )
+        q.put((response, time.time()))
+        global_count += 1
+
+    print('Frame rate: ' + str(global_count / (time.time() - start)))
+
+    if TESTING_MODE:
+        report.get_final_report()
+
+
+    if FORCED_EXIT:
+        p.terminate()
 

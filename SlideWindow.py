@@ -244,6 +244,9 @@ class SlideArray:
         elif MANCHESTER_MODE:
             tolerate_one = 2
             tolerate_zero = 3
+        elif DESIGNED_CODE:
+            tolerate_one = 2
+            tolerate_zero = 2
         else:
             raise Exception
         
@@ -294,84 +297,39 @@ class BitSlideArray:
         ret = self.decode()
         if not ret:
             self.flip()
-            print(self.window)
+            # print(self.window)
             ret = self.decode()
             self.flip()
-            print(self.window)
+            # print(self.window)
         return ret
     
     def flip(self):
         for i in range(self.window.shape[0]):
-            self.window[i] = 0 if self.window[i] == 1 else 1
+            self.window[i] = '0' if self.window[i] == '1' else '1'
 
     def decode(self):
-        if MANCHESTER_MODE:
-            temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM * 2:]
-            #if DETAILS:
-            #    print(temp_str)
-            sub_str = re.findall(self.pattern, temp_str)
-            if sub_str == []:
-                return
-            possible_dataB = []
-            possible_dataD = []
-            for i in sub_str:
-                i_removed_preamble = sim_fix(i[len(PREAMBLE_STR):])
-                if len(i_removed_preamble) != 2 * BITS_NUM:
-                    continue
-                bit_str = Manchester_decode(i_removed_preamble)
-                if not bit_str:
-                    continue
-                decoded_num = bit_str2num(bit_str)
-                if DETAILS:
-                    print(bit_str)
-                    print(decoded_num)
-                possible_dataB.append(bit_str)
-                possible_dataD.append(decoded_num)
-            return possible_dataB, possible_dataD
-        elif fiveBsixB:
-            # only for 10b12b
-            if len(self.window) < len(PREAMBLE_STR) + BITS_NUM + 2:
-                return
-            temp_str = ''.join(self.window)[-len(PREAMBLE_STR) - BITS_NUM - 2:]
-            #if DETAILS:
-            #    print(temp_str)
-            sub_str = re.findall(self.pattern, temp_str)
-            if sub_str == []:
-                return
-            possible_dataB = []
-            possible_dataD = []
-            for i in sub_str:
-                i_removed_preamble = i[len(PREAMBLE_STR):]
-                if len(i_removed_preamble) != 2 + BITS_NUM:
-                    continue
-                try:
-                    bit_str = REVERSE_DIC[i_removed_preamble]
-                except:
-                    continue
-                if not bit_str:
-                    continue
-                decoded_num = bit_str2num(bit_str)
-                if DETAILS:
-                    print(bit_str)
-                    print(decoded_num)
-                possible_dataB.append(bit_str)
-                possible_dataD.append(decoded_num)
-            return possible_dataB, possible_dataD
-        else:
-            assert DESIGNED_CODE
-            if len(self.window) < len(PREAMBLE_LIST) + BITS_NUM * EXPEND:
-                return
-            bit_str = ''.join(self.window)[-len(PREAMBLE_LIST) - BITS_NUM * EXPAND:]
+        assert DESIGNED_CODE
+        if len(self.window) < len(PREAMBLE_LIST) + BITS_NUM * EXPEND:
+            return
+        bit_str = ''.join(self.window)[-len(PREAMBLE_LIST) - BITS_NUM * EXPEND:]
+        # if DETAILS:
+        #     print(bit_str)
+        sub_str = re.findall(self.pattern, bit_str)
+        possible_dataB = []
+        possible_dataD = []
+        for i in sub_str:
+            i_removed_preamble = i[len(PREAMBLE_LIST):]
+            # print(i_removed_preamble)
+            bit_str = designed_decode(i_removed_preamble)
+            if not bit_str:
+                return possible_dataB, possible_dataD
+            decoded_num = bit_str2num(bit_str)
             if DETAILS:
                 print(bit_str)
-            sub_str = re.findall(self.pattern, bit_str)
-            decoded_data = [i[len(PREAMBLE_STR):] for i in sub_str]
-            decoded_num = [bit_str2num(i) for i in decoded_data]
-            if decoded_data != []:
-                if DETAILS:
-                    print(decoded_data)
-                    print(decoded_num)
-                return decoded_data, decoded_num
+                print(decoded_num)
+            possible_dataB.append(bit_str)
+            possible_dataD.append(decoded_num)
+        return possible_dataB, possible_dataD
             
 
     def push(self, ele):

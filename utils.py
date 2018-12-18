@@ -8,6 +8,18 @@ import random
 import time
 from scipy.signal import savgol_filter
 
+def designed_decode(received):
+    decoded = ''
+    for i in range(0, len(received), 3):
+        sub_data = received[i:i+3]
+        if sub_data == '100':
+            decoded += '1'
+        elif sub_data == '110':
+            decoded += '0'
+        else:
+            decoded = decoded + '0' if random.random() > 0.5 else decoded + '1'
+    return decoded
+
 def designed_code(raw):
     new_code = []
     for i in raw:
@@ -287,7 +299,7 @@ def designed_location_encode(size):
     return imgs_arr
 
 def hld(bit_arr, size, bit_one, bit_zero):
-    print(bit_arr)
+    # print(bit_arr)
     assert len(bit_arr) == BITS_NUM
 
     init_location_range = [[0, size[0]], [0, size[1]]]
