@@ -259,6 +259,11 @@ int main()
   NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(2, "green.png")
   NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(3, "red.png")
   NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(4, "whitecoin.png")
+  NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(5, "blackcoin.png")
+  NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(6, "board.png")
+  NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(7, "green.png")
+  NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(8, "red.png")
+  NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER(9, "whitecoin.png")
 
 //should only be used here, because no do-while scope here.
 #undef NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER
