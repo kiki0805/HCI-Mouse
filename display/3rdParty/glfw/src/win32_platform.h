@@ -64,6 +64,10 @@
 // GLFW uses DirectInput8 interfaces
 #define DIRECTINPUT_VERSION 0x0800
 
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include "../include/GLFW/glfw3native.h"
+#undef GLFW_EXPOSE_NATIVE_WIN32
+
 #include <wctype.h>
 #include <windows.h>
 #include <mmsystem.h>
@@ -75,6 +79,7 @@
  #include <malloc.h>
  #define strdup _strdup
 #endif
+
 
 // HACK: Define macros that some windows.h variants don't
 #ifndef WM_MOUSEHWHEEL
@@ -233,11 +238,14 @@ typedef struct _GLFWwindowWin32
     HICON               bigIcon;
     HICON               smallIcon;
 
+    GLFWwin32rawinputfun rawInputCallback; 
+
     GLFWbool            cursorTracked;
     GLFWbool            iconified;
 
     // The last received cursor position, regardless of source
     int                 lastCursorPosX, lastCursorPosY;
+
 
 } _GLFWwindowWin32;
 
