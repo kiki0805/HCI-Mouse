@@ -89,6 +89,7 @@ add_executable(
   rawinputdemo
 
   rawinputdemo.cpp
+  multimouse.cpp
   dragrectlayer.cpp
   shader.cpp
   renderer.cpp

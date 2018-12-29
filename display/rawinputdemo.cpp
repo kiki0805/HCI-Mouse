@@ -1,13 +1,9 @@
 #include "common.h"
 
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-
 #include <string>
 #include <memory>
 #include <cassert>
 #include <ctime>
-#include <strsafe.h>
 // do not include <windows.h>, glfw3native.h included for us and do some workaround work.
 
 #include "layerobject.h"
@@ -15,6 +11,7 @@
 #include "renderer.h"
 #include "imageUtils.h"
 #include "dragrectlayer.h"
+#include "multimouse.h"
 
 using namespace npnx;
 
@@ -166,19 +163,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
 //return 0 if do not need default proc. 
 int rawinput_callback(GLFWwindow *window, RAWINPUT * raw) {
-  if (raw->header.dwType == RIM_TYPEKEYBOARD)
-  {
-
-    printf(" Kbd: make=%04x Flags:%04x Reserved:%04x ExtraInformation:%08x, msg=%04x VK=%04x \n",
-                                      raw->data.keyboard.MakeCode,
-                                      raw->data.keyboard.Flags,
-                                      raw->data.keyboard.Reserved,
-                                      raw->data.keyboard.ExtraInformation,
-                                      raw->data.keyboard.Message,
-                                      raw->data.keyboard.VKey);
-  }
-  else if (raw->header.dwType == RIM_TYPEMOUSE)
-  {
+  if (raw->header.dwType == RIM_TYPEMOUSE) {
     printf("Mouse: hDevice=%08x usFlags=%04x ulButtons=%04x usButtonFlags=%04x usButtonData=%04x ulRawButtons=%04x lLastX=%04x lLastY=%04x ulExtraInformation=%04x\r\n",
                                       raw->header.hDevice,
                                       raw->data.mouse.usFlags,
@@ -189,6 +174,10 @@ int rawinput_callback(GLFWwindow *window, RAWINPUT * raw) {
                                       raw->data.mouse.lLastX,
                                       raw->data.mouse.lLastY,
                                       raw->data.mouse.ulExtraInformation);
+    multiMouseSystem.CheckNewMouse(raw->header.hDevice);
+    MouseInstance *currentMouse = multiMouseSystem.mouses[raw->header.hDevice];
+    currentMouse->mMousePosX += (int)raw->data.mouse.lLastX;
+    currentMouse->mMousePosY += (int)raw->data.mouse.lLastY;
   }
   return 1;
 }
@@ -205,56 +194,6 @@ int main()
   GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "hello", NULL, NULL);
   NPNX_ASSERT(window);
   glfwMakeContextCurrent(window);
-  
-  RAWINPUTDEVICE Rid[1];
-
-  Rid[0].usUsagePage = 0x01;
-  Rid[0].usUsage = 0x02;
-  Rid[0].dwFlags = RIDEV_NOLEGACY; // adds HID mouse and also ignores legacy mouse messages
-  Rid[0].hwndTarget = glfwGetWin32Window(window);
-
-  if (RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
-  {
-    //registration failed. Call GetLastError for the cause of the error
-    NPNX_ASSERT(false && "registerRawInput");
-  }
-
-  UINT numHIDDevices = 0;
-
-  UINT getRawInputDeviceListNumResult = GetRawInputDeviceList(NULL, &numHIDDevices, sizeof(RAWINPUTDEVICELIST));
-  NPNX_ASSERT_LOG(getRawInputDeviceListNumResult != -1, GetLastError());
-
-  NPNX_LOG(numHIDDevices);
-  PRAWINPUTDEVICELIST hidDeviceList = new RAWINPUTDEVICELIST[numHIDDevices];
-
-  UINT getRawInputDeviceListResult = GetRawInputDeviceList(hidDeviceList, &numHIDDevices, sizeof(RAWINPUTDEVICELIST));
-  NPNX_ASSERT(getRawInputDeviceListResult != -1, GetLastError());
-
-  for (int i=0; i<numHIDDevices; i++) {
-    if (hidDeviceList[i].dwType == RIM_TYPEMOUSE) {
-      {
-        UINT cbSize = 0;
-        UINT getRawInputDeviceInfoNumResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICENAME, NULL, &cbSize);
-        NPNX_ASSERT(getRawInputDeviceInfoNumResult != -1, GetLastError());
-        WCHAR *tempbuffer = (WCHAR *)calloc(1, sizeof(WCHAR) * cbSize);
-        UINT getRawInputDeviceInfoResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICENAME, tempbuffer, &cbSize);
-        NPNX_ASSERT(getRawInputDeviceInfoResult != -1, GetLastError());
-        printf("%ls\r\n", tempbuffer);
-        free(tempbuffer);
-      }
-      {
-        UINT cbSize = 0;
-        UINT getRawInputDeviceInfoNumResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICEINFO, NULL, &cbSize);
-        NPNX_ASSERT(getRawInputDeviceInfoNumResult != -1, GetLastError());
-        BYTE *nicebuffer = (BYTE *)calloc(1, sizeof(BYTE) * cbSize);
-        UINT getRawInputDeviceInfoResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICEINFO, nicebuffer, &cbSize);
-        NPNX_ASSERT(getRawInputDeviceInfoResult != -1, GetLastError());
-        RID_DEVICE_INFO *deviceInfo= (RID_DEVICE_INFO *)nicebuffer;
-        NPNX_LOG(deviceInfo->mouse.dwId);
-        free(nicebuffer);
-      }
-    }
-  }
 
   glfwSetWin32RawInputCallback(window, rawinput_callback);
 
@@ -295,6 +234,7 @@ int main()
   glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
   dragDemo.windowPtr = window;
+  multiMouseSystem.Init(window);
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
@@ -319,6 +259,7 @@ int main()
   generateFBO(fbo0, fboColorTex0);
 
   Renderer renderer(&defaultShader, fbo0);
+  Renderer mouseRenderer(&defaultShader, fbo0);
   Renderer postRenderer(&adjustShader, 0);
 
   postRenderer.mDefaultTexture.assign({0, fboColorTex0});
@@ -355,25 +296,6 @@ int main()
 //should only be used here, because no do-while scope here.
 #undef NPNX_DRAGDEMO_ALLOC_RANDOM_LAYER
 
-  const float cursorSize = 0.1f;
-  RectLayer cursorLayer(0.0f, -cursorSize, cursorSize * WINDOW_HEIGHT / WINDOW_WIDTH, 0.0f, 999.9f);
-  cursorLayer.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("cursor.png")));
-  cursorLayer.beforeDraw = [&](int nbFrames) {
-    double x, y;
-    npnxGetCursorPos(dragDemo.windowPtr, &x, &y);
-    glUniform1f(glGetUniformLocation(renderer.mDefaultShader->mShader, "xTrans"), x);
-    glUniform1f(glGetUniformLocation(renderer.mDefaultShader->mShader, "yTrans"), y);
-    return 0;
-  };
-  cursorLayer.afterDraw = [&](int nbFrames) {
-    glUniform1f(glGetUniformLocation(renderer.mDefaultShader->mShader, "xTrans"), 0.0f);
-    glUniform1f(glGetUniformLocation(renderer.mDefaultShader->mShader, "yTrans"), 0.0f);
-    return 0;
-  };
-  cursorLayer.visibleCallback = [&](int nbFrames) {
-    return dragDemo.sceneState == SceneState::GAMING;
-  };
-  renderer.AddLayer(&cursorLayer);
 
   const float rulerRatio = dragDemo.rulerRatio;
   RectLayer ruler(-rulerRatio, -rulerRatio, rulerRatio, rulerRatio, 999.0f);
@@ -381,6 +303,17 @@ int main()
   ruler.visibleCallback = [&](int nbFrames) { return dragDemo.sceneState==SceneState::ADJUSTING; };
   renderer.AddLayer(&ruler);
 
+  for (int i = 0; i < multiMouseSystem.cNumLimit; i++) {
+    const float cursorSize = 0.1f;
+    RectLayer *cursorLayer = new RectLayer(0.0f, -cursorSize, cursorSize * WINDOW_HEIGHT / WINDOW_WIDTH, 0.0f, *(float *) &i);
+    cursorLayer->mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("cursor.png")));
+    cursorLayer->visibleCallback = [] (int) {return false;};
+    mouseRenderer.AddLayer(cursorLayer);
+  }
+
+  mouseRenderer.Initialize();
+  multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return dragDemo.sceneState == SceneState::GAMING;});
+  
   RectLayer postBaseRect(-1.0,-1.0,1.0,1.0,-999.9);
   postBaseRect.mTexture.push_back(0);
   postBaseRect.beforeDraw = [&](const int nbFrames) {
@@ -421,6 +354,7 @@ int main()
       }
     }
     renderer.Draw(dragDemo.nbFrames);
+    mouseRenderer.Draw(dragDemo.nbFrames);
     postRenderer.Draw(dragDemo.nbFrames);
 
     dragDemo.nbFrames++;
@@ -436,7 +370,8 @@ int main()
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
-
+  mouseRenderer.FreeLayers();
+  
   glfwTerminate();
   return 0;
 }
