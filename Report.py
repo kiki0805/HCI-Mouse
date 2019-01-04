@@ -28,13 +28,14 @@ class Report:
 
     def get_test_report(self, one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val):
         location_range = hld(possible_dataB[0], SIZE, '1', '0')
+        location = naive_location(possible_dataD[0], SIZE)
         delay = time.time() - divide_coordinate(one_bit.window)[0].mean()
         for i in possible_dataB:
             self.dataB_list.append(i)
         for i in possible_dataD:
             self.dataD_list.append(i)
         self.delay_list.append(delay)
-        self.location_list.append((location_range[1][1], location_range[0][1]))
+        self.location_list.append(location)
         temp_arr = np.array(self.dataD_list)
         print('Total Num in ' + str(self.dur) + 's: ' + str(temp_arr.size))
         print('Correct Num: ' + str(sum(temp_arr == fixed_val)))
@@ -44,13 +45,13 @@ class Report:
             correct_bit_num_arr.append(sum(np.array(list(i)) == np.array(list(fixed_bit_arr))))
         print('Average Correct Number of Bits: ' + str(np.array(correct_bit_num_arr).mean()))
         print('Average Delay: ' + str(np.array(self.delay_list).mean()))
-        self.location_arr.push((location_range[1][1], location_range[0][1]))
+        self.location_arr.push(location)
         if self.detailed:
             print(possible_dataD[0])
             print('delay: ' + str(time.time() - \
                 divide_coordinate(one_bit.window)[0].mean()))
             print('Current Location: ', end='')
-            print(location_range[1][1], location_range[0][1])
+            print(location)
     
     def get_final_report(self):
         time.sleep(5)

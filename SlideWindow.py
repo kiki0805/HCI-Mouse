@@ -34,6 +34,12 @@ class SlideArray:
                     else:
                         self.occur_times[ele] += 1
 
+    def reset_least_count(self):
+        self.least_one_count *= 2
+        self.least_zero_count *= 2
+        self.mean_one_count = max(self.mean_one_count, self.least_one_count)
+        self.mean_zero_count = max(self.mean_zero_count, self.least_zero_count)
+
     def push(self, chunk_or_ele): # chunk for coordinate, ele for binary bits
         assert chunk_or_ele.size <= self.size * 2
         if self.window.size + chunk_or_ele.size > self.size * 2:
@@ -96,15 +102,15 @@ class SlideArray:
         if self.mean_one_count is None:
             self.mean_one_count = count
         else:
-            self.mean_one_count = math.ceil(0.8 * count + 0.2 * self.mean_one_count)
+            self.mean_one_count = math.ceil(0.5 * count + 0.5 * self.mean_one_count)
 
         self.least_one_count = min(self.least_one_count, count)
-        return self.mean_one_count - 1
+        return self.mean_one_count
 
     def learn_len_zero(self):
         # return 3
         if self.window_of_last_zero is None:
-            return 3
+            return 8
         count = 0
         x, y = divide_coordinate(self.window_of_last_zero)
         for i in y.tolist():
@@ -113,18 +119,22 @@ class SlideArray:
         if self.mean_zero_count is None:
             self.mean_zero_count = count
         else:
-            self.mean_zero_count = math.ceil(0.8 * count + 0.2 * self.mean_zero_count)
+            self.mean_zero_count = math.ceil(0.5 * count + 0.5 * self.mean_zero_count)
         self.least_zero_count = min(self.least_zero_count, count)
-        return self.mean_zero_count - 1
+        return self.mean_zero_count
+
+    def find_true_index(self, index, bit):
+        return index
 
     def get_mid_index(self, index, bit):
         x, y = divide_coordinate(self.window)
         if y[index] != bit:
-            return index
+            return self.find_true_index(index, bit)
         bit_len = 1
         most_left = 0
         most_right = self.window.shape[0] - 1
         index1 = index
+        # find most right
         while True:
             index1 += 1
             if index1 == self.window.shape[0]:
@@ -136,6 +146,7 @@ class SlideArray:
                 break
                 
         index2 = index
+        # find most left
         while True:
             index2 -= 1
             if index2 == -1:
@@ -145,62 +156,126 @@ class SlideArray:
             else:
                 most_left = index2 + 1
                 break
+        
+        if bit == ZERO and self.mean_zero_count is not None:
+            most_right = min(most_right, most_left + self.mean_zero_count)
+        elif self.mean_one_count is not None:
+            most_right = min(most_right, most_left + self.mean_one_count)
         return int((most_left + most_right) / 2)
 
+    # def is_flat(self, arr, index1, index2):
+        # bit = arr[index1]
+        # for i in range(index1 + 1, index2):
+        #     if arr[i] != bit:
+        #         return False
+        # return True
+
+    def is_flat(self, arr, index):
+        if arr[index] == arr[index + 1] and \
+                arr[index] == arr[index + 2] and \
+                arr[index] == arr[index - 1] and \
+                arr[index] == arr[index - 2]:
+            return True
+        return False
+
     def check_bit(self, sample_slide):
-        if self.init_timestamp and CHECK_BIT == 'BY_TIME':
-            x, y = divide_coordinate(self.window)
-            mid_index = int(x.size/2)
-            if x[mid_index] >= self.init_timestamp + 1 / FRAME_RATE:
-                num_one = 0 
-                num_zero = 0
-                len_zero = self.learn_len_zero()
-                len_one = self.learn_len_one()
-                assert len_zero != 0
-                assert len_one != 0
-                pct_one = self.least_one_count / self.size - 0.05 if self.least_one_count != 10 else 0.8
-                pct_zero = self.least_zero_count / self.size - 0.05 if self.least_zero_count != 10 else 0.8
+        if self.init_timestamp is None:
+            return self.init_sample(sample_slide)
 
-                left_zero = math.floor((y.size-len_zero)/2)
-                for e in y[left_zero:left_zero + len_zero].tolist():
-                    if e == ZERO:
-                        num_zero += 1
+        x, y = divide_coordinate(self.window)
+        mid_index = int(x.size/2)
+        if x[mid_index] < self.init_timestamp + 1 / FRAME_RATE: return
+        # if x[mid_index] > self.init_timestamp + 1 / FRAME_RATE + 0.001 and self.prefer == [0.5, 0.5]:
+        #     if y[mid_index] == ZERO:
+        #         return self.return_zero(mid_index, x, sample_slide)
+        #     else:
+        #         return self.return_one(mid_index, x, sample_slide)
+        num_one = 0 
+        num_zero = 0
+        len_zero = self.learn_len_zero() # approximate length
+        len_one = self.learn_len_one() # approximate length
+        
+        assert len_zero != 0
+        assert len_one != 0
+        pct_one = self.least_one_count / len_one if self.least_one_count != 10 else 0.8
+        pct_zero = self.least_zero_count / len_zero if self.least_zero_count != 10 else 0.8
+        
+        # count number of zero in the middle interval with length len_zero
+        left_zero = math.floor((y.size-len_zero)/2)
+        for e in y[left_zero:left_zero + len_zero].tolist():
+            if e == ZERO:
+                num_zero += 1
 
-                left_one = math.floor((y.size-len_one)/2)
-                for e in y[left_one:left_one + len_one].tolist():
-                    if e == ONE:
-                        num_one += 1
+        # count number of one in the middle interval with length len_one
+        left_one = math.floor((y.size-len_one)/2)
+        for e in y[left_one:left_one + len_one].tolist():
+            if e == ONE:
+                num_one += 1
 
-                if self.prefer[1] >= self.prefer[0]:
-                    if num_one / len_one >= pct_one:
-                        mid_index = self.get_mid_index(mid_index, ONE)
-                        sample_slide.push(np.array([[x[mid_index], ONE]]))
-                        self.init_timestamp = x[mid_index]
-                        self.window_of_last_one = self.window
-                        return self.return_one()
-                    elif num_zero / len_zero >= pct_zero:
-                        mid_index = self.get_mid_index(mid_index, ZERO)
-                        sample_slide.push(np.array([[x[mid_index], ZERO]]))
-                        self.init_timestamp = x[mid_index]
-                        self.window_of_last_zero = self.window
-                        return self.return_zero()
-                else:
-                    if num_zero / len_zero >= pct_zero:
-                        mid_index = self.get_mid_index(mid_index, ZERO)
-                        sample_slide.push(np.array([[x[mid_index], ZERO]]))
-                        self.init_timestamp = x[mid_index]
-                        self.window_of_last_zero = self.window
-                        return self.return_zero()
-                    elif num_one / len_one >= pct_one:
-                        mid_index = self.get_mid_index(mid_index, ONE)
-                        sample_slide.push(np.array([[x[mid_index], ONE]]))
-                        self.init_timestamp = x[mid_index]
-                        self.window_of_last_one = self.window
-                        return self.return_one()
-                    
-            ####################################################################
-            return
+        left_one = math.floor((y.size-num_one)/2)
+        left_zero = math.floor((y.size-num_zero)/2)
+        # cur_one_pct = num_one / self.size
+        # cur_zero_pct = num_zero / self.size
+        cur_one_pct = num_one / len_one
+        cur_zero_pct = num_zero / len_zero
 
+        if self.prefer[1] == 1:
+            if cur_one_pct >= pct_one:
+                return self.return_one(mid_index, x, sample_slide)
+        elif self.prefer[0] == 1:
+            if cur_zero_pct >= pct_zero:
+                return self.return_zero(mid_index, x, sample_slide)
+        elif self.is_flat(y, mid_index):
+            if y[mid_index] == ZERO:
+                return self.return_zero(mid_index, x, sample_slide)
+            elif y[mid_index] == ONE:
+                return self.return_one(mid_index, x, sample_slide)
+
+        elif cur_zero_pct >= pct_zero and \
+                cur_zero_pct / pct_zero > cur_one_pct / pct_one:
+            return self.return_zero(mid_index, x, sample_slide)
+        elif cur_one_pct >= pct_one and \
+                cur_one_pct / pct_one > cur_zero_pct / pct_zero:
+            return self.return_one(mid_index, x, sample_slide)
+
+        # elif num_zero / len_zero >= pct_zero and y[mid_index] == ZERO:
+        #     return self.return_zero(mid_index, x, sample_slide)
+        # elif num_one / len_one >= pct_one and y[mid_index] == ONE:
+        #     return self.return_one(mid_index, x, sample_slide)
+        # # case 1: if the middle num_zero interval is flat, sample directly
+        # # Q: too high standard
+        # elif num_zero / len_zero >= pct_zero and self.is_flat(y, left_zero, left_zero + num_zero):
+        #     return self.return_zero(mid_index, x, sample_slide)
+        # elif num_one / len_one >= pct_one and self.is_flat(y, left_one, left_one + num_one):
+        #     return self.return_one(mid_index, x, sample_slide)
+
+        # # case 2: if the left & right are flat, sample the bit with smaller mean_count
+        # # case 3: sample by the pct
+        # elif self.mean_one_count is not None and self.mean_zero_count is not None: 
+        #     if self.mean_one_count > self.mean_zero_count:
+        #         if cur_zero_pct >= pct_zero and \
+        #                 cur_zero_pct / pct_zero >= cur_one_pct / pct_one:
+        #             return self.return_zero(mid_index, x, sample_slide)
+        #         elif num_one / len_one >= pct_one and \
+        #                 num_one / len_one / pct_one >= num_zero / len_zero / pct_zero:
+        #             return self.return_one(mid_index, x, sample_slide)
+        #     else:
+        #         if cur_one_pct >= pct_one and \
+        #                 cur_one_pct / pct_one >= cur_zero_pct / pct_zero:
+        #             return self.return_one(mid_index, x, sample_slide)
+        #         elif cur_zero_pct >= pct_zero and \
+        #                 cur_zero_pct / pct_zero >= cur_one_pct / pct_one:
+        #             return self.return_zero(mid_index, x, sample_slide)
+        # else:
+        #     if cur_one_pct >= pct_one and \
+        #             cur_one_pct / pct_one >= cur_zero_pct / pct_zero:
+        #         return self.return_one(mid_index, x, sample_slide)
+        #     elif cur_zero_pct >= pct_zero and \
+        #             cur_zero_pct / pct_zero >= cur_one_pct / pct_one:
+        #         return self.return_zero(mid_index, x, sample_slide)
+        return
+
+    def init_sample(self, sample_slide):
         if not self.is_full():
             return None
         x, y = divide_coordinate(self.window)
@@ -211,7 +286,6 @@ class SlideArray:
                 num_one += 1
             else:
                 num_zero += 1
-
         pct = 0.9
         if num_one / y.size == pct:
             self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == ZERO \
@@ -225,34 +299,35 @@ class SlideArray:
             return '0'
         return None
 
-    def return_zero(self):
+    def return_zero(self, mid_index, x, sample_slide):
+        mid_index = self.get_mid_index(mid_index, ZERO)
+        sample_slide.push(np.array([[x[mid_index], ZERO]]))
+        self.init_timestamp = x[mid_index]
+        self.window_of_last_zero = self.window
+
         if self.continuous_one != 0: self.continuous_one = 0
         self.continuous_zero += 1
         self.recaculate_prefer()
         return '0'
     
-    def return_one(self):
+    def return_one(self, mid_index, x, sample_slide):
+        mid_index = self.get_mid_index(mid_index, ONE)
+        sample_slide.push(np.array([[x[mid_index], ONE]]))
+        self.init_timestamp = x[mid_index]
+        self.window_of_last_one = self.window
+
         if self.continuous_zero != 0: self.continuous_zero = 0
         self.continuous_one += 1
         self.recaculate_prefer()
         return '1'
     
     def recaculate_prefer(self):
-        if fiveBsixB:
-            tolerate_one = 4
-            tolerate_zero = 4
-        elif MANCHESTER_MODE:
-            tolerate_one = 2
-            tolerate_zero = 3
-        elif DESIGNED_CODE:
-            tolerate_one = 2
-            tolerate_zero = 2
-        else:
-            raise Exception
+        tolerate_one = 2
+        tolerate_zero = 2
         
-        if self.continuous_one > tolerate_one:
+        if self.continuous_one >= tolerate_one:
             self.prefer = [1, 0]
-        elif self.continuous_zero > tolerate_zero:
+        elif self.continuous_zero >= tolerate_zero:
             self.prefer = [0, 1]
         elif self.continuous_one != 0:
             one_prob = ( tolerate_one - self.continuous_one ) / tolerate_one
@@ -264,15 +339,6 @@ class SlideArray:
 
 class BitSlideArray:
     def __init__(self, window, size, location_mod=False):
-        if MANCHESTER_MODE:
-            self.pattern = PREAMBLE_STR + '\d{' + str(BITS_NUM * 2) + '}'
-        elif fiveBsixB:
-            # only for 10b12b
-            self.pattern = PREAMBLE_STR + '\d{12}'
-        elif DESIGNED_CODE:
-            self.pattern = PREAMBLE_PATTERN + '\d{30}'
-        else:
-            raise Exception
         self.window = window
         self.size = size
         self.last_detected = -1
@@ -292,37 +358,35 @@ class BitSlideArray:
            # if self.window.size != 0:
            #     self.reset()
             return
-        # print(bit_detected, end='')
         self.push(bit_detected)
         ret = self.decode()
-        if not ret:
-            self.flip()
-            # print(self.window)
-            ret = self.decode()
-            self.flip()
-            # print(self.window)
+        if ret[0] == []:
+            ret = self.decode(flip=True)
         return ret
     
     def flip(self):
         for i in range(self.window.shape[0]):
             self.window[i] = '0' if self.window[i] == '1' else '1'
 
-    def decode(self):
+    def decode(self, flip=False):
         assert DESIGNED_CODE
         if len(self.window) < len(PREAMBLE_LIST) + BITS_NUM * EXPEND:
-            return
+            return [], []
         bit_str = ''.join(self.window)[-len(PREAMBLE_LIST) - BITS_NUM * EXPEND:]
-        # if DETAILS:
-        #     print(bit_str)
-        sub_str = re.findall(self.pattern, bit_str)
+        if flip:
+            sub_str = re.findall('0101' + '\d{30}', bit_str)
+        else:
+            sub_str = re.findall('1010' + '\d{30}', bit_str)
         possible_dataB = []
         possible_dataD = []
         for i in sub_str:
             i_removed_preamble = i[len(PREAMBLE_LIST):]
-            # print(i_removed_preamble)
-            bit_str = designed_decode(i_removed_preamble)
+            bit_str = designed_decode(i_removed_preamble, flip=True)
             if not bit_str:
                 return possible_dataB, possible_dataD
+            if len(bit_str) != BITS_NUM:
+                return possible_dataB, possible_dataD
+            
             decoded_num = bit_str2num(bit_str)
             if DETAILS:
                 print(bit_str)
@@ -330,7 +394,6 @@ class BitSlideArray:
             possible_dataB.append(bit_str)
             possible_dataD.append(decoded_num)
         return possible_dataB, possible_dataD
-            
 
     def push(self, ele):
         if self.window.size >= self.size:

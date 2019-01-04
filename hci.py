@@ -75,7 +75,7 @@ def handle_data():
                     x, y = divide_coordinate(frames_m.window)
                     # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
 
-                    y_mean.push(np.array([[x[-1], y[max(0, int(y.size / 2) - MEAN_WIDTH):].mean()]]))
+                    y_mean.push(np.array([[x[-1], y[-MEAN_WIDTH:].mean()]]))
                     if y_mean.window.shape[0] == 0:
                         one_bit.push(np.array([[x[-1], ONE]]))
 
@@ -101,13 +101,18 @@ def handle_data():
                     #                 binary_arr.window[-2][1] = binary_arr.window[-1][1]
                     #                 binary_arr.window[-3][1] = binary_arr.window[-1][1]
 
+                    # tmp_len = math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE)
+                    # tmp_len = min(tmp_len, len(one_bit.window))
+                    # print((one_bit.window[:] == binary_arr.window[-tmp_len:]).sum())
+                    # print(tmp_len)
+                    # assert (one_bit.window[:] == binary_arr.window[-tmp_len:]).sum() / 2 == tmp_len
                     result = bit_arr.update(one_bit, sample_arr)
                     if result:
                         possible_dataB = result[0] 
                         possible_dataD = result[1]
                         if possible_dataB != []:
                             #if DETAILS:
-                            # print(possible_dataB[0])
+                            # print(possible_dataD[0])
                             if TESTING_MODE:
                                 report.get_test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
                             
@@ -136,7 +141,8 @@ if __name__ == '__main__':
         if DETAILS:
             report.show_detail()
 
-
+#046d:c077
+#046d:c05a
     device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
     if device.is_kernel_driver_active(0):

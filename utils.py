@@ -8,16 +8,37 @@ import random
 import time
 from scipy.signal import savgol_filter
 
-def designed_decode(received):
+def naive_location(data, SIZE):
+    return (int(data / SIZE[0]), data % SIZE[0])
+    # return ()
+
+def designed_decode(received, recurse=True, flip=False):
+    if flip:
+        one = '011'
+        zero = '001'
+    else:
+        one = '100'
+        zero = '110'
     decoded = ''
     for i in range(0, len(received), 3):
         sub_data = received[i:i+3]
-        if sub_data == '100':
+        if sub_data == one:
             decoded += '1'
-        elif sub_data == '110':
+        elif sub_data == zero:
             decoded += '0'
         else:
-            decoded = decoded + '0' if random.random() > 0.5 else decoded + '1'
+            if not recurse:
+                return
+            for i in range(len(received)):
+                new_rec = list(received)
+                new_rec[i] = '1' if new_rec[i] == '0' else '0'
+                dec = designed_decode(new_rec, recurse=False, flip=flip)
+                if dec is None:
+                    continue
+                if len(dec) == BITS_NUM:
+                    print('Fix successfully')
+                    return dec
+            return
     return decoded
 
 def designed_code(raw):
