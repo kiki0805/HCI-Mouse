@@ -74,6 +74,29 @@ add_executable(
   simpleChess.cpp
 )
 
+add_executable(
+  drag
+
+  dragdemo.cpp
+  dragrectlayer.cpp
+  shader.cpp
+  renderer.cpp
+  layerobject.cpp
+  imageUtils.cpp
+)
+
+add_executable(
+  rawinputdemo
+
+  rawinputdemo.cpp
+  multimouse.cpp
+  dragrectlayer.cpp
+  shader.cpp
+  renderer.cpp
+  layerobject.cpp
+  imageUtils.cpp
+)
+
 target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 if (NOT MSVC)
   target_compile_options(display PRIVATE -Wl,-rpath=./)
@@ -82,4 +105,14 @@ endif()
 target_link_libraries(chess glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 if (NOT MSVC)
   target_compile_options(chess PRIVATE -Wl,-rpath=./)
+endif()
+
+target_link_libraries(drag glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+if (NOT MSVC)
+  target_compile_options(drag PRIVATE -Wl,-rpath=./)
+endif()
+
+target_link_libraries(rawinputdemo glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+if (NOT MSVC)
+  target_compile_options(rawinputdemo PRIVATE -Wl,-rpath=./)
 endif()

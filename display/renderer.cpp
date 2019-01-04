@@ -71,3 +71,13 @@ bool Renderer::Updated(const int nbFrames)
   }
   return false;
 }
+
+void Renderer::FreeLayers() 
+{
+  for (auto iter:mLayers){
+    if (iter.second) {
+      delete iter.second;
+    }
+  }
+  mLayers.clear();
+}

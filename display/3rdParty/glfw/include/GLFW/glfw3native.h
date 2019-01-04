@@ -121,7 +121,12 @@ extern "C" {
  *************************************************************************/
 
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
-/*! @brief Returns the adapter device name of the specified monitor.
+// rawinput callback, return non-0 if need default parsing.
+typedef int (* GLFWwin32rawinputfun)(GLFWwindow *, RAWINPUT *);
+
+GLFWAPI GLFWwin32rawinputfun glfwSetWin32RawInputCallback(GLFWwindow *window, GLFWwin32rawinputfun cbfun);
+
+ /*! @brief Returns the adapter device name of the specified monitor.
  *
  *  @return The UTF-8 encoded adapter device name (for example `\\.\DISPLAY1`)
  *  of the specified monitor, or `NULL` if an [error](@ref error_handling)
@@ -134,9 +139,9 @@ extern "C" {
  *
  *  @ingroup native
  */
-GLFWAPI const char* glfwGetWin32Adapter(GLFWmonitor* monitor);
+ GLFWAPI const char *glfwGetWin32Adapter(GLFWmonitor *monitor);
 
-/*! @brief Returns the display device name of the specified monitor.
+ /*! @brief Returns the display device name of the specified monitor.
  *
  *  @return The UTF-8 encoded display device name (for example
  *  `\\.\DISPLAY1\Monitor0`) of the specified monitor, or `NULL` if an
@@ -149,9 +154,9 @@ GLFWAPI const char* glfwGetWin32Adapter(GLFWmonitor* monitor);
  *
  *  @ingroup native
  */
-GLFWAPI const char* glfwGetWin32Monitor(GLFWmonitor* monitor);
+ GLFWAPI const char *glfwGetWin32Monitor(GLFWmonitor *monitor);
 
-/*! @brief Returns the `HWND` of the specified window.
+ /*! @brief Returns the `HWND` of the specified window.
  *
  *  @return The `HWND` of the specified window, or `NULL` if an
  *  [error](@ref error_handling) occurred.
@@ -163,7 +168,7 @@ GLFWAPI const char* glfwGetWin32Monitor(GLFWmonitor* monitor);
  *
  *  @ingroup native
  */
-GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
+ GLFWAPI HWND glfwGetWin32Window(GLFWwindow *window);
 #endif
 
 #if defined(GLFW_EXPOSE_NATIVE_WGL)

@@ -33,6 +33,8 @@
 #include <string.h>
 #include <windowsx.h>
 #include <shellapi.h>
+#include <stdio.h>
+#include <assert.h>
 
 #define _GLFW_KEY_INVALID -2
 
@@ -844,6 +846,32 @@ static LRESULT CALLBACK windowProc(HWND hWnd, UINT uMsg,
 
             DragFinish(drop);
             return 0;
+        }
+
+        case WM_INPUT:
+        {
+            UINT dwSize;
+
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize,
+                            sizeof(RAWINPUTHEADER));
+            LPBYTE lpb = malloc(sizeof(BYTE) * dwSize);
+            if (lpb == NULL)
+            {
+                return 0;
+            }
+
+            if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize,
+                                sizeof(RAWINPUTHEADER)) != dwSize)
+                printf("%ls", TEXT("GetRawInputData does not return correct size !\n"));
+
+            RAWINPUT *raw = (RAWINPUT *)lpb;
+
+            LRESULT suc = 0;
+            if (window->win32.rawInputCallback && window->win32.rawInputCallback(window, raw) !=0 ) {
+                LRESULT suc = DefRawInputProc((PRAWINPUT *)lpb, 1, sizeof(RAWINPUTHEADER));
+            }
+            free(lpb);
+            return suc;
         }
     }
 
@@ -1754,3 +1782,12 @@ GLFWAPI HWND glfwGetWin32Window(GLFWwindow* handle)
     return window->win32.handle;
 }
 
+GLFWAPI GLFWwin32rawinputfun glfwSetWin32RawInputCallback(GLFWwindow *handle, GLFWwin32rawinputfun cbfun)
+{
+    _GLFWwindow *window = (_GLFWwindow *)handle;
+    assert(window != NULL);
+
+    _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
+    _GLFW_SWAP_POINTERS(window->win32.rawInputCallback, cbfun);
+    return cbfun;
+} 

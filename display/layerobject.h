@@ -6,7 +6,7 @@
 #include <functional>
 
 namespace npnx {
-using std::vector;
+using std::vector; 
 
 class Renderer;
 class LayerObject {
@@ -39,9 +39,6 @@ public:
   virtual ~RectLayer() = default;
 
   virtual int DrawGL(const int nbFrames) override;
-  
-private:
-  int DrawRect(const int nbFrames);
 
 public:
   std::function<unsigned int(const int)> textureNoCallback = [] (const int) {return 0;};
