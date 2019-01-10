@@ -16,6 +16,9 @@ class SlideArray:
         self.last_detected = -1
         self.location_mod = location_mod
         self.init_timestamp = None
+        self.last_timestamp = None
+        self.count = 0
+        self.cache = []
         self.window_of_last_one = None
         self.window_of_last_zero = None
         self.least_zero_count = 10
@@ -127,17 +130,17 @@ class SlideArray:
         return index
 
     def get_mid_index(self, index, bit):
-        x, y = divide_coordinate(self.window)
+        x, y = divide_coordinate(self.window[:10])
         if y[index] != bit:
             return self.find_true_index(index, bit)
         bit_len = 1
         most_left = 0
-        most_right = self.window.shape[0] - 1
+        most_right = self.window[:10].shape[0] - 1
         index1 = index
         # find most right
         while True:
             index1 += 1
-            if index1 == self.window.shape[0]:
+            if index1 == self.window[:10].shape[0]:
                 break
             if y[index1] == bit:
                 bit_len += 1
@@ -178,107 +181,85 @@ class SlideArray:
             return True
         return False
 
+    def sample(self):
+        pass
+
     def check_bit(self, sample_slide):
         if self.init_timestamp is None:
             return self.init_sample(sample_slide)
 
-        x, y = divide_coordinate(self.window)
+        x, y = divide_coordinate(self.window[:10])
         mid_index = int(x.size/2)
-        if x[mid_index] < self.init_timestamp + 1 / FRAME_RATE: return
-        # if x[mid_index] > self.init_timestamp + 1 / FRAME_RATE + 0.001 and self.prefer == [0.5, 0.5]:
-        #     if y[mid_index] == ZERO:
-        #         return self.return_zero(mid_index, x, sample_slide)
-        #     else:
-        #         return self.return_one(mid_index, x, sample_slide)
-        num_one = 0 
-        num_zero = 0
-        len_zero = self.learn_len_zero() # approximate length
-        len_one = self.learn_len_one() # approximate length
-        
-        assert len_zero != 0
-        assert len_one != 0
-        pct_one = self.least_one_count / len_one if self.least_one_count != 10 else 0.8
-        pct_zero = self.least_zero_count / len_zero if self.least_zero_count != 10 else 0.8
-        
-        # count number of zero in the middle interval with length len_zero
-        left_zero = math.floor((y.size-len_zero)/2)
-        for e in y[left_zero:left_zero + len_zero].tolist():
-            if e == ZERO:
-                num_zero += 1
 
-        # count number of one in the middle interval with length len_one
-        left_one = math.floor((y.size-len_one)/2)
-        for e in y[left_one:left_one + len_one].tolist():
-            if e == ONE:
-                num_one += 1
+        unit = 1.5 / FRAME_RATE / 10
 
-        left_one = math.floor((y.size-num_one)/2)
-        left_zero = math.floor((y.size-num_zero)/2)
-        # cur_one_pct = num_one / self.size
-        # cur_zero_pct = num_zero / self.size
-        cur_one_pct = num_one / len_one
-        cur_zero_pct = num_zero / len_zero
-
-        if self.prefer[1] == 1:
-            if cur_one_pct >= pct_one:
+        if x[mid_index] > self.last_timestamp + 1 / FRAME_RATE - unit and \
+                x[mid_index] < self.last_timestamp + 1 / FRAME_RATE + unit and \
+                x[mid_index] > self.init_timestamp + self.count / FRAME_RATE - unit and \
+                x[mid_index] < self.init_timestamp + self.count / FRAME_RATE + unit:
+            self.cache.append(self.window[:10])
+        if x[mid_index] > self.last_timestamp + 1 / FRAME_RATE + unit or \
+                x[mid_index] > self.init_timestamp + self.count / FRAME_RATE + unit:
+            # print(len(self.cache))
+            if self.prefer == [0, 1]:
                 return self.return_one(mid_index, x, sample_slide)
-        elif self.prefer[0] == 1:
-            if cur_zero_pct >= pct_zero:
+            elif self.prefer == [1, 0]:
                 return self.return_zero(mid_index, x, sample_slide)
-        elif self.is_flat(y, mid_index):
-            if y[mid_index] == ZERO:
-                return self.return_zero(mid_index, x, sample_slide)
-            elif y[mid_index] == ONE:
-                return self.return_one(mid_index, x, sample_slide)
+            zero_pct_list = []
+            one_pct_list = []
+            for tmp_win in self.cache:
+                x, y = divide_coordinate(tmp_win)
+                mid_index = int(x.size/2)
+                
+                num_one = 0 
+                num_zero = 0
+                len_zero = self.learn_len_zero() # approximate length
+                len_one = self.learn_len_one() # approximate length
+                
+                assert len_zero != 0
+                assert len_one != 0
+                
+                # count number of zero in the middle interval with length len_zero
+                left_zero = math.floor((y.size-len_zero)/2)
+                for e in y[left_zero:left_zero + len_zero].tolist():
+                    if e == ZERO:
+                        num_zero += 1
 
-        elif cur_zero_pct >= pct_zero and \
-                cur_zero_pct / pct_zero > cur_one_pct / pct_one:
-            return self.return_zero(mid_index, x, sample_slide)
-        elif cur_one_pct >= pct_one and \
-                cur_one_pct / pct_one > cur_zero_pct / pct_zero:
+                # count number of one in the middle interval with length len_one
+                left_one = math.floor((y.size-len_one)/2)
+                for e in y[left_one:left_one + len_one].tolist():
+                    if e == ONE:
+                        num_one += 1
+
+                zero_pct_list.append(num_zero / len_zero)
+                one_pct_list.append(num_one / len_one)
+            
+            if self.cache == []:
+                # raise Exception
+                if self.prefer == [0, 1]:
+                    return self.return_one(mid_index, x, sample_slide)
+                elif self.prefer == [1, 0]:
+                    return self.return_zero(mid_index, x, sample_slide)
+                elif y[mid_index] == ONE:
+                    return self.return_one(mid_index, x, sample_slide)
+                else:
+                    return self.return_zero(mid_index, x, sample_slide)
+
+            
+            index = int(len(self.cache) / 2)
+            if sum(zero_pct_list) >= sum(one_pct_list):
+                x, _ = divide_coordinate(self.cache[index])
+                return self.return_zero(mid_index, x, sample_slide)
+        
+            x, _ = divide_coordinate(self.cache[index])
             return self.return_one(mid_index, x, sample_slide)
-
-        # elif num_zero / len_zero >= pct_zero and y[mid_index] == ZERO:
-        #     return self.return_zero(mid_index, x, sample_slide)
-        # elif num_one / len_one >= pct_one and y[mid_index] == ONE:
-        #     return self.return_one(mid_index, x, sample_slide)
-        # # case 1: if the middle num_zero interval is flat, sample directly
-        # # Q: too high standard
-        # elif num_zero / len_zero >= pct_zero and self.is_flat(y, left_zero, left_zero + num_zero):
-        #     return self.return_zero(mid_index, x, sample_slide)
-        # elif num_one / len_one >= pct_one and self.is_flat(y, left_one, left_one + num_one):
-        #     return self.return_one(mid_index, x, sample_slide)
-
-        # # case 2: if the left & right are flat, sample the bit with smaller mean_count
-        # # case 3: sample by the pct
-        # elif self.mean_one_count is not None and self.mean_zero_count is not None: 
-        #     if self.mean_one_count > self.mean_zero_count:
-        #         if cur_zero_pct >= pct_zero and \
-        #                 cur_zero_pct / pct_zero >= cur_one_pct / pct_one:
-        #             return self.return_zero(mid_index, x, sample_slide)
-        #         elif num_one / len_one >= pct_one and \
-        #                 num_one / len_one / pct_one >= num_zero / len_zero / pct_zero:
-        #             return self.return_one(mid_index, x, sample_slide)
-        #     else:
-        #         if cur_one_pct >= pct_one and \
-        #                 cur_one_pct / pct_one >= cur_zero_pct / pct_zero:
-        #             return self.return_one(mid_index, x, sample_slide)
-        #         elif cur_zero_pct >= pct_zero and \
-        #                 cur_zero_pct / pct_zero >= cur_one_pct / pct_one:
-        #             return self.return_zero(mid_index, x, sample_slide)
-        # else:
-        #     if cur_one_pct >= pct_one and \
-        #             cur_one_pct / pct_one >= cur_zero_pct / pct_zero:
-        #         return self.return_one(mid_index, x, sample_slide)
-        #     elif cur_zero_pct >= pct_zero and \
-        #             cur_zero_pct / pct_zero >= cur_one_pct / pct_one:
-        #         return self.return_zero(mid_index, x, sample_slide)
-        return
+        
+        
 
     def init_sample(self, sample_slide):
         if not self.is_full():
             return None
-        x, y = divide_coordinate(self.window)
+        x, y = divide_coordinate(self.window[:10])
         num_one = 0
         num_zero = 0
         for e in y.tolist():
@@ -287,41 +268,75 @@ class SlideArray:
             else:
                 num_zero += 1
         pct = 0.9
-        if num_one / y.size == pct:
-            self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == ZERO \
-                else x[math.floor((x.size - 1) / 2) + 1]
+        if num_one / y.size == pct and y[0] == ZERO:
+            self.init_timestamp = x[math.floor((x.size) / 2) + 1]
+            self.last_timestamp = self.init_timestamp
             sample_slide.push(np.array([[self.init_timestamp, ONE]]))
-            return '1'
-        elif not self.init_timestamp and num_zero / y.size == 0.9:
-            self.init_timestamp = x[math.floor((x.size - 1) / 2) - 1] if y[-1] == ONE \
-                else x[math.floor((x.size - 1) / 2) + 1]
+            self.count += 1
+            print('init done')
+            return 'first1'
+        elif num_zero / y.size == 0.9 and y[0] == ONE:
+            self.init_timestamp = x[math.floor((x.size) / 2) + 1]
+            self.last_timestamp = self.init_timestamp
             sample_slide.push(np.array([[self.init_timestamp, ZERO]]))
-            return '0'
+            self.count += 1
+            print('init done')
+            return 'first0'
+        #############################################
+        # if num_one / y.size == pct:
+        #     self.init_timestamp = x[math.floor((x.size) / 2) - 1] if y[-1] == ZERO \
+        #         else x[math.floor((x.size) / 2) + 1]
+        #     self.last_timestamp = self.init_timestamp
+        #     sample_slide.push(np.array([[self.init_timestamp, ONE]]))
+        #     self.count += 1
+        #     print('init done')
+        #     return 'first1'
+        # elif num_zero / y.size == 0.9:
+        #     self.init_timestamp = x[math.floor((x.size) / 2) - 1] if y[-1] == ONE \
+        #         else x[math.floor((x.size) / 2) + 1]
+        #     self.last_timestamp = self.init_timestamp
+        #     sample_slide.push(np.array([[self.init_timestamp, ZERO]]))
+        #     self.count += 1
+        #     print('init done')
+        #     return 'first0'
         return None
 
     def return_zero(self, mid_index, x, sample_slide):
-        mid_index = self.get_mid_index(mid_index, ZERO)
+        # mid_index = self.get_mid_index(mid_index, ZERO)
         sample_slide.push(np.array([[x[mid_index], ZERO]]))
-        self.init_timestamp = x[mid_index]
-        self.window_of_last_zero = self.window
+        self.last_timestamp = x[mid_index]
+        self.window_of_last_zero = self.window[:10]
 
         if self.continuous_one != 0: self.continuous_one = 0
         self.continuous_zero += 1
         self.recaculate_prefer()
+        self.count += 1
+        self.cache = []
         return '0'
     
     def return_one(self, mid_index, x, sample_slide):
-        mid_index = self.get_mid_index(mid_index, ONE)
+        # mid_index = self.get_mid_index(mid_index, ONE)
         sample_slide.push(np.array([[x[mid_index], ONE]]))
-        self.init_timestamp = x[mid_index]
-        self.window_of_last_one = self.window
+        self.last_timestamp = x[mid_index]
+        self.window_of_last_one = self.window[:10]
 
         if self.continuous_zero != 0: self.continuous_zero = 0
         self.continuous_one += 1
         self.recaculate_prefer()
+        self.count += 1
+        self.cache = []
         return '1'
     
     def recaculate_prefer(self):
+        if self.count >= 800:
+            self.init_timestamp = None
+            self.last_timestamp = None
+            self.count = 0
+            self.cache = []
+            self.continuous_one = 0
+            self.continuous_zero = 0
+            self.prefer = [0.5, 0.5]
+
         tolerate_one = 2
         tolerate_zero = 2
         
@@ -358,6 +373,10 @@ class BitSlideArray:
            # if self.window.size != 0:
            #     self.reset()
             return
+        if len(bit_detected) > 1:
+            self.push(bit_detected[-1])
+            return bit_detected[:-1]
+        
         self.push(bit_detected)
         ret = self.decode()
         if ret[0] == []:

@@ -10,6 +10,8 @@ class GraphicsManager:
         self.lines = {}
         self.data = {}
         self.ax = plt.gca()
+        self.one = 150
+        self.zero = 100
         plt.ion()
     
     def register(self, name, max_len, scatter=False):
@@ -29,7 +31,13 @@ class GraphicsManager:
         self.data[data_label] = collections.deque(maxlen=int(max_len))
 
     def update(self, name, point):
-        if not point:
+        if point is None:
+            return
+        assert np.array(point).size % 2 == 0
+        # chunk points
+        if np.array(point).size != 2:
+            for p in point:
+                self.update(name, p)
             return
         self.update_data(name, point)
         self.update_line(name)
@@ -57,3 +65,6 @@ class GraphicsManager:
     @classmethod
     def get_random_color(self):
         return (random.random(), random.random(), random.random(), 1)
+
+    def done(self):
+        plt.close()

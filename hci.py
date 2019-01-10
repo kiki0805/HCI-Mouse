@@ -13,11 +13,16 @@ from constants import *
 from Report import Report
 from main_variables import *
 
+
 def handle_data():
     max_pixel = 200
     min_pixel = 100
     lasttime_interpolated = 0
-    while True:
+    cont = 0
+    back_desire = 0
+    # f = open('data_single_noise.csv','w')
+    start = time.time()
+    while time.time() - start < 30:
         response, timestamp = q.get()
         if not response:
             return
@@ -29,6 +34,8 @@ def handle_data():
             val_fixed += 128
         if val_fixed > 240:
             continue
+        # f.write(str(timestamp) + ',' + str(val_fixed)+'\n')
+        # continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
 
@@ -55,8 +62,8 @@ def handle_data():
             temp_y = np.array([])
             for i in range(l + 1):
                 if i >= 2:
-                    max_pixel = frames_m.window[:, 1].max()
-                    min_pixel = frames_m.window[:, 1].min()
+                    max_pixel = frames_m.window[-50:, 1].max()
+                    min_pixel = frames_m.window[-50:, 1].min()
 
                 if i < l:
                     if frames_m_interpolated[i][0] < frames_m.window[-1][0]:
@@ -74,17 +81,59 @@ def handle_data():
                     ######################################################
                     x, y = divide_coordinate(frames_m.window)
                     # y_mean.push(np.array([[x[-1], (max_pixel + min_pixel) / 2]]))
-
                     y_mean.push(np.array([[x[-1], y[-MEAN_WIDTH:].mean()]]))
+
                     if y_mean.window.shape[0] == 0:
                         one_bit.push(np.array([[x[-1], ONE]]))
-
                     elif y_mean.window[-1][1] < y[-1]:
                         one_bit.push(np.array([[x[-1], ZERO]]))
                     else:
                         one_bit.push(np.array([[x[-1], ONE]]))
+                    ############################################
+                    # elif y_mean.window[-1][1] < y[-1]:
+                    #     if cont == 0 or cont == 10:
+                    #         one_bit.push(np.array([[x[-1], ZERO]]))
+                    #         back_desire = 0
+                    #     # elif one_bit.window[-1].tolist()[1] == ZERO:
+                    #     #     one_bit.push(np.array([[x[-1], ZERO]]))
+                    #     elif cont < 4:
+                    #         one_bit.push(np.array([[x[-1], ZERO]]))
+                    #         one_bit.window[-cont-1:,1] = ZERO
+                    #         back_desire = 0
+                    #     else:
+                    #         last_bit = one_bit.window[-1].tolist()[1]
+                    #         one_bit.push(np.array([[x[-1], last_bit]]))
+                    #         back_desire += 1
+                    # else:
+                    #     if cont == 0 or cont == 10:
+                    #         one_bit.push(np.array([[x[-1], ONE]]))
+                    #         back_desire = 0
+                    #     # elif one_bit.window[-1].tolist()[1] == ONE:
+                    #     #     one_bit.push(np.array([[x[-1], ONE]]))
+                    #     elif cont < 4:
+                    #         one_bit.push(np.array([[x[-1], ONE]]))
+                    #         one_bit.window[-cont-1:,1] = ONE
+                    #         back_desire = 0
+                    #     else:
+                    #         last_bit = one_bit.window[-1].tolist()[1]
+                    #         one_bit.push(np.array([[x[-1], last_bit]]))
+                    #         back_desire += 1
+                    
+                    # if back_desire > 6:
+                    #     # print('back')
+                    #     if one_bit.window[-1].tolist()[1] == ONE:
+                    #         one_bit.window[-cont-1:,1] = ZERO
+                    #     else:
+                    #         one_bit.window[-cont-1:,1] = ONE
+
+                    # if cont != 0:
+                    #     cont = cont + 1 if cont != 10 else 1
+                    #     if cont == 1:
+                    #         back_desire = 0
 
                     binary_arr.push(np.array([[x[-1], one_bit.window[-1].tolist()[1]]]))
+                    cut = min([one_bit.window.shape[0], binary_arr.window.shape[0], 10])
+                    binary_arr.window[-cut:] = one_bit.window[-cut:]
                     # Fix one bit error
                     if one_bit.window.shape[0] > 2:
                         if one_bit.window[-2][1] != one_bit.window[-1][1] and \
@@ -92,27 +141,15 @@ def handle_data():
                                     one_bit.window[-2][1] = one_bit.window[-1][1]
                                     binary_arr.window[-2][1] = binary_arr.window[-1][1]
                     
-                    # Fix two bits error
-                    # if one_bit.window.shape[0] > 4:
-                    #     if one_bit.window[-4][1] != one_bit.window[-3][1] and \
-                    #             one_bit.window[-1][1] != one_bit.window[-2][1]:
-                    #                 one_bit.window[-2][1] = one_bit.window[-1][1]
-                    #                 one_bit.window[-3][1] = one_bit.window[-1][1]
-                    #                 binary_arr.window[-2][1] = binary_arr.window[-1][1]
-                    #                 binary_arr.window[-3][1] = binary_arr.window[-1][1]
-
-                    # tmp_len = math.ceil(FRAMES_PER_SECOND_AFTER_INTERPOLATE / POINTS_TO_COMBINE / FRAME_RATE)
-                    # tmp_len = min(tmp_len, len(one_bit.window))
-                    # print((one_bit.window[:] == binary_arr.window[-tmp_len:]).sum())
-                    # print(tmp_len)
-                    # assert (one_bit.window[:] == binary_arr.window[-tmp_len:]).sum() / 2 == tmp_len
                     result = bit_arr.update(one_bit, sample_arr)
-                    if result:
-                        possible_dataB = result[0] 
+                    if result == 'first' and cont == 0:
+                        print('first sample')
+                        cont = 5
+                        
+                    if result and result != 'first':
+                        possible_dataB = result[0]
                         possible_dataD = result[1]
                         if possible_dataB != []:
-                            #if DETAILS:
-                            # print(possible_dataD[0])
                             if TESTING_MODE:
                                 report.get_test_report(one_bit, possible_dataB, possible_dataD, fixed_bit_arr, fixed_val)
                             
