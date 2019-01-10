@@ -193,6 +193,13 @@ class SlideArray:
 
         unit = 1.5 / FRAME_RATE / 10
 
+        # if x[mid_index] < self.last_timestamp + 1 / FRAME_RATE: return
+        # if y[mid_index] == ONE:
+        #     return self.return_one(mid_index, x, sample_slide)
+        # else:
+        #     return self.return_zero(mid_index, x, sample_slide)
+
+
         if x[mid_index] > self.last_timestamp + 1 / FRAME_RATE - unit and \
                 x[mid_index] < self.last_timestamp + 1 / FRAME_RATE + unit and \
                 x[mid_index] > self.init_timestamp + self.count / FRAME_RATE - unit and \

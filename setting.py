@@ -33,7 +33,7 @@ FILTER = True
 
 FILTER_H = False
 GRAPHICS = True
-TESTING_MODE = False #True
+TESTING_MODE = True
 FORCED_EXIT = False
 
 if TESTING_MODE:

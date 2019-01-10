@@ -99,10 +99,24 @@ def add_NRZI(tenBtwlB, fixed_len=False):
 #         last_bit = new_code[-1]
 #     return new_code
 
-def smooth(y):
-    if y.size < 15:
-        return y
-    return savgol_filter(y, 15, 3)
+# def smooth(y):
+#     if y.size < 15:
+#         return y
+#     return savgol_filter(y, 15, 3)
+from scipy.interpolate import interp1d
+def interpl(x, y, x_sample, method='nearest'):
+    inter = interp1d(x, y, kind=method)
+    return inter(x_sample)
+
+def smooth(a,WSZ):
+    # a: NumPy 1-D array containing the data to be smoothed
+    # WSZ: smoothing window size needs, which must be odd number,
+    # as in the original MATLAB implementation
+    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ    
+    r = np.arange(1,WSZ-1,2)
+    start = np.cumsum(a[:WSZ-1])[::2]/r
+    stop = (np.cumsum(a[:-WSZ:-1])[::2]/r)[::-1]
+    return np.concatenate((  start , out0, stop  ))
 
 # def smooth(y, box_pts):
 #     box = np.ones(box_pts)/box_pts

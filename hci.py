@@ -20,7 +20,7 @@ def handle_data():
     lasttime_interpolated = 0
     cont = 0
     back_desire = 0
-    # f = open('data_single_noise.csv','w')
+    f = open('data_single_813.csv','w')
     start = time.time()
     while time.time() - start < 30:
         response, timestamp = q.get()
@@ -34,8 +34,8 @@ def handle_data():
             val_fixed += 128
         if val_fixed > 240:
             continue
-        # f.write(str(timestamp) + ',' + str(val_fixed)+'\n')
-        # continue
+        f.write(str(timestamp) + ',' + str(val_fixed)+'\n')
+        continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
 

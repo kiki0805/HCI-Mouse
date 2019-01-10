@@ -19,10 +19,12 @@ update_time = -1 if update_time == '' else int(update_time)
 dur = 10 if dur == '' else int(dur)
 #413c:301a
 #0461:4d15
-#device = usb.core.find(idVendor=0x413c, idProduct=0x3010)
-#device = usb.core.find(idVendor=0x046d, idProduct=0xc05b)
-device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
+#0461:4d15
 
+#device = usb.core.find(idVendor=0x413c, idProduct=0x3010)
+# device = usb.core.find(idVendor=0x0461, idProduct=0x4d15)
+# device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
+device = usb.core.find(idVendor=0x046d, idProduct=0xc05b)
 if device.is_kernel_driver_active(0):
     device.detach_kernel_driver(0)
 
@@ -32,7 +34,7 @@ def init():
     device.ctrl_transfer(bmRequestType = 0x40, #Write
                                          bRequest = 0x01,
                                          wValue = 0x0000,
-                                         #wIndex = 0x0D, #PIX_GRAB register value
+                                        #  wIndex = 0x0D, #PIX_GRAB register value
                                          wIndex = 0x0B, #PIX_GRAB register value
                                          data_or_wLength = None
                                          )
@@ -109,12 +111,12 @@ def update():
 
         val = int.from_bytes(response, 'big')
         val_fixed = val
-        if val_fixed < 128:
+        if val_fixed > 128:
            # print('+ 128')
-           val_fixed += 128
-        if val_fixed > 240:
-           # print('delete')
-           continue
+           val_fixed -= 128
+        # if val_fixed > 240:
+        #    # print('delete')
+        #    continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
         if raw_frames_m.line and timestamp - time1 > update_time:
@@ -140,7 +142,7 @@ while time.time() - start < dur:
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                      bRequest = 0x01,
                      wValue = 0x0000,
-                     #wIndex = 0x0D, #PIX_GRAB register value
+                    #  wIndex = 0x0D, #PIX_GRAB register value
                      wIndex = 0x0B, #PIX_GRAB register value
                      data_or_wLength = 1
                      )
