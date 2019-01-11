@@ -32,8 +32,8 @@ EXPEND = 3
 FILTER = True
 
 FILTER_H = False
-GRAPHICS = True
-TESTING_MODE = True
+GRAPHICS = False #True
+TESTING_MODE = False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:

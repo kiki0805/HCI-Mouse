@@ -80,6 +80,8 @@ class SlideArray:
             return
 
         x, y = divide_coordinate(self.window)
+        # x = x[0:x.size:5]
+        # y = y[0:y.size:5]
         if x.size < self.draw_interval:
             if self.scatter_mode:
                 self.line.set_offsets(self.window)

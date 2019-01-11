@@ -45,10 +45,10 @@ def init():
 
 # init()
 
-# plt.ion()
+plt.ion()
 
-# line1, = plt.plot([], [], 'r', label='original') 
-# ax = plt.gca() # get most of the figure elements 
+line1, = plt.plot([], [], 'r', label='original') 
+ax = plt.gca() # get most of the figure elements 
 
 start = time.time()
 
@@ -138,8 +138,8 @@ def update():
                 plt.pause(1e-6)
 
 q = Queue()
-# p = Process(target=update) # for display
-# p.start()
+p = Process(target=update) # for display
+p.start()
 
 
 start = time.time()
@@ -148,6 +148,7 @@ flag = 0
 time1 = time.time()
 stuck_count = 0
 last_stuck = 0
+f = open('without_plot_hp.csv', 'w')
 while time.time() - start < dur:
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                      bRequest = 0x01,
@@ -159,6 +160,7 @@ while time.time() - start < dur:
     
     init()
     time2 = time.time()
+    f.write(str(time2) + '\n')
     if time2 - time1 > 1 / 480:
         if time2 - last_stuck > 0.05:
             print('interval exceeds: ' + str(time2-time1))#str(2/240))
@@ -168,6 +170,7 @@ while time.time() - start < dur:
     q.put((response, time.time()))
     global_count += 1
 
+f.close()
 print('Frame rate: ' + str(global_count / (time.time() - start)))
 print('Stuck number: ' + str(stuck_count) + ' in ' + str(dur) + 's')
 # p.terminate()

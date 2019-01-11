@@ -6,11 +6,43 @@ import numpy as np
 import math
 import random
 import time
+import re
 from scipy.signal import savgol_filter
+
+
+def chunk_decode(np_chunk, flip=False):
+    chunk = [str(i) for i in np_chunk]
+    chunk = ''.join(chunk)
+    if flip:
+        pat = '0101'
+    else:
+        pat = '1010'
+    rtn = []
+
+    for i in range(len(chunk)):
+        if chunk[i:i+4] == pat:
+            bit_str = designed_decode(chunk[i+4:i+34], flip=flip)
+            if not bit_str:
+                continue
+            if len(bit_str) != BITS_NUM:
+                continue
+            decoded_num = bit_str2num(bit_str)
+            rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+
+    if rtn != []:
+        return rtn
 
 def naive_location(data, SIZE):
     return (int(data / SIZE[0]), data % SIZE[0])
     # return ()
+
+def manhattan_dist(str1, str2):
+    assert len(str1) == len(str2)
+    count = 0
+    for i in range(len(str1)):
+        if str1[i] != str2[i]:
+            count += 1
+    return count
 
 def designed_decode(received, recurse=True, flip=False):
     if flip:
@@ -26,18 +58,13 @@ def designed_decode(received, recurse=True, flip=False):
             decoded += '1'
         elif sub_data == zero:
             decoded += '0'
+        # elif manhattan_dist(one, sub_data) == manhattan_dist(zero, sub_data):
+        #     return
+        # else:
+        #     decoded = decoded + '0' \
+        #         if manhattan_dist(one, sub_data) > manhattan_dist(zero, sub_data) \
+        #         else decoded + '1'
         else:
-            if not recurse:
-                return
-            for i in range(len(received)):
-                new_rec = list(received)
-                new_rec[i] = '1' if new_rec[i] == '0' else '0'
-                dec = designed_decode(new_rec, recurse=False, flip=flip)
-                if dec is None:
-                    continue
-                if len(dec) == BITS_NUM:
-                    print('Fix successfully')
-                    return dec
             return
     return decoded
 
