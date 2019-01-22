@@ -11,7 +11,7 @@ sys.path.append("..")
 from setting import *
 from utils import *
 
-PREFIX = 'fre2_'
+PREFIX = 'fre_m_'
 
 def draw_block(im_arr, i, j, block_size, value):
     for k1 in range(block_size):
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # raw_data = designed_location_encode(SIZE)
     raw_data = raw_random_location(SIZE)
     data = np.zeros((DATA_BLOCK_SIZE, DATA_BLOCK_SIZE, BITS_NUM * EXPEND + PREAMBLE_NP.size))
-    print('Using DESIGNED CODE...')
+    print('Using ' + CODING_METHOD + '...')
     # quiet = True
     quiet = False
     off = {}
@@ -79,6 +79,7 @@ if __name__ == '__main__':
                     data[i][j] = np.array(filter_normalize(raw_data[i][j].tolist(), nothing=True, quiet=True))
 
     process_num = 4
+    pl = []
     for n in range(process_num):
         total_bits_num = BITS_NUM * EXPEND + PREAMBLE_NP.size
         end_index = (n + 1) * math.floor(total_bits_num / process_num)
@@ -91,3 +92,7 @@ if __name__ == '__main__':
             end_index, \
             data, off))
         p.start()
+        pl.append(p)
+    for p in pl:
+        p.join()
+    plt.show()

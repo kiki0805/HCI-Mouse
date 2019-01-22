@@ -13,9 +13,6 @@ def hle(size):
 
     turn = True
     for n in range(im_id):
-        # if n < len(PREAMBLE_STR):
-        #     imgs_arr[n, :, :] = PREAMBLE_STR[n] == '0'
-        #     continue
         mod = width_divided / 2 if turn else height_divided / 2
         if turn:
             width_divided /= 2
@@ -57,6 +54,21 @@ def fiveBsixB_encode(size):
             temp_list = [str(i) for i in temp_list]
             encoded_str = CODING_DIC[''.join(temp_list)]
             encoded_list = PREAMBLE_STR + encoded_str
+            imgs_arr[i,j] = list(encoded_list)
+    return imgs_arr
+
+# without preamble
+# per x,y, per bit
+def designed_location_encode(size):
+    from utils import designed_code
+    assert BITS_NUM == 10
+    raw_arr = hle_raw(size)
+    imgs_arr = np.zeros((size[0], size[1], BITS_NUM * 3), dtype=np.int16)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            temp_list = raw_arr[i,j,:].tolist()
+            temp_list = [str(i) for i in temp_list]
+            encoded_str = designed_code(''.join(temp_list))
             imgs_arr[i,j] = list(encoded_list)
     return imgs_arr
 
