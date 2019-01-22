@@ -17,10 +17,10 @@ elif MANCHESTER_MODE:
     print('Using Manchester...')
     data = PREAMBLE_STR + Manchester_encode(raw_data)
 
-if MANCHESTER_MODE:
+if FILTER:
     filtered_data = filter_normalize(np.array(list(data)))
     print('Filtered data(' + str(len(filtered_data)) + '): \n\t', end='')
-    print(filtered_data.tolist())
+    print(filtered_data)
     with open('openGL/filtered_data', 'w') as f:
         for i in filtered_data:
             f.write(str(i))

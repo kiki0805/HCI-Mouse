@@ -21,12 +21,13 @@ public:
   bool Updated(const int nbFrames);
   void Draw(const int nbFrames);
 
+  void FreeLayers();
 private:
   //we can only add layers when the renderer is not initialized.
   bool mInitialized = false;
-  std::map<float, LayerObject *> mLayers;
 
 public:
+  std::map<float, LayerObject *> mLayers;
   std::vector<float> mVBOBuffer;
   std::vector<GLuint> mEBOBuffer;
   unsigned int mVAO, mVBO, mEBO, mFBO;

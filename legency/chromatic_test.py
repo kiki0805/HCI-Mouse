@@ -40,11 +40,9 @@ class SlideArray:
 
 
 def update():
-    global raw_frames_m, frames_m
+    global raw_frames_m
     global q
-    file_count = 0
     raw_file_count = 0
-    lasttime_interpolated = 0
     while True:
 
         response, timestamp = q.get()
@@ -53,16 +51,18 @@ def update():
 
         val = int.from_bytes(response, 'big')
         val_fixed = val
+        # print(val)
         if val_fixed < 128:
             val_fixed += 128
         if val_fixed > 240:
             continue
 
+        # print(timestamp, val_fixed)
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
         if raw_frames_m.is_full():
-            fn = './data/' + str(raw_file_count) + '_raw_v2.bin'
+            fn = './data/' + str(raw_file_count) + '_raw_v3.bin'
             raw_frames_m.window.tofile(fn)
-            print('[ Expection: 177 ] Write done: ' + fn)
+            print('[ Expection: 45 ] Write done: ' + fn)
             raw_frames_m.reset()
             raw_file_count += 1
 
@@ -90,6 +90,7 @@ while time.time() - start < dur: # 11000
                     wIndex = 0x0D, #PIX_GRAB register value
                     data_or_wLength = 1
                     )
+    init()
     q.put((response, time.time()))
 print('All done.')
 

@@ -54,6 +54,17 @@
     "thread": "cpp",
     "unordered_map": "cpp",
     "vector": "cpp",
-    "xhash": "cpp"
+    "xhash": "cpp",
+    "cstdarg": "cpp",
+    "ctime": "cpp",
+    "iomanip": "cpp",
+    "locale": "cpp",
+    "xlocbuf": "cpp",
+    "xlocmes": "cpp",
+    "xlocmon": "cpp",
+    "xloctime": "cpp",
+    "windowsx.h": "c",
+    "shellapi.h": "c",
+    "internal.h": "c"
   }
 }

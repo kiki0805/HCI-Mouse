@@ -6,7 +6,67 @@ import numpy as np
 import math
 import random
 import time
+import re
 from scipy.signal import savgol_filter
+
+
+def chunk_decode(np_chunk, flip=False):
+    chunk = [str(i) for i in np_chunk]
+    chunk = ''.join(chunk)
+    if flip:
+        pat = '0101'
+    else:
+        pat = '1010'
+    rtn = []
+
+    for i in range(len(chunk)):
+        if chunk[i:i+4] == pat:
+            bit_str = designed_decode(chunk[i+4:i+34], flip=flip)
+            if not bit_str:
+                continue
+            if len(bit_str) != BITS_NUM:
+                continue
+            decoded_num = bit_str2num(bit_str)
+            rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+
+    if rtn != []:
+        return rtn
+
+def naive_location(data, SIZE):
+    return (int(data / SIZE[0]), data % SIZE[0])
+    # return ()
+
+def manhattan_dist(str1, str2):
+    assert len(str1) == len(str2)
+    count = 0
+    for i in range(len(str1)):
+        if str1[i] != str2[i]:
+            count += 1
+    return count
+
+def designed_decode(received, recurse=True, flip=False):
+    if flip:
+        one = '011'
+        zero = '001'
+    else:
+        one = '100'
+        zero = '110'
+    decoded = ''
+    for i in range(0, len(received), 3):
+        sub_data = received[i:i+3]
+        if sub_data == one:
+            decoded += '1'
+        elif sub_data == zero:
+            decoded += '0'
+        # elif manhattan_dist(one, sub_data) == manhattan_dist(zero, sub_data):
+        #     return
+        # else:
+        #     decoded = decoded + '0' \
+        #         if manhattan_dist(one, sub_data) > manhattan_dist(zero, sub_data) \
+        #         else decoded + '1'
+        else:
+            return
+    return decoded
 
 def designed_code(raw):
     new_code = []
@@ -66,10 +126,24 @@ def add_NRZI(tenBtwlB, fixed_len=False):
 #         last_bit = new_code[-1]
 #     return new_code
 
-def smooth(y):
-    if y.size < 15:
-        return y
-    return savgol_filter(y, 15, 3)
+# def smooth(y):
+#     if y.size < 15:
+#         return y
+#     return savgol_filter(y, 15, 3)
+from scipy.interpolate import interp1d
+def interpl(x, y, x_sample, method='nearest'):
+    inter = interp1d(x, y, kind=method)
+    return inter(x_sample)
+
+def smooth(a,WSZ):
+    # a: NumPy 1-D array containing the data to be smoothed
+    # WSZ: smoothing window size needs, which must be odd number,
+    # as in the original MATLAB implementation
+    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ    
+    r = np.arange(1,WSZ-1,2)
+    start = np.cumsum(a[:WSZ-1])[::2]/r
+    stop = (np.cumsum(a[:-WSZ:-1])[::2]/r)[::-1]
+    return np.concatenate((  start , out0, stop  ))
 
 # def smooth(y, box_pts):
 #     box = np.ones(box_pts)/box_pts
@@ -291,7 +365,7 @@ def designed_location_encode(size):
     return imgs_arr
 
 def hld(bit_arr, size, bit_one, bit_zero):
-    print(bit_arr)
+    # print(bit_arr)
     assert len(bit_arr) == BITS_NUM
 
     init_location_range = [[0, size[0]], [0, size[1]]]

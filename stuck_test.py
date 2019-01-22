@@ -17,17 +17,18 @@ update_time = input('update time: _s ')
 update_time = -1 if update_time == '' else int(update_time)
 
 dur = 10 if dur == '' else int(dur)
-idVendor = 0x046d
-# idProduct = 0xc077 # dell
-# idProduct = 0xc019 # logitech without tag
-idProduct = 0xc05b # logitech with tag
+#413c:301a
+#dell 0461:4d15
+# device = usb.core.find(idVendor=0x0461, idProduct=0x4d15)
+#hp: 046d:c018 9
+# device = usb.core.find(idVendor=0x046d, idProduct=0xc018)
+#logitech
+# device = usb.core.find(idVendor=0x046d, idProduct=0xc019)
+# 3
+# device = usb.core.find(idVendor=0x046d, idProduct=0xc05b)
+#device = usb.core.find(idVendor=0x046d, idProduct=0xc05b)
+device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
-device = usb.core.find(idVendor=idVendor, idProduct=idProduct)
-
-if idProduct == 0xc077:
-    register = 0x0D # 0x0B
-else:
-    register = 0x0B
 if device.is_kernel_driver_active(0):
     device.detach_kernel_driver(0)
 
@@ -37,8 +38,8 @@ def init():
     device.ctrl_transfer(bmRequestType = 0x40, #Write
                                          bRequest = 0x01,
                                          wValue = 0x0000,
-                                        #  wIndex = 0x0D, #PIX_GRAB register value
-                                         wIndex = register, #PIX_GRAB register value
+                                         wIndex = 0x0D, #PIX_GRAB register value
+                                        #  wIndex = 0x0B, #PIX_GRAB register value
                                          data_or_wLength = None
                                          )
 
@@ -105,7 +106,7 @@ def update():
     # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, MOUSE_FRAME_RATE)
     time1 = None
     while True:
-
+        # break
         response, timestamp = q.get()
         if not time1:
             time1 = timestamp
@@ -114,14 +115,17 @@ def update():
 
         val = int.from_bytes(response, 'big')
         val_fixed = val
-        # if val_fixed < 128:
-        #    # print('+ 128')
-        #    val_fixed += 128
-        # if val_fixed > 240:
+        if val_fixed < 128:
+           # print('+ 128')
+           val_fixed += 128
+        #if val_fixed > 240:
         #    # print('delete')
         #    continue
+        # if val_fixed > 128:
+        #     val_fixed -= 128
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
+        continue
         if raw_frames_m.line and timestamp - time1 > update_time:
             raw_frames_m.update_line_data()
             ax.relim() # renew the data limits
@@ -141,19 +145,33 @@ p.start()
 start = time.time()
 global_count = 0
 flag = 0
+time1 = time.time()
+stuck_count = 0
+last_stuck = 0
+f = open('without_plot_hp.csv', 'w')
 while time.time() - start < dur:
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                      bRequest = 0x01,
                      wValue = 0x0000,
-                    #  wIndex = 0x0D, #PIX_GRAB register value
-                     wIndex = register, #PIX_GRAB register value
+                     wIndex = 0x0D, #PIX_GRAB register value
+                    #  wIndex = 0x0B, #PIX_GRAB register value
                      data_or_wLength = 1
                      )
     
     init()
+    time2 = time.time()
+    f.write(str(time2) + '\n')
+    if time2 - time1 > 1 / 480:
+        if time2 - last_stuck > 0.05:
+            print('interval exceeds: ' + str(time2-time1))#str(2/240))
+            stuck_count += 1
+            last_stuck = time2
+    time1 = time2
     q.put((response, time.time()))
     global_count += 1
 
+f.close()
 print('Frame rate: ' + str(global_count / (time.time() - start)))
-p.terminate()
+print('Stuck number: ' + str(stuck_count) + ' in ' + str(dur) + 's')
+# p.terminate()
 # sys.exit()

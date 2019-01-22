@@ -19,7 +19,7 @@ CODING_METHOD = 'MANCHESTER_MODE'
 #         CODING_METHOD = 'FREQ'
     # CODING_METHOD = 'MANCHESTER_MODE' if int(chose_num) == 2 else 'FREQ'
 LOOP = False# True
-DETAILS = True #False
+DETAILS = False
 INTERPOLATION_DEBUG = True
 MANCHESTER_MODE = CODING_METHOD == 'MANCHESTER_MODE'
 CRC4 = CODING_METHOD == 'CRC4'
@@ -37,8 +37,8 @@ elif FREQ:
 FILTER = True
 
 FILTER_H = False
-GRAPHICS = True #False # True
-TESTING_MODE = True
+GRAPHICS = False #True
+TESTING_MODE = False #True
 FORCED_EXIT = False
 
 if TESTING_MODE:
@@ -69,6 +69,7 @@ else:
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
 if DESIGNED_CODE:
     PREAMBLE_LIST = [1, -1, 1, -1]
+    PREAMBLE_PATTERN = '1010'
     # PREAMBLE_LIST = []
 import numpy as np
 PREAMBLE_NP = np.array(PREAMBLE_LIST)
@@ -89,7 +90,7 @@ END_INTERVAL = 0.1
 EXTRA_LEN = END_INTERVAL - INTERPOLATION_INTERVAL
 
 #POINTS_PER_FRAME = 30 # 30 # to combine
-MEAN_WIDTH = 50 # 50
+MEAN_WIDTH = 40 # 50
 #MIN_LEN_PER_BIT = 15 # 15
 
 POINTS_TO_COMBINE = FRAMES_PER_SECOND_AFTER_INTERPOLATE / FRAME_RATE / 10 # 5 for advanced interpolation, 40 for 20hz , 14 for 60hz -> maintain 10 points for one bit
