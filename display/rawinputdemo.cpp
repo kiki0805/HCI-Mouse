@@ -314,6 +314,9 @@ int main()
   mouseRenderer.Initialize();
   multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return dragDemo.sceneState == SceneState::GAMING;});
   
+  //for testing raw input settings
+  exit(0);
+  
   RectLayer postBaseRect(-1.0,-1.0,1.0,1.0,-999.9);
   postBaseRect.mTexture.push_back(0);
   postBaseRect.beforeDraw = [&](const int nbFrames) {

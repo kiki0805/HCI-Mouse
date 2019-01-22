@@ -38,13 +38,12 @@ unsigned int makeTexture(unsigned char *buffer, int width, int height, int chann
 unsigned int makeTextureFromImage(const char * imagepath){
   cv::Mat img;
   img = cv::imread(imagepath, cv::IMREAD_UNCHANGED);
-  NPNX_LOG(imagepath);
-  NPNX_LOG(img.rows);
-  NPNX_LOG(img.cols);
-  NPNX_LOG(img.channels());
+  // NPNX_LOG(imagepath);
+  // NPNX_LOG(img.rows);
+  // NPNX_LOG(img.cols);
+  // NPNX_LOG(img.channels());
   NPNX_ASSERT(img.isContinuous());
   NPNX_ASSERT(img.elemSize1() == 1);
-  NPNX_LOG(img.rows * img.cols * img.channels());
   //unique_ptr only used for simple buffers, do not use it or shared ptr to generate class object, because my ability limitation.
   //  ——npnx
   return makeTexture(img.data, img.cols, img.rows, img.channels());
