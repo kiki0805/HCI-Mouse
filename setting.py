@@ -1,7 +1,7 @@
 # Trial
-#CODING_METHOD = 'FREQ'
-# CODING_METHOD = 'MANCHESTER_MODE'
-CODING_METHOD = 'DESIGNED_CODE'
+# CODING_METHOD = 'FREQ'
+CODING_METHOD = 'MANCHESTER_MODE'
+# CODING_METHOD = 'DESIGNED_CODE'
 # print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
 # print('\t1. FREQ')
 # print('\t2. MANCHESTER_MODE')
@@ -26,7 +26,12 @@ CRC4 = CODING_METHOD == 'CRC4'
 fiveBsixB = CODING_METHOD == 'fiveBsixB'
 FREQ = CODING_METHOD == 'FREQ'
 DESIGNED_CODE = CODING_METHOD == 'DESIGNED_CODE'
-EXPEND = 3
+if MANCHESTER_MODE:
+    EXPEND = 2 # 3
+elif DESIGNED_CODE:
+    EXPEND = 3
+elif FREQ:
+    EXPEND = 4
 # FILTER_sure = input('Turn on FILTER? ')
 # FILTER = False if FILTER_sure == '' else True
 FILTER = True
@@ -50,21 +55,21 @@ FRAME_RATE = 240
 MOUSE_FRAME_RATE = 1600 #2800 # 2400
 
 if MANCHESTER_MODE:
-    PREAMBLE_STR = '10001' # '10101010101010' # '000'
+    PREAMBLE_STR = '1000' # '10101010101010' # '000'
 elif CRC4:
     PREAMBLE_STR = ''
 elif fiveBsixB:
     PREAMBLE_STR = '100001' # ver.1
 elif FREQ:
-    PREAMBLE_STR = ''
+    PREAMBLE_STR = '1001'
 else:
     PREAMBLE_STR = '10101010101010' #'10001' # '10101010101010' # '000'
 
 #PREAMBLE_STR = '11011'
 PREAMBLE_LIST = list(PREAMBLE_STR) # used by np.array(preamble_list)
 if DESIGNED_CODE:
-    # PREAMBLE_LIST = [1, -1, 1, -1]
-    PREAMBLE_LIST = []
+    PREAMBLE_LIST = [1, -1, 1, -1]
+    # PREAMBLE_LIST = []
 import numpy as np
 PREAMBLE_NP = np.array(PREAMBLE_LIST)
 SIZE = (32, 32) # (256, 256)
