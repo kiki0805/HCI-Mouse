@@ -19,21 +19,29 @@ def figure_handler(data):
 
     start = time.time()
     current = time.time()
-    while current - start < settings.duration + 10:
+    while current - start < settings.duration - settings.MEAN_WIDTH / settings.FRAME_RATE:
         # Get New Data Point
         uniform_point = data['uniform_data'].get()
-        mean_point = data['mean'].get()
-        binary_point = data['binary_data'].get()
-        sample = data['samples'].get()
+        # mean_point = data['mean'].get()
+        # binary_point = data['binary_data'].get()
+        # sample = data['samples'].get()
         
-        # current = point[0] # (timestamp, value)
+        # try:
+        #     current = mean_point[-1][0] # (timestamp, value)
+        # except:
+        #     current = mean_point[0]
         current = time.time()
+        # print(current - start)
 
         # Update Data and Corresponding Line
         manager.update('uniform_data', uniform_point)
-        manager.update('mean', mean_point)
-        manager.update('binary_data', binary_point)
-        manager.update('samples', sample)
+        # manager.update('mean', mean_point)
+        # manager.update('binary_data', binary_point)
+        # manager.update('samples', sample)
+    
+    # Close plt
+    manager.done()
+    print('Figure Done.')
 
 
 def report_handler():
@@ -44,15 +52,12 @@ def report_handler():
 def dsp_handler(raw_queue, data):
     import DSP_utils
     # Register Data
-    manager = DSP_utils.DataManager()
-    manager.register_data('raw_data', settings.CUT_INTERVAL * settings.POINTS_AFTER_INTERPOLATION * 2)
-    manager.register_data('uniform_data', settings.POINTS_PER_SAMPLE + settings.MEAN_WIDTH)
-    manager.register_data('mean', settings.POINTS_PER_SAMPLE)
-    manager.register_data('binary_data', settings.POINTS_PER_SAMPLE) # One Bit
+    manager = DSP_utils.DataManager(settings.GRAPHICS)
+    manager.register()
 
     start = time.time()
     current = time.time()
-    while current - start < settings.duration + 3:
+    while current - start < settings.duration:
         response, timestamp = raw_queue.get()
         current = timestamp
 
@@ -60,20 +65,21 @@ def dsp_handler(raw_queue, data):
         val_fixed = DSP_utils.fix_raw_value(response)
         if not val_fixed:
             continue
-        
-        # Interpolation
-
-        # Averaging
-
-        # Update Threshold
-
-        # Binarization
-
-        # Sampling
+        manager.update_data('raw_data', (timestamp, val_fixed))
+        manager.processing('raw_data')
 
         # Update Graphics Data
         if settings.GRAPHICS:
-            pass
+            if manager.shared_data['uniform_data'] != []:
+                data['uniform_data'].put(manager.shared_data['uniform_data'])
+            if manager.shared_data['mean'] != []:
+                data['mean'].put(manager.shared_data['mean']) 
+            if manager.shared_data['binary_data'] != []:
+                data['binary_data'].put(manager.shared_data['binary_data']) 
+            if manager.shared_data['samples'] != []:
+                data['samples'].put(manager.shared_data['samples'])
+
+    print('DSP Done.')
 
 
 if __name__ == '__main__':
@@ -90,11 +96,14 @@ if __name__ == '__main__':
     if settings.GRAPHICS:
         figure_p = Process(target=figure_handler, args=(data, ))
         figure_p.start()
+        print('Start Figure_Handler.')
     if settings.REPORT:
         report_p = Process(target=report_handler)
         report_p.start()
+        print('Start Report_Handler.')
     dsp_p = Process(target=dsp_handler, args=(raw_queue, data))
     dsp_p.start()
+    print('Start DSP_Handler')
 
     # Device Initialization
     if not settings.VIRTUAL_INPUT:
@@ -112,7 +121,7 @@ if __name__ == '__main__':
     from device_utils import reset_device, read_device
     start = time.time()
     count = 0
-    while time.time() - start < settings.duration:
+    while time.time() - start < settings.duration + 3:
         if settings.VIRTUAL_INPUT:
             # Virtual Input
             response = read_virtual_mouse(settings.APPROXIMATE_FRAME_RATE)
@@ -124,10 +133,10 @@ if __name__ == '__main__':
     print('Frame rate: ' + str(count / (time.time() - start)))
 
     # Kill/Wait Processes
-    time.sleep(2)
-    dsp_p.terminate()
-    if settings.REPORT:
-        report_p.terminate()
-    if settings.GRAPHICS:
-        figure_p.join()
+    # time.sleep(2)
+    # dsp_p.terminate()
+    # if settings.REPORT:
+    #     report_p.terminate()
+    # if settings.GRAPHICS:
+    #     figure_p.join()
 
