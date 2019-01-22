@@ -229,12 +229,9 @@ def bit_str2num(bits_str):
 
 def num2bin(num, bit_num): # return str
     current = "{0:b}".format(num)
-    if not FREQ:
-        while len(current) < bit_num:
-            current = '0' + current
-        return current[-bit_num:]
-    else:
-        return current
+    while len(current) < bit_num:
+        current = '0' + current
+    return current[-bit_num:]
 
 
 def crc_cal(num, binary=True, bit_num=10):
@@ -297,6 +294,12 @@ def hle_raw(size):
             imgs_arr[i,j,:] = raw_imgs_arr[:,i,j]
     return imgs_arr
 
+def freq_encode(s):
+    d = ''
+    for i in s:
+        d = d + '1010' if i == '0' else d + '1100'
+    return d
+
 # per x, y, per bit      
 def raw_random_location(size):
     bits_pool = np.zeros((pow(2, BITS_NUM), BITS_NUM))
@@ -310,18 +313,19 @@ def raw_random_location(size):
         for j in range(size[1]):
             # random_index = random.choice(index_pool)
             random_index = i * size[0] + j
+            # random_index = random_index % 32 # tobe comment
             # random_index = max(341, random_index)
             # random_index = min(342, random_index)
-            if EXPEND == 6:
-                temp = bits_pool[random_index]
-                temp = [str(int(i)) for i in temp]
-                # print(temp)
-                # print(bits_pool[random_index])
-                encoded_str = designed_code(Manchester_encode(''.join(temp)))
-            else:
-                temp = bits_pool[random_index]
-                temp = [str(int(i)) for i in temp]
+            temp = bits_pool[random_index]
+            temp = [str(int(i)) for i in temp]
+            # temp = temp[5:]
+            if MANCHESTER_MODE:
+                encoded_str ='0001' +Manchester_encode(''.join(temp))
+            elif DESIGNED_CODE:
                 encoded_str = designed_code(''.join(temp))
+            elif FREQ:
+                # encoded_str = '1001' + freq_encode(''.join(temp))
+                encoded_str = '1001' + freq_encode(Manchester_encode(''.join(temp)))
             data[i,j,:] = list(encoded_str)
             # index_pool.remove(random_index)
     return data
@@ -407,6 +411,7 @@ def first_one_larger_than(x, compare_num):
 import matplotlib.pyplot as plt
 def filter_normalize(complex_arr, quiet=False, nothing=False):
     complex_arr = np.array(complex_arr)
+    quiet = True
     if not quiet:
         print('Default length is 8 in FREQ and 4 for others')
         show = input('If show figures? Default is off. ')
@@ -424,6 +429,9 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
         l = input('cut length: ')
     else:
         l = ''
+    show = True
+    l = ''
+    
     if l != '':
         while l != '':
             l = int(l)
@@ -441,27 +449,31 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
                 plt.show()
             l = input('update cut length? ')
     else:
-        if FREQ:
-            l = 8
-        else:
-            l = 3
+        l = 3
+        l2 = 0
         a1 = fft(complex_arr)
         a1[0:1 + l]=0
+        a1[l+1:l+1+l2] /= 2
+
         a1[complex_arr.size - l:complex_arr.size]=0
+        a1[complex_arr.size - l - l2:complex_arr.size - l] /= 2
+        # a1[11] *=0.99
+        # a1[-11] *=0.99
+        # a1[22] -=0.08
         a2 = ifft(a1).real
         if show:
-            plt.subplot(1,2,1)
-            plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
-            plt.plot(list(range(len(a2))), a2, marker='x')
-            plt.subplot(1,2,2)
-            plt.plot(list(range(len(a1))), abs(fft(complex_arr)), marker='x')
+            # plt.subplot(1,2,1)
+            # plt.plot(list(range(len(complex_arr))), complex_arr, marker='x')
+            # plt.plot(list(range(len(a2))), a2, marker='x')
+            # plt.subplot(1,2,2)
+            # plt.plot(list(range(len(a1))), abs(fft(complex_arr)), marker='x')
             plt.plot(list(range(len(a2))),abs(fft(a2)), marker='x')
-            plt.show()
+            # plt.show()
     
-    if show:
-        new_arr = np.concatenate((a2, a2))
-        plt.plot(list(range(len(new_arr))),abs(fft(new_arr)), marker='x')
-        plt.show()
+    # if show:
+    #     new_arr = np.concatenate((a2, a2))
+    #     plt.plot(list(range(len(new_arr))),abs(fft(new_arr)), marker='x')
+    #     plt.show()
     if not quiet:
         print(ifft(a1))
     # a2 = a2 - a2.mean()
@@ -475,6 +487,7 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
     # print('a2 ', end='')
     # print(a2)
     return a2
+
 
 
 ##########################################

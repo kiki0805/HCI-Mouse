@@ -9,7 +9,7 @@ sys.path.append("..")
 from setting import *
 from utils import *
 
-PREFIX = 'correct_'
+PREFIX = 'freq2_'
 WIDTH = 1080
 HEIGHT = 1080
 
@@ -24,12 +24,15 @@ def draw_block(im_arr, i, j, block_size, value):
                 im_arr[i + k1][j + k2][n] = value
     return im_arr
 
-def draw_process(start, end, filtered_data):
+def draw_process(start, end, filtered_data, filtered_data2):
     im_arr = np.zeros((HEIGHT, WIDTH, 3))
     for n in range(int(start), int(end)):
         for i in range(0, HEIGHT, BLOCK_SIZE):
             for j in range(0, WIDTH, BLOCK_SIZE):
-                # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                # if i < int(HEIGHT / 2):
+                #     im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                # else:
+                #     im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data2[n] * 255)
                 if (i / BLOCK_SIZE) % 2 == 0:
                     if (j / BLOCK_SIZE) % 2 == 0:
                         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
@@ -55,6 +58,7 @@ if __name__ == '__main__':
         raw_data = num2bin(int(val), BITS_NUM)
 
     data = raw_data
+
     # NRZI = input('If use NRZI? ')
     NRZI = ''
     NRZI = False if NRZI == '' else True
@@ -78,17 +82,14 @@ if __name__ == '__main__':
             data = Manchester_encode(raw_data)
     elif FREQ:
         print('Using FREQ...')
-        data = []
-        for i in raw_data:
-            if i == '0': # 0.714 0.714 -0.714 -0.714
-                #data += [0.866, 0, -0.866]
-                data += [0.707, 0.707, -0.707, -0.707]
-            else: # 1 -1
-                data += [1, -1]
+        data = list(freq_encode(raw_data))
     elif DESIGNED_CODE:
         print('Using DESIGNED CODE...')
         # data = designed_code(Manchester_encode(raw_data))
         data = designed_code(raw_data)
+
+    # crc
+    # data = data + list(crc_cal(raw_data))
 
     import matplotlib.pyplot as plt
     #plt.plot(list(range(len(data))), data)
@@ -105,13 +106,12 @@ if __name__ == '__main__':
     data = [int(i) for i in data]
     quiet = False
     if FILTER:
-        if not FREQ:
-            if quiet:
-                filtered_data = filter_normalize(np.array(list(data)), quiet=True)
-            else:
-                filtered_data = filter_normalize(np.array(list(data)))
-                quiet = input('quiet? ')
-                quiet = False if quiet == '' else True
+        if quiet:
+            filtered_data = filter_normalize(np.array(list(data)), quiet=True)
+        else:
+            filtered_data = filter_normalize(np.array(list(data)))
+            quiet = input('quiet? ')
+            quiet = False if quiet == '' else True
     else:
         if quiet:
             filtered_data = filter_normalize(np.array(list(data)), quiet=True, nothing=True)
@@ -123,11 +123,21 @@ if __name__ == '__main__':
         # filtered_data = [int(i) for i in filtered_data]
     #print('Filtered data(' + str(len(filtered_data)) + '): \n\t', end='')
     print(filtered_data)
+    # filtered_data = filtered_data[:4] + [i * 0.99 for i in filtered_data[4:]]
+    # print(filtered_data)
+    filtered_data2 = filtered_data[:]
+    # filtered_data = [1, 0, 1, 0, 1, 0, 1, 0]
+    # filtered_data2 = [0.99,0.99,0,0,0.99,0.99,0,0]
+    # filtered_data2 = [i * 0.92 for i in filtered_data2]
 
+    # filtered_data = [(0.7 + (1.3 - 0.7) * (i -0)/(1)) / 2 for i in filtered_data]
+    # filtered_data2 = [(0.7 + (1.3 - 0.7) * (i -0)/(1)) / 2 for i in filtered_data2]
+    # print(filtered_data)
+    # print(filtered_data2)
     # plt.plot(list(range(len(filtered_data))), abs(fft(filtered_data)))
     # plt.show()
-    bits = list(data)
     process_num = 4
+
     for n in range(process_num):
         total_bits_num = len(data)
         end_index = (n + 1) * math.floor(total_bits_num / process_num)
@@ -138,5 +148,5 @@ if __name__ == '__main__':
         p = Process(target=draw_process, \
             args=(n * math.floor(total_bits_num / process_num), \
             end_index, \
-            filtered_data))
+            filtered_data, filtered_data2))
         p.start()
