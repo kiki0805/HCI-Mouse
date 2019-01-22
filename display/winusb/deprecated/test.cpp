@@ -146,7 +146,7 @@ int main()
     // NPNX_ASSERT_LOG(HR, GetLastError());
     // printf("%d\n", transferredLength);
     // printf("%08x %08x\n", ((UINT *)buffer)[0], ((UINT *)buffer)[1]);
-    free(buffer);
+    // free(buffer);
   } 
   
 
