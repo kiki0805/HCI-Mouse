@@ -187,11 +187,11 @@ main(int argc, char *argv[])
       LIBUSB_ASSERTCALL(libusb_claim_interface(mouses_handle[i], 0x01));
       for (int j = 0; j < 1000000; j++) {
 
-        int ret = libusb_interrupt_transfer(mouses_handle[i], 0x82, buf, nn, &cnt, 1);
+        int ret = libusb_interrupt_transfer(mouses_handle[i], 0x82, buf, nn, NULL, 1);
         if (ret < 0 && ret != LIBUSB_ERROR_TIMEOUT) {
           printf("%s\n", libusb_error_name(ret));
-        } else if (cnt != 0) {
-          for (int k = 0; k < cnt; k++)
+        } else if (ret != LIBUSB_ERROR_TIMEOUT) {
+          for (int k = 0; k < nn; k++)
           {
             printf("%02x ", buf[k]);
           }

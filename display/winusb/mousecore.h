@@ -29,7 +29,7 @@ const uint16_t default_pid = 0xA070;
 //this is for mouse hid report
 const int target_report_configuration = 0x01;
 const int target_report_interface = 0x01;
-const unsigned char target_report_endpoint = 0x81;
+const unsigned char target_report_endpoint = 0x82;
 
 namespace npnx {
 class MouseCore {
@@ -44,7 +44,7 @@ public:
   
 private: 
   void poll(int idx);
-  MouseReport raw_to_mousereport(uint8_t *buffer, size_t size);
+  MouseReport & raw_to_mousereport(uint8_t *buffer, size_t size);
 
 public:
 

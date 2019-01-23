@@ -17,10 +17,9 @@ MouseCore::MouseCore() {
 
 MouseCore::~MouseCore() {
   shouldStop = true;
-  //here join all the thread.
   for (int i=0; i< NUM_MOUSE_MAXIMUM; i++) {
+    if (pollThread[i].joinable()) pollThread[i].join();
     if (devs_handle[i] != NULL) {
-      libusb_release_interface(devs_handle[i], target_report_interface);
       libusb_close(devs_handle[i]);
       devs_handle[i] = NULL;
     }
@@ -74,7 +73,6 @@ int MouseCore::Init(uint16_t vid, uint16_t pid, MOUSEREPORTCALLBACKFUNC func) {
     printf("\n");
 
     LIBUSB_ASSERTCALL(libusb_set_configuration(devs_handle[i], target_report_configuration));
-    LIBUSB_ASSERTCALL(libusb_claim_interface(devs_handle[i], target_report_interface));
     
     pollThread[i] = std::thread([&, this] (int idx) {poll(idx);}, i);
   }
@@ -89,21 +87,22 @@ int MouseCore::ControlTransfer(int mouse_idx, uint8_t request_type, uint8_t bReq
 
 
 void MouseCore::poll(int idx) {
+  LIBUSB_ASSERTCALL(libusb_claim_interface(devs_handle[idx], target_report_interface));
   while (!shouldStop) {
     int ret, cnt;
     unsigned char buf[1024];
-    ret = libusb_interrupt_transfer(devs_handle[idx], target_report_endpoint, buf, hid_report_size, &cnt, 1);
+    ret = libusb_interrupt_transfer(devs_handle[idx], target_report_endpoint, buf, hid_report_size, NULL, 1);
     if (ret == LIBUSB_ERROR_TIMEOUT) continue;
     if (ret < 0) {
-      printf("%d device polling failed: %s", idx, libusb_error_name(ret));
-      exit(ret);
-    } else if (cnt > 0) {
-      mouseReportCallbackFunc(idx, raw_to_mousereport(buf, cnt));
+      printf("%d device polling failed: %s\n", idx, libusb_error_name(ret));
+    } else {
+      mouseReportCallbackFunc(idx, raw_to_mousereport(buf, hid_report_size));
     }
   }
+  libusb_release_interface(devs_handle[idx], target_report_interface);
 }
 
-MouseReport MouseCore::raw_to_mousereport(uint8_t *buffer, size_t size) {
+MouseReport & MouseCore::raw_to_mousereport(uint8_t *buffer, size_t size) {
   MouseReport result;
   memset(&result, 0, sizeof(MouseReport));
   result.flags = MOUSECORE_EXTRACT_BUFFER(buffer, size, 0, uint8_t);
