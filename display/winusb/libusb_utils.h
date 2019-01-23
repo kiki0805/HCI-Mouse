@@ -24,7 +24,7 @@ int print_device(libusb_device *dev, int level);
 
 int get_hid_record_size(uint8_t *hid_report_descriptor, int size, int type);
 
-#define LIBUSB_SAFECALL(A)                                 \
+#define LIBUSB_ASSERTCALL(A)                                 \
   do                                                       \
   {                                                        \
     int r = (A);                                           \
@@ -35,12 +35,37 @@ int get_hid_record_size(uint8_t *hid_report_descriptor, int size, int type);
     }                                                      \
   } while (0)
 
-#define LIBUSB_CHECK_RET(NAME, RET, BUFFER) do {                         \
-  printf("%s: ", NAME);                                                  \
-  if (RET < 0) {                                                         \
-    printf("Device descriptor failed with %s\n", libusb_error_name(RET));\
+#define LIBUSB_CHECK_RET(NAME, RET) do { \
+  if ((RET) < 0) { \
+    printf("%s: ", (#NAME)); \
+    printf("failed with %s", libusb_error_name((RET)));\
+  }  \
+} while (0)
+
+#define LIBUSB_CHECK_RET_BUFFER(NAME, RET, BUFFER) \
+  do {                                                                         \
+    printf("%s: ", (#NAME));                                                   \
+    if ((RET) < 0)                                                            \
+    {                                                                       \
+      printf("failed with %s\n", libusb_error_name((RET))); \
+    }                                                                       \
+    else                                                                    \
+    {                                                                       \
+      for (int i = 0; i < (RET); i++)                                         \
+      {                                                                     \
+        printf("%02x ", (BUFFER)[i]);                                       \
+      }                                                                     \
+      printf("\n");                                                         \
+    }                                                                       \
+  }                                                                         \
+  while (0)
+
+#define LIBUSB_CHECK_RET_BUFFER_SIZE(NAME, RET, BUFFER, SIZE) do {          \
+  printf("%s: ", (#NAME));                                                  \
+  if ((RET) < 0) {                                                         \
+    printf("failed with %s\n", libusb_error_name(RET));\
   } else {                                                               \
-    for (int i = 0; i < RET; i++) {                                      \
+    for (int i = 0; i < (SIZE); i++) {                                      \
       printf("%02x ", (BUFFER)[i]);                                      \
     }                                                                    \
     printf("\n");                                                        \

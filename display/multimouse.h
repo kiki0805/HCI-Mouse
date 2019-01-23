@@ -12,6 +12,7 @@ namespace npnx {
 
 class MultiMouseSystem;
 
+//TODO: this class must be thread safe.
 class MouseInstance {
 public:
   MouseInstance(MultiMouseSystem *parent, HANDLE hDevice);

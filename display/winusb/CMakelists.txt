@@ -9,6 +9,13 @@ add_executable(testusb
 )
 target_link_libraries(testusb libusb-1.0)
 
+add_executable(testmousecore
+  libusb_utils.cpp
+  mousecore.cpp 
+  mousecoretest.cpp 
+)
+target_link_libraries(testmousecore libusb-1.0)
+
 #This is for dll moving
 add_custom_command(TARGET testusb POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

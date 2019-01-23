@@ -52,7 +52,7 @@ main(int argc, char *argv[])
   {
     print_device(devs[i], 0);
     libusb_device_descriptor desc;
-    LIBUSB_SAFECALL(libusb_get_device_descriptor(devs[i],&desc));
+    LIBUSB_ASSERTCALL(libusb_get_device_descriptor(devs[i],&desc));
     if (desc.idVendor == target_vid && desc.idProduct == target_pid) {
       printf("found\n");
       mouses[num_mouse++] = devs[i];
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   }
   
   for(int i = 0; i < num_mouse; i++) {
-    LIBUSB_SAFECALL(libusb_open(mouses[i], &mouses_handle[i]));
+    LIBUSB_ASSERTCALL(libusb_open(mouses[i], &mouses_handle[i]));
 
     unsigned char buf[4096];
     int cnt = libusb_get_descriptor(mouses_handle[i], LIBUSB_DT_DEVICE, 0, buf, 4096);
@@ -181,13 +181,13 @@ main(int argc, char *argv[])
       printf("nn%d\n",nn);
       printf("get report:");
       int config_num = 0;
-      LIBUSB_SAFECALL(libusb_get_configuration(mouses_handle[i], &config_num));
-      LIBUSB_SAFECALL(libusb_set_configuration(mouses_handle[i], 0x01));
+      LIBUSB_ASSERTCALL(libusb_get_configuration(mouses_handle[i], &config_num));
+      LIBUSB_ASSERTCALL(libusb_set_configuration(mouses_handle[i], 0x01));
       printf("%d\n", config_num);
-      LIBUSB_SAFECALL(libusb_claim_interface(mouses_handle[i], 0x01));
-      for (int j = 0; j < 1000; j++) {
+      LIBUSB_ASSERTCALL(libusb_claim_interface(mouses_handle[i], 0x01));
+      for (int j = 0; j < 1000000; j++) {
 
-        int ret = libusb_interrupt_transfer(mouses_handle[i], 0x82, buf, nn, &cnt, 1000);
+        int ret = libusb_interrupt_transfer(mouses_handle[i], 0x82, buf, nn, &cnt, 1);
         if (ret < 0 && ret != LIBUSB_ERROR_TIMEOUT) {
           printf("%s\n", libusb_error_name(ret));
         } else if (cnt != 0) {
@@ -197,8 +197,6 @@ main(int argc, char *argv[])
           }
           printf("\n");
         }
-
-        
       }
       libusb_release_interface(mouses_handle[i], 0x01);
   }
