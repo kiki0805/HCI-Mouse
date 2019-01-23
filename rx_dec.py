@@ -1,5 +1,6 @@
 import usb.core
 import matplotlib.pyplot as plt
+from collections import Counter, deque
 import time
 import math
 from cv2 import cv2
@@ -55,28 +56,38 @@ def detect_line(im):
     img = pil2cv(im)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     edges = gray.copy()
-    edges[gray<150] = 255
-    edges[gray>150] = 0
-    # print(edges)
-    # edges = cv2.Canny(gray,150,230,apertureSize=3)
-    # print(edges)
-    # return cv2pil(edges)
-    # edges = gray < 120
-    # edges = edges.astype(int)
-    # edges[edges == 1] = 255
-    # edges[edges == 0] = 0
-    # print(edges)
-    # minLineLength = 19
-    # maxLineGap = 2
-    # lines = cv2.HoughLinesP(edges,1,np.pi/180,10,minLineLength,maxLineGap)
-    # for line in lines[:3]:
-    #     for x1,y1,x2,y2 in line:
-    #         cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)
+    edges[gray<40] = 255
+    edges[gray>40] = 0
+
+    edges2 = gray.copy()
+    edges2[gray<130] = 255
+    edges2[gray>130] = 0
+
     lines = cv2.HoughLines(edges, 1, np.pi/180, 1)
+    lines2 = cv2.HoughLines(edges2, 1, np.pi/180, 1)
     if lines is None:
         return im, None
+
+    remained_lines, most_comm_ele = _detect_line(lines)
+    print('red: ', end='')
+    print(remained_lines)
+    for l in remained_lines:
+        (x1,y1), (x2,y2) = l
+        cv2.line(img, (x1,y1), (x2,y2),(0,0,255),1)
+    
+    remained_lines2, _ = _detect_line(lines2)
+    print('white: ', end='')
+    print(remained_lines2)
+    for l in remained_lines2:
+        (x1,y1), (x2,y2) = l
+        cv2.line(img, (x1,y1), (x2,y2),(255,0,0),1)
+
+    return cv2pil(img), most_comm_ele
+
+def _detect_line(lines):
     angles = []
-    for line in lines[:1]:
+    ls = []
+    for line in lines[:20]:
         for rho,theta in line:
             a = np.cos(theta)
             b = np.sin(theta)
@@ -87,10 +98,38 @@ def detect_line(im):
             x2 = int(x0 - 1000*(-b))
             y2 = int(y0 - 1000*(a))
             angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
+            angle += 90
+            if angle < 0:
+                angle += 360
+            if angle > 360:
+                angle -= 360
+            if angle > 180:
+                angle -= 180
             angles.append(angle)
-            cv2.line(img, (x1,y1), (x2,y2),(0,0,255),1)
-    median_angle = np.median(angles)
-    return cv2pil(img), median_angle
+            
+            ########## MATH ##########
+            # if x2 != x1:
+            #     k = (y2-y1) / (x2-x1)
+            #     b = y1 - k * x1
+            # kx - y + b = 0
+            # A = k, B = -1, C = b
+            # |c1-c2| / (A^2+B^2)
+
+            ls.append(((x1,y1), (x2,y2)))
+    
+    most_comm_ele = Counter(angles).most_common()[0][0]
+    remained_index = []
+    for i in range(len(angles)):
+        ag = angles[i]
+        if abs(ag - most_comm_ele) < 0.5 or \
+                abs(90 - abs(ag - most_comm_ele)) < 3.5:
+            remained_index.append(i)
+
+    remained_lines = [ls[i] for i in remained_index]
+    return remained_lines, most_comm_ele
+
+    
+
 
 def binirization(im, value):
     im = np.array(im)
@@ -98,6 +137,7 @@ def binirization(im, value):
     new[im < value] = 0
     new[im > value] = 255
     return Image.fromarray(new)
+
 
 while True:
     count = 0
@@ -120,8 +160,13 @@ while True:
     # img = binirization(img, 180)
     # img = ImageOps.invert(img)
     img, angle = detect_line(img)
-    # if angle is not None:
-        # print(angle)
+
+    if angle is not None:
+    #     #if angle != 45 and angle != -45 and angle != 135 and angle != -135:
+        print(angle, end='\n')
+    #     # angle2 = 90 - angle
+    #     # angle2 = angle2 - 90 if angle2 >= 90 else angle2
+    #     # print(angle2)
 
     if save_img:
         # out = [str(i) for i in out]
@@ -133,7 +178,14 @@ while True:
         plt.show()
         break
 
-    
+    # #img = ImageEnhance.Contrast(img).enhance(5)
+    # #new_im = np.array(img).copy()
+    # #new_im[np.array(img)<180] = 0
+    # #new_im[np.array(img)>=180] = 255
+    # #new_im = Image.fromarray(new_im)
+    # #ax2.imshow(new_im)
+
+
     ax2.imshow(img)
     plt.show()
     plt.pause(1e-16)
