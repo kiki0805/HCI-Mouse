@@ -76,18 +76,19 @@ void MultiMouseSystem::Init(GLFWwindow *window){
   PRAWINPUTDEVICELIST hidDeviceList = new RAWINPUTDEVICELIST[numHIDDevices];
 
   UINT getRawInputDeviceListResult = GetRawInputDeviceList(hidDeviceList, &numHIDDevices, sizeof(RAWINPUTDEVICELIST));
-  NPNX_ASSERT(getRawInputDeviceListResult != -1, GetLastError());
+  NPNX_ASSERT_LOG(getRawInputDeviceListResult != -1, GetLastError());
 
   for (int i = 0; i < numHIDDevices; i++)
   {
-    if (hidDeviceList[i].dwType == RIM_TYPEMOUSE)
+    if (true)//(hidDeviceList[i].dwType == RIM_TYPEMOUSE)
     {
+      if(hidDeviceList[i].dwType == RIM_TYPEMOUSE) printf("mouse\n");
       UINT cbSize = 0;
       UINT getRawInputDeviceInfoNumResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICENAME, NULL, &cbSize);
-      NPNX_ASSERT(getRawInputDeviceInfoNumResult != -1, GetLastError());
+      NPNX_ASSERT_LOG(getRawInputDeviceInfoNumResult != -1, GetLastError());
       WCHAR *tempbuffer = (WCHAR *)calloc(1, sizeof(WCHAR) * cbSize);
       UINT getRawInputDeviceInfoResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICENAME, tempbuffer, &cbSize);
-      NPNX_ASSERT(getRawInputDeviceInfoResult != -1, GetLastError());
+      NPNX_ASSERT_LOG(getRawInputDeviceInfoResult != -1, GetLastError());
       printf("%ls\r\n", tempbuffer);
       free(tempbuffer);
     }

@@ -1,6 +1,7 @@
 #ifndef DISPLAY_COMMON_H_
 #define DISPLAY_COMMON_H_
 
+#ifndef NPNX_CLI_ONLY
 #include <GL/glew.h>
 
 #ifdef _WIN32
@@ -17,7 +18,9 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #endif
- 
+
+#endif
+
 #include <iostream>
 #include <cstdlib>
 
@@ -27,7 +30,6 @@
     if (!(A))                            \
     {                                    \
       std::cerr << #A << " failed!" << std::endl; \
-      glfwTerminate();                   \
       exit(-1);                          \
     }                                    \
   } while (false)
@@ -39,7 +41,6 @@
     {                             \
       std::cerr << #A << std::endl; \
       std::cerr << (B) << std::endl; \
-      glfwTerminate();            \
       exit(-1);                   \
     }                             \
   } while (false)

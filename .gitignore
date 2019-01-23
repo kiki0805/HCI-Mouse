@@ -23,4 +23,8 @@ share_data
 share_data_location
 filtered_data
 display/build
+display/winusb/build
 !display/data/*
+!ori.png
+!red.png
+!green.png
