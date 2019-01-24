@@ -19,17 +19,24 @@ struct MouseReport {
 //this callback must be thread safe.
 typedef std::function<void(int, MouseReport)> MOUSEREPORTCALLBACKFUNC;
 
-#define MOUSECORE_EXTRACT_BUFFER(buffer, size, offset, type) (((offset) + sizeof(type) <= (size)) ? *(type *)((uint8_t *)(buffer) + (offset)): (type) 0)
+#define MOUSECORE_EXTRACT_BUFFER(buffer, size, offset, type) \
+  (((offset) + sizeof(type) <= (size)) ? *(type *)((uint8_t *)(buffer) + (offset)): (type) 0)
 
 #define NUM_MOUSE_MAXIMUM 10
 
-const uint16_t default_vid = 0x04D9;
-const uint16_t default_pid = 0xA070;
+// const uint16_t default_vid = 0x046D;
+// const uint16_t default_pid = 0xC077;
+
+// const uint16_t default_vid = 0x046D;
+// const uint16_t default_pid = 0xC019;
+
+const uint16_t default_vid = 0x046D;
+const uint16_t default_pid = 0xC05B;
 
 //this is for mouse hid report
 const int target_report_configuration = 0x01;
-const int target_report_interface = 0x01;
-const unsigned char target_report_endpoint = 0x82;
+const int target_report_interface = 0x00;
+const unsigned char target_report_endpoint = 0x81;
 
 namespace npnx {
 class MouseCore {
@@ -44,7 +51,7 @@ public:
   
 private: 
   void poll(int idx);
-  MouseReport & raw_to_mousereport(uint8_t *buffer, size_t size);
+  MouseReport raw_to_mousereport(uint8_t *buffer, size_t size);
 
 public:
 
