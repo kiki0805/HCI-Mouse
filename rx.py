@@ -52,21 +52,21 @@ def draw_pixel(img, value, i, j):
 plt.ion()
 
 
-def detect_line(im, threshold, ref=None):
+def detect_line(im, threshold, ref=None, vote=1):
     img = pil2cv(im)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     edges = gray.copy()
     edges[gray<threshold] = 255
     edges[gray>threshold] = 0
-
-
-    lines = cv2.HoughLines(edges, 1, np.pi/180, 1)
+    
+    lines = cv2.HoughLines(edges, 1, np.pi/180, vote)
     if lines is None:
         return im, [], None
 
     remained_lines, angles = _detect_line(lines, ref)
-    if remained_lines is None:
-        return cv2pil(img), angles, remained_lines
+    if remained_lines is None and threshold == 60:
+        return detect_line(im, threshold, ref, vote+1)
+        # return cv2pil(img), angles, remained_lines
 
     for l in remained_lines:
         (x1,y1), (x2,y2) = l
@@ -104,7 +104,7 @@ def _detect_line(lines, ref=None):
         remained_index = []
         for i in range(len(angles)):
             ag = angles[i]
-            if abs(ag - ref) < 3:
+            if abs(ag - ref) < 6:
                 valid_angle.append(ag)
                 remained_index.append(i)
         if valid_angle != []:
@@ -117,10 +117,10 @@ def _detect_line(lines, ref=None):
     two_set_angles = [[], []]
     for i in range(len(angles)):
         ag = angles[i]
-        if abs(ag - most_comm_ele) < 0.5:
+        if abs(ag - most_comm_ele) < 6:
             remained_index[0].append(i)
             two_set_angles[0].append(ag)
-        if abs(90 - abs(ag - most_comm_ele)) < 3.5:
+        if abs(90 - abs(ag - most_comm_ele)) < 6:
             remained_index[1].append(i)
             two_set_angles[1].append(ag)
 
@@ -134,21 +134,7 @@ def _detect_line(lines, ref=None):
         remained_lines = [ls[i] for i in remained_index[0]]
         return remained_lines, two_set_angles[0]
     else:
-        # return None, []
-        remained_lines0 = [ls[i] for i in remained_index[0]]
-        flatten_lines0 = [item for sublist in remained_lines0 for item in sublist]
-        flatten_lines0 = [item for sublist in flatten_lines0 for item in sublist]
-        std1 = np.std(flatten_lines0)
-        remained_lines1 = [ls[i] for i in remained_index[1]]
-        flatten_lines1 = [item for sublist in remained_lines1 for item in sublist]
-        flatten_lines1 = [item for sublist in flatten_lines1 for item in sublist]
-        std2 = np.std(flatten_lines1)
-        if std1 > std2:
-            remained_lines = [ls[i] for i in remained_index[0]]
-            return remained_lines, two_set_angles[0]
-        else:
-            remained_lines = [ls[i] for i in remained_index[1]]
-            return remained_lines, two_set_angles[1]
+        return None, []
 
 def binirization(im, value):
     im = np.array(im)
@@ -156,6 +142,18 @@ def binirization(im, value):
     new[im < value] = 0
     new[im > value] = 255
     return Image.fromarray(new)
+
+def erode(img, kernel, iterations):
+    img = cv2.erode(pil2cv(img),kernel,iterations = iterations)
+    return cv2pil(img)
+
+def openning(img, kernel):
+    opening = cv2.morphologyEx(pil2cv(img), cv2.MORPH_OPEN, kernel)
+    return cv2pil(opening)
+
+def closing(img, kernel):
+    img = cv2.morphologyEx(pil2cv(img), cv2.MORPH_CLOSE, kernel)
+    return cv2pil(img)
 
 
 def change_cur(cur):
@@ -179,6 +177,7 @@ white_lines = None
 collect = 0
 while True:
     count = 0
+    # cur='red'
     while count < pixel_num * line_num:
         temp = 0
         response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
@@ -194,21 +193,23 @@ while True:
         draw_pixel(img, val, i, j)
         time.sleep(0.001)
 
-    
-
     if collect != 0:
         collect -= 1
-        # ax2.imshow(img)
-        # plt.show()
-        # plt.pause(1e-16)
         continue
 
-    # img = binirization(img, 180)
+    # img = ImageEnhance.Contrast(img).enhance(5)
+    # img = binirization(img, 60)
+    # ax2.imshow(img)
+    # plt.show()
+    # plt.pause(1e-16)
     # img = ImageOps.invert(img)
-    threshold = 60 if cur == 'red' else 150
+    threshold = 60 if cur == 'red' else 170
     
     if cur == 'red':
         img = ImageEnhance.Contrast(img).enhance(5)
+        img = binirization(img, threshold)
+        kernel = np.ones(((2,2)),np.uint8)
+        img = openning(img, kernel)
         img, angles, remained_lines = detect_line(img, threshold)
         if angles == []:
             continue
@@ -219,7 +220,10 @@ while True:
             cur = change_cur(cur)
             collect = 3
     else:
-        img = ImageEnhance.Contrast(img).enhance(3)
+        img = ImageEnhance.Contrast(img).enhance(5)
+        img = binirization(img, threshold)
+        kernel2 = np.zeros((2,2), np.uint8)
+        img = erode(img, kernel2, 1)
         img, angles, remained_lines = detect_line(img, threshold, red_angle)
         if angles != []:
             if len(angles) > 1 and remained_lines is not None:
@@ -230,19 +234,19 @@ while True:
                 # print(white_angle)
                 if md == '↑':
                     print(md, 180 - white_angle)
-                    c = input('continue: ')
-                    if c == '0':
-                        break
+                    # c = input('continue: ')
+                    # if c == '0':
+                    #     break
                 elif md == '↓':
                     print(md, 360 - white_angle)
-                    c = input('continue: ')
-                    if c == '0':
-                        break
+                    # c = input('continue: ')
+                    # if c == '0':
+                    #     break
                 elif type(md) == int:
                     print(md)
-                    c = input('continue: ')
-                    if c == '0':
-                        break
+                    # c = input('continue: ')
+                    # if c == '0':
+                    #     break
                 cur = change_cur(cur)
                 collect = 3
 

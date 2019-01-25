@@ -21,9 +21,10 @@ pixel_num = 19
 line_num = 19
 img = Image.new("RGB", (line_num * times, pixel_num * times))
 
-save_img = True if input('capture image and save: ') == "1" else False
 f2 = plt.figure()
-ax2 = f2.add_subplot(111)
+ax2 = f2.add_subplot(312)
+ax = f2.add_subplot(311)
+ax3 = f2.add_subplot(313)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
@@ -56,35 +57,39 @@ def detect_line(im):
     img = pil2cv(im)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     edges = gray.copy()
-    edges[gray<40] = 255
-    edges[gray>40] = 0
+    edges[gray<60] = 255
+    edges[gray>60] = 0
 
     edges2 = gray.copy()
-    edges2[gray<130] = 255
-    edges2[gray>130] = 0
+    edges2[gray<170] = 255
+    edges2[gray>170] = 0
 
     lines = cv2.HoughLines(edges, 1, np.pi/180, 1)
     lines2 = cv2.HoughLines(edges2, 1, np.pi/180, 1)
     if lines is None:
         return im, None
 
-    remained_lines, most_comm_ele = _detect_line(lines)
+    remained_lines, ref_angle = _detect_line(lines)
     print('red: ', end='')
     print(remained_lines)
     for l in remained_lines:
         (x1,y1), (x2,y2) = l
         cv2.line(img, (x1,y1), (x2,y2),(0,0,255),1)
     
-    remained_lines2, _ = _detect_line(lines2)
+    remained_lines2, most_comm_ele = _detect_line(lines2, ref_angle)
+    remained_lines2, most_comm_ele = _detect_line(lines2)
     print('white: ', end='')
     print(remained_lines2)
-    for l in remained_lines2:
-        (x1,y1), (x2,y2) = l
-        cv2.line(img, (x1,y1), (x2,y2),(255,0,0),1)
+    # for l in remained_lines2:
+    #     (x1,y1), (x2,y2) = l
+    #     cv2.line(img, (x1,y1), (x2,y2),(255,0,0),1)
+
+    print(ref_angle)
+    print(most_comm_ele)
 
     return cv2pil(img), most_comm_ele
 
-def _detect_line(lines):
+def _detect_line(lines, ref=None):
     angles = []
     ls = []
     for line in lines[:20]:
@@ -117,6 +122,15 @@ def _detect_line(lines):
 
             ls.append(((x1,y1), (x2,y2)))
     
+    if ref is not None:
+        valid_angle = []
+        for i in range(len(angles)):
+            ag = angles[i]
+            if abs(ag - ref) < 3:
+                valid_angle.append(ag)
+        if valid_angle != []:
+            angles = valid_angle
+    
     most_comm_ele = Counter(angles).most_common()[0][0]
     remained_index = []
     for i in range(len(angles)):
@@ -129,7 +143,17 @@ def _detect_line(lines):
     return remained_lines, most_comm_ele
 
     
+def erode(img, kernel, iterations):
+    img = cv2.erode(pil2cv(img),kernel,iterations = iterations)
+    return cv2pil(img)
 
+def openning(img, kernel):
+    opening = cv2.morphologyEx(pil2cv(img), cv2.MORPH_OPEN, kernel)
+    return cv2pil(opening)
+
+def closing(img, kernel):
+    img = cv2.morphologyEx(pil2cv(img), cv2.MORPH_CLOSE, kernel)
+    return cv2pil(img)
 
 def binirization(im, value):
     im = np.array(im)
@@ -137,6 +161,7 @@ def binirization(im, value):
     new[im < value] = 0
     new[im > value] = 255
     return Image.fromarray(new)
+
 
 
 while True:
@@ -157,34 +182,19 @@ while True:
         time.sleep(0.001)
 
     img = ImageEnhance.Contrast(img).enhance(5) # 5 for first step, 3 for second step
-    # img = binirization(img, 180)
-    # img = ImageOps.invert(img)
+    
+    ax.imshow(img)
+    img = binirization(img, 60)
+    # img = binirization(img, 170)
+    kernel = np.ones(((2,2)),np.uint8)
+    img = openning(img, kernel)
+    # img = closing(img, kernel)
+    kernel2 = np.zeros((2,2), np.uint8)
+    # img = erode(img, kernel2,1)
+    # img = erode(img, kernel2, 1)
+    # img = closing(img, kernel)
+    ax3.imshow(img)
     img, angle = detect_line(img)
-
-    if angle is not None:
-    #     #if angle != 45 and angle != -45 and angle != 135 and angle != -135:
-        print(angle, end='\n')
-    #     # angle2 = 90 - angle
-    #     # angle2 = angle2 - 90 if angle2 >= 90 else angle2
-    #     # print(angle2)
-
-    if save_img:
-        # out = [str(i) for i in out]
-        # print(out)
-        # print(' '.join(out))
-        img.save('test.png')
-        plt.ioff()
-        ax2.imshow(img)
-        plt.show()
-        break
-
-    # #img = ImageEnhance.Contrast(img).enhance(5)
-    # #new_im = np.array(img).copy()
-    # #new_im[np.array(img)<180] = 0
-    # #new_im[np.array(img)>=180] = 255
-    # #new_im = Image.fromarray(new_im)
-    # #ax2.imshow(new_im)
-
 
     ax2.imshow(img)
     plt.show()
