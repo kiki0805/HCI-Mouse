@@ -49,6 +49,10 @@ if (NOT WIN32 AND NOT APPLE)
 add_compile_options(-std=c++11)
 endif()
 
+add_subdirectory(winusb)
+include_directories(${NPNXWINUSB_INC})
+link_directories(${NPNXWINUSB_LIBPTH})
+
 #uncomment this to disable V_SYNC
 # add_definitions(-DNPNX_BENCHMARK) 
 
@@ -86,9 +90,9 @@ add_executable(
 )
 
 add_executable(
-  rawinputdemo
+  winusbdemo
 
-  rawinputdemo.cpp
+  winusbdemo.cpp
   multimouse.cpp
   dragrectlayer.cpp
   shader.cpp
@@ -112,7 +116,7 @@ if (NOT MSVC)
   target_compile_options(drag PRIVATE -Wl,-rpath=./)
 endif()
 
-target_link_libraries(rawinputdemo glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+target_link_libraries(winusbdemo ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 if (NOT MSVC)
-  target_compile_options(rawinputdemo PRIVATE -Wl,-rpath=./)
+  target_compile_options(winusbdemo PRIVATE -Wl,-rpath=./)
 endif()

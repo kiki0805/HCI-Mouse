@@ -11,6 +11,8 @@ void mouseReportCallback(int idx, MouseReport report) {
 
 int main() {
   int count = mouseCore.Init(default_vid, default_pid, mouseReportCallback);
+  mouseCore.Start();
+
   Sleep(1000);
   unsigned char buf[4096];
   
