@@ -17,8 +17,8 @@ void main()
         FragColor = rawColor;
     } else {
         float temp = texture(texture0, TexCoord).x;
-        if (temp == 1.0f) FragColor = rawColor * 0.7;
-        else if (temp == 0.0f) FragColor = rawColor * 1.3;
+        if (temp == 1.0f) FragColor = 1.0;//FragColor = rawColor * 0.7;
+        else if (temp == 0.0f) FragColor = 0.0; //FragColor = rawColor * 1.3;
         else FragColor = temp * rawColor * 2;
     }
     //vec4(texture(texture0, TexCoord).xyz, texture(texture0, TexCoord).w) * (1 - letThrough);

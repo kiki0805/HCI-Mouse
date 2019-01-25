@@ -44,7 +44,7 @@ int MouseCore::Init(uint16_t vid, uint16_t pid, MOUSEREPORTCALLBACKFUNC func) {
     print_device(dev_list[i], 0);
     libusb_device_descriptor desc;
     LIBUSB_ASSERTCALL(libusb_get_device_descriptor(dev_list[i], &desc));
-    if (desc.idVendor == vid, desc.idProduct == pid) {
+    if (desc.idVendor == vid) {
       printf("found target\n");
       devs[num_mouse++] = dev_list[i];
       LIBUSB_ASSERTCALL(libusb_open(devs[num_mouse - 1], &devs_handle[num_mouse - 1]));
@@ -91,10 +91,11 @@ void MouseCore::poll(int idx) {
   while (!shouldStop) {
     int ret, cnt;
     unsigned char buf[1024];
-    ret = libusb_interrupt_transfer(devs_handle[idx], target_report_endpoint, buf, hid_report_size, NULL, 1);
-    if (ret == LIBUSB_ERROR_TIMEOUT) continue;
+    ret = libusb_interrupt_transfer(devs_handle[idx], target_report_endpoint, buf, hid_report_size, NULL, 10);
+    if (ret == LIBUSB_ERROR_TIMEOUT || ret == LIBUSB_ERROR_PIPE) continue;
     if (ret < 0) {
       printf("%d device polling failed: %s\n", idx, libusb_error_name(ret));
+      exit(-1);
     } else {
       mouseReportCallbackFunc(idx, raw_to_mousereport(buf, hid_report_size));
     }
@@ -102,13 +103,26 @@ void MouseCore::poll(int idx) {
   libusb_release_interface(devs_handle[idx], target_report_interface);
 }
 
-MouseReport & MouseCore::raw_to_mousereport(uint8_t *buffer, size_t size) {
+MouseReport MouseCore::raw_to_mousereport(uint8_t *buffer, size_t size) {
+  //our mouse input report format is 
+  //bb xx yx yy ww
+  //b for button, w for wheel.
   MouseReport result;
   memset(&result, 0, sizeof(MouseReport));
-  result.flags = MOUSECORE_EXTRACT_BUFFER(buffer, size, 0, uint8_t);
-  result.button = MOUSECORE_EXTRACT_BUFFER(buffer, size, 1, uint8_t);
-  result.xTrans = MOUSECORE_EXTRACT_BUFFER(buffer, size, 2, int16_t);
-  result.yTrans = MOUSECORE_EXTRACT_BUFFER(buffer, size, 4, int16_t);
-  result.wheel = MOUSECORE_EXTRACT_BUFFER(buffer, size, 6, int16_t);
+  result.flags = 0;
+  result.button = MOUSECORE_EXTRACT_BUFFER(buffer, size, 0, uint8_t);
+  uint8_t xxbyte = MOUSECORE_EXTRACT_BUFFER(buffer, size, 1, uint8_t);
+  uint8_t xybyte = MOUSECORE_EXTRACT_BUFFER(buffer, size, 2, uint8_t);
+  uint8_t yybyte = MOUSECORE_EXTRACT_BUFFER(buffer, size, 3, uint8_t);
+
+  result.xTrans = ((xybyte & 0x0f) << 8) + xxbyte;
+  if (result.xTrans & 0x0800) result.xTrans |= 0xf000; 
+  
+  result.yTrans = ((xybyte & 0xf0) >> 4) + (yybyte << 4);
+  if (result.yTrans & 0x0800) result.yTrans |= 0xf000;
+
+  result.wheel = MOUSECORE_EXTRACT_BUFFER(buffer, size, 4, int8_t);
+  if (result.wheel & 0x80) result.wheel |= 0xff00;
+
   return result;
 }
