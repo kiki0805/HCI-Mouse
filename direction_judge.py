@@ -14,6 +14,7 @@ def move_direction(red_points, white_points):
     diff = {}
     for p1 in points1:
         for p2 in points2:
+            # print(p1[0][0] - p1[1][0], p2[0][0] - p2[1][0])
             if p1[0][0] == p1[1][0] and p2[0][0] == p2[1][0]:
                 if p1[0][0] - p2[0][0] > 0:
                     return 180
