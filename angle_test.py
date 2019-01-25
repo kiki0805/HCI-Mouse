@@ -17,9 +17,13 @@ def get_location():
     return random.randint(0, 1320), random.randint(0, 480)
 
 
-angle = get_rotate()
 test = 0
+angle = get_rotate()
+img = pygame.transform.rotate(ori_img[index], angle)
 location = get_location()
+
+print('Test ' + str(test) + ': ' + str(angle) + ', ' + str(location))
+test += 1
 
 while True:
     for event in pygame.event.get():
@@ -28,7 +32,7 @@ while True:
                 sys.exit()
             if event.key == K_r:
                 angle = get_rotate()
-                print('Test ' + str(test) + ': ' + str(angle))
+                print('Test ' + str(test) + ': ' + str(angle) + ', ' + str(location))
                 test += 1
                 img = pygame.transform.rotate(ori_img[index], angle)
                 location = get_location()
