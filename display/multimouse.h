@@ -4,9 +4,30 @@
 #include "common.h"
 #include "layerobject.h"
 #include "renderer.h"
+#include "mousefifo.h"
+#include "winusb/mousecore.h"
 
+#include <mutex>
 #include <functional>
 #include <map>
+
+// mouse part 
+// Mouse data is read by render thread, written by mousecore thread and HCI thread.
+//
+// The tricky point is mouse moving and button events will cause the renderer to change.
+// Renderer part is hard to keep thread safe.
+// 
+// Here we use a fifo (multiMouseSystem.mouseFifo) to collect all button events
+// Main thread must call PollMouseEvents every frame to process it.
+//
+// The moving information is not in the fifo, because it is too many to handle in one thread.
+// Any time we need the position of a mouse should use GetCursorPos.
+//
+// For HCI info, 
+// the HCI thread should directly SetMouseState, because it changes the position of mouse. 
+// and send the fifo a button push report (button bit is arbitrary, but should be one of the first 3 bit).
+// HCI must give a critiria for PUSH and RELEASE, and fill the fifo report with GetCursorPos.
+
 
 namespace npnx {
 
@@ -15,11 +36,11 @@ class MultiMouseSystem;
 //TODO: this class must be thread safe.
 class MouseInstance {
 public:
-  MouseInstance(MultiMouseSystem *parent, HANDLE hDevice);
+  MouseInstance(MultiMouseSystem *parent, int hDevice);
   ~MouseInstance() = default;
 
   // this is for HCI message.
-  // the rotate angle is right to top in radian.
+  // the rotate angle is the right-to-top angle in radian.
   //              |     /
   //              | a /
   //              |--/
@@ -32,20 +53,28 @@ public:
   //
   void SetMouseState(double rotate, double xCoord, double yCoord); 
   
+  void HandleReport(const MouseReport & report);
+
+  void SetLastPush(uint8_t button, int action, double screenX, double screenY);
+
+  void GetLastPush(uint8_t *button, double *screenX, double *screenY);
+
   void GetCursorPos(double *x, double *y);
 
-public:
+private:
+  std::recursive_mutex objectMutex;
   MultiMouseSystem *mParent = NULL;
-  HANDLE mDeviceHandle = 0;
+  int mDeviceHandle = 0;
   
   RectLayer *cursorLayer;
   
   int mMousePosX = 0, mMousePosY = 0; // the mouse space coordinate
+  uint8_t mHidLastButton = 0x00; //for handle hid report.
 
   //we want to know last press position on screen.                                    
-  double mLastPushMouseInScreenX = 0.0, mLastPushMousePosInScreenY = 0.0; 
-  //left push and right push is exclusive. when push got after another push, release first and then push.
-  bool mLeftPushed = false, mRightPushed = false;
+  double mLastPushPosInScreenX = 0.0, mLastPushPosInScreenY = 0.0; 
+  //this is for fifo and main thread (render thread).
+  uint8_t mPushedButton = 0x00;
   
   //this is for transform from mouse input to screen
   //every time we get a rotate angle, we calc the matrix.
@@ -54,29 +83,41 @@ public:
 
 };
 
+typedef void (*MOUSEBUTTONCALLBACKFUNC)(int hDevice, int button, int action, double ScreenX, double ScreenY);
+
 class MultiMouseSystem {
 public:
   MultiMouseSystem();
   ~MultiMouseSystem();
 
-  void Init(GLFWwindow *window); //register raw input for mouse equipments;
-  void CheckNewMouse(HANDLE hDevice);  
+  void Init(MOUSEBUTTONCALLBACKFUNC func); //register raw input for mouse equipments;
 
   //renderer should have cNumLimit Rectlayers. 
   void RegisterMouseRenderer(Renderer* renderer, std::function<bool(int)> defaultVisibleFunc);
 
-  void GetCursorPos(HANDLE hDevice, double *x, double *y);
+  void GetCursorPos(int hDevice, double *x, double *y);
+
+  void PollMouseEvents();
+
+private:
+  void checkNewMouse(int hDevice);  
+  void reportCallback(int hDevice, MouseReport report);
 
 public:
-  static const size_t cNumLimit = 10;
-  std::map<HANDLE, MouseInstance *> mouses;
+  static const size_t cNumLimit = NUM_MOUSE_MAXIMUM;
+  std::vector<MouseInstance *> mouses;
   inline size_t GetNumMouse() { return mouses.size(); }
   double mSensitivityX = 1.0, mSensitivityY = 1.0;
-  
+  MOUSEBUTTONCALLBACKFUNC mouseButtonCallback;
+  MouseFifo fifo;
+
 private:
+  MouseCore core;
   Renderer *mouseRenderer;
   std::function<bool(int)> originalMouseVisibleFunc;
 
+
+  int num_mouse = 0;
   bool mInitialized = false;
   bool mRenderered = false;
 };

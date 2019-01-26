@@ -1,14 +1,14 @@
 #include "multimouse.h"
+#include "winusb/mousecore.h"
 #include <cmath>
 
 using namespace npnx;
 
-MouseInstance::MouseInstance(MultiMouseSystem *parent, HANDLE hDevice):
+MouseInstance::MouseInstance(MultiMouseSystem *parent, int hDevice):
   mParent(parent), 
   mDeviceHandle(hDevice)
 {
   NPNX_ASSERT_LOG(parent, "MouseInstance no parent");
-  
 
   mRotateMatrix[0][0] = cos(0);
   mRotateMatrix[0][1] = -sin(0);
@@ -18,6 +18,7 @@ MouseInstance::MouseInstance(MultiMouseSystem *parent, HANDLE hDevice):
 
 void MouseInstance::SetMouseState(double rotateInRad,double xCoord,double yCoord) {
   //set mouse coord to origin, and then set the origin in screencoord.
+  std::lock_guard<std::recursive_mutex> lck(objectMutex);
   mMousePosX = 0;
   mMousePosY = 0;
   mRotateMatrix[0][0] = cos(rotateInRad);
@@ -28,7 +29,40 @@ void MouseInstance::SetMouseState(double rotateInRad,double xCoord,double yCoord
   mOriginInScreenCoordY = yCoord;
 }
 
+void MouseInstance::HandleReport(const MouseReport & report) {
+  std::lock_guard<std::recursive_mutex> lck(objectMutex);
+  mMousePosX+=report.xTrans;
+  mMousePosY+=report.yTrans;
+  if (report.button != mHidLastButton){
+    for (int i=0; i<7; i++) {
+      if ((report.button & (1 << i)) ^ (mHidLastButton & (1 << i))) {
+        double x,y;
+        GetCursorPos(&x, &y);
+        mParent->fifo.Push({mDeviceHandle, report.button, (report.button & (1 << i)) >> i, x, y});
+      }
+    }
+    mHidLastButton = report.button;
+  }
+}
+
+void MouseInstance::SetLastPush(uint8_t button, int action, double screenX, double screenY){
+  // I think lastpush info is written and read only by main thread (set is from fifo.)
+  // std::lock_guard<std::recursive_mutex> lck(objectMutex);
+  if (action == GLFW_PRESS) {mPushedButton |= button;}
+  else { mPushedButton &= (~button);}
+  mLastPushPosInScreenX = screenX;
+  mLastPushPosInScreenY = screenY;
+}
+
+void MouseInstance::GetLastPush(uint8_t *button, double *screenX, double *screenY){
+  // std::lock_guard<std::recursive_mutex> lck(objectMutex);
+  *button = mPushedButton;
+  *screenX = mLastPushPosInScreenX;
+  *screenY = mLastPushPosInScreenY;
+}
+
 void MouseInstance::GetCursorPos(double *x, double *y) {
+  std::lock_guard<std::recursive_mutex> lck(objectMutex);
   *x = mMousePosX * mRotateMatrix[0][0] + mMousePosY * mRotateMatrix[0][1];
   *x *= mParent->mSensitivityX;
   *x += mOriginInScreenCoordX;
@@ -46,89 +80,67 @@ MultiMouseSystem::MultiMouseSystem() {
 
 MultiMouseSystem::~MultiMouseSystem(){
   for (auto iter: mouses) {
-    if (iter.second) {
-      delete iter.second;
+    if (iter) {
+      delete iter;
     }
   }
   mouses.clear();
 }
 
-void MultiMouseSystem::Init(GLFWwindow *window){
-  RAWINPUTDEVICE Rid[1];
-
-  Rid[0].usUsagePage = 0x01;
-  Rid[0].usUsage = 0x02;
-  Rid[0].dwFlags = RIDEV_NOLEGACY; // adds HID mouse and also ignores legacy mouse messages
-  Rid[0].hwndTarget = glfwGetWin32Window(window);
-
-  if (RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
-  {
-    //registration failed. Call GetLastError for the cause of the error
-    NPNX_ASSERT(false && "registerRawInput");
-  }
-
-  UINT numHIDDevices = 0;
-
-  UINT getRawInputDeviceListNumResult = GetRawInputDeviceList(NULL, &numHIDDevices, sizeof(RAWINPUTDEVICELIST));
-  NPNX_ASSERT_LOG(getRawInputDeviceListNumResult != -1, GetLastError());
-
-  NPNX_LOG(numHIDDevices);
-  PRAWINPUTDEVICELIST hidDeviceList = new RAWINPUTDEVICELIST[numHIDDevices];
-
-  UINT getRawInputDeviceListResult = GetRawInputDeviceList(hidDeviceList, &numHIDDevices, sizeof(RAWINPUTDEVICELIST));
-  NPNX_ASSERT_LOG(getRawInputDeviceListResult != -1, GetLastError());
-
-  for (int i = 0; i < numHIDDevices; i++)
-  {
-    if (true)//(hidDeviceList[i].dwType == RIM_TYPEMOUSE)
-    {
-      if(hidDeviceList[i].dwType == RIM_TYPEMOUSE) printf("mouse\n");
-      UINT cbSize = 0;
-      UINT getRawInputDeviceInfoNumResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICENAME, NULL, &cbSize);
-      NPNX_ASSERT_LOG(getRawInputDeviceInfoNumResult != -1, GetLastError());
-      WCHAR *tempbuffer = (WCHAR *)calloc(1, sizeof(WCHAR) * cbSize);
-      UINT getRawInputDeviceInfoResult = GetRawInputDeviceInfoW(hidDeviceList[i].hDevice, RIDI_DEVICENAME, tempbuffer, &cbSize);
-      NPNX_ASSERT_LOG(getRawInputDeviceInfoResult != -1, GetLastError());
-      printf("%ls\r\n", tempbuffer);
-      free(tempbuffer);
-    }
-  }
-
+void MultiMouseSystem::Init(MOUSEBUTTONCALLBACKFUNC func)
+{
+  NPNX_ASSERT(!mInitialized);
+  mouseButtonCallback = func;
+  num_mouse = core.Init(default_vid, default_vid, [&, this] (int idx, MouseReport report) -> void {this->reportCallback(idx, report);});
   mInitialized = true;
 }
 
-void MultiMouseSystem::GetCursorPos(HANDLE hDevice, double *x, double *y) {
+void MultiMouseSystem::GetCursorPos(int hDevice, double *x, double *y) {
   mouses[hDevice]->GetCursorPos(x,y);
 }
 
 void MultiMouseSystem::RegisterMouseRenderer(Renderer *renderer, std::function<bool(int)> defaultVisibleFunc){
+  NPNX_ASSERT(!mRenderered);
+  NPNX_ASSERT(mInitialized);
   mouseRenderer = renderer;
   originalMouseVisibleFunc = defaultVisibleFunc;
   mRenderered = true;
+
+  for (int i = 0; i < num_mouse; i++) {
+    checkNewMouse(i);
+  }
+  core.Start();
 }
 
-void MultiMouseSystem::CheckNewMouse(HANDLE hDevice)
+void MultiMouseSystem::checkNewMouse(int hDevice)
 {
-  NPNX_ASSERT(mInitialized && mRenderered);
-  if (mouses.find(hDevice) == mouses.end()) {
-    if (GetNumMouse() == cNumLimit) return;
-    mouses[hDevice] = new MouseInstance(this, hDevice);
-    int layerIndex = GetNumMouse() - 1;
-    LayerObject *cursorLayer = mouseRenderer->mLayers[*(float *) &layerIndex];
-    cursorLayer->beforeDraw = [=](int nbFrames) {
-      double x, y;
-      this->GetCursorPos(hDevice, &x, &y);
-      glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "xTrans"), x);
-      glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "yTrans"), y);
-      return 0;
-    };
-    cursorLayer->afterDraw = [=](int nbFrames) {
-      glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "xTrans"), 0.0f);
-      glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "yTrans"), 0.0f);
-      return 0;
-    };
-    cursorLayer->visibleCallback = originalMouseVisibleFunc;
+  mouses.push_back(new MouseInstance(this, hDevice));
+  LayerObject *cursorLayer = mouseRenderer->mLayers[*(float *) &hDevice];
+  cursorLayer->beforeDraw = [=](int nbFrames) {
+    double x, y;
+    this->GetCursorPos(hDevice, &x, &y);
+    glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "xTrans"), x);
+    glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "yTrans"), y);
+    return 0;
+  };
+  cursorLayer->afterDraw = [=](int nbFrames) {
+    glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "xTrans"), 0.0f);
+    glUniform1f(glGetUniformLocation(cursorLayer->mParent->mDefaultShader->mShader, "yTrans"), 0.0f);
+    return 0;
+  };
+  cursorLayer->visibleCallback = originalMouseVisibleFunc;
+}
+
+void MultiMouseSystem::PollMouseEvents() {
+  MouseFifoReport report;
+  while (fifo.Pop(&report)){
+    mouseButtonCallback(report.hDevice, report.button, report.action, report.screenX, report.screenY);
   }
+}
+
+//this must be thread safe for diffrent mouse.
+void MultiMouseSystem::reportCallback(int hDevice, MouseReport report){
+  mouses[hDevice]->HandleReport(report);
 }
 
 namespace npnx {
