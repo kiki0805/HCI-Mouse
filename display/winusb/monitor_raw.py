@@ -103,42 +103,39 @@ import win32pipe
 if __name__ == '__main__':
     q = Queue()
 
-    start = time.time()
+    start = None
     p = Process(target=update,args=(q,)) # for display
     p.start()
 
-
-    # start = time.time()
     global_count = 0
     PIPE_NAME = r'\\.\pipe\test_pipe'
-    PIPE_BUFFER_SIZE = 1
+    PIPE_BUFFER_SIZE = 1024
     named_pipe = win32pipe.CreateNamedPipe(PIPE_NAME,
                     win32pipe.PIPE_ACCESS_DUPLEX,
                     win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_WAIT | win32pipe.PIPE_READMODE_MESSAGE,
                     win32pipe.PIPE_UNLIMITED_INSTANCES,
                     PIPE_BUFFER_SIZE,
                     PIPE_BUFFER_SIZE, 500, None)
+    win32pipe.ConnectNamedPipe(named_pipe, None)
+    total = 0
     while True:
 
         try:
+            # print(time.time()-t1)
             t1 = time.time()
-            win32pipe.ConnectNamedPipe(named_pipe, None)
             data = win32file.ReadFile(named_pipe, PIPE_BUFFER_SIZE, None)
             if start is None:
                 start = time.time()
-            # if data is None or len(data) < 2:
-            #     continue
-
-            # print ('receive msg:', int.from_bytes(data[1], 'big'))
             q.put((data[1], time.time()))
-            print(time.time()-t1)
+            total += time.time()-t1
         except BaseException as e:
+            print('Frame rate: ' + str(global_count / (time.time() - start)))
+            
             print ("exception:", e)
             break
 
-        global_count += 1
+        global_count += 1024
 
     win32pipe.DisconnectNamedPipe(named_pipe)
-    print('Frame rate: ' + str(global_count / (time.time() - start)))
     # p.terminate()
     sys.exit()

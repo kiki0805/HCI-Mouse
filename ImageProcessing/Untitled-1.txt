@@ -1,0 +1,227 @@
+#include "common.h"
+
+#include <string>
+#include <memory>
+#include <cassert>
+#include <time.h>       /* time */
+#include <stdlib.h>
+#include "layerobject.h"
+#include "shader.h"
+#include "renderer.h"
+
+#include "imageUtils.h"
+#include "IOUtils.h"
+#define bit_len 24
+#define start_freq 30
+#define end_freq 240
+int main()
+{
+	std::string prefix = "fre_m_";
+	srand(time(NULL));
+	NPNX_LOG(NPNX_DATA_PATH);
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	int monitorCount;
+	GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
+
+	int holographic_screen = -1;
+	for (int i = 0; i < monitorCount; i++) {
+		int screen_x, screen_y;
+		const GLFWvidmode * mode = glfwGetVideoMode(pMonitor[i]);
+		screen_x = mode->width;
+		screen_y = mode->height;
+		std::cout << "Screen size is X = " << screen_x << ", Y = " << screen_y << std::endl;
+		if (screen_x == WINDOW_WIDTH && screen_y == WINDOW_HEIGHT) {
+			holographic_screen = i;
+		}
+	}
+	NPNX_LOG(holographic_screen);
+
+	GLFWwindow* window;
+#if (defined __linux__ || defined NPNX_BENCHMARK)
+	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+
+#else
+	if (holographic_screen == -1)
+		window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
+	else
+		window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Holographic projection", pMonitor[holographic_screen], NULL);
+#endif  
+	NPNX_ASSERT(window);
+	glfwMakeContextCurrent(window);
+
+	glewExperimental = GL_TRUE;
+	GLenum err = glewInit();
+	assert(!err);
+
+#ifndef NPNX_BENCHMARK
+#ifdef __linux__
+	if (glxewIsSupported("GLX_MESA_swap_control"))
+	{
+		printf("OK, we can use GLX_MESA_swap_control\n");
+	}
+	else
+	{
+		printf("[WARNING] GLX_MESA_swap_control is NOT supported.\n");
+	}
+	glXSwapIntervalMESA(1);
+	printf("Swap interval: %d\n", glXGetSwapIntervalMESA());
+#endif
+
+#ifdef _WIN32
+	if (wglewIsSupported("WGL_EXT_swap_control"))
+	{
+		printf("OK, we can use WGL_EXT_swap_control\n");
+	}
+	else
+	{
+		printf("[WARNING] WGL_EXT_swap_control is NOT supported.\n");
+	}
+	wglSwapIntervalEXT(1);
+#endif
+#endif
+
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glEnable(GL_BLEND);
+	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+
+
+	npnx::Shader defaultShader;
+	defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
+	defaultShader.Use();
+	glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture0"), 0);
+
+	npnx::Shader adjustShader;
+	adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment.glsl"));
+	adjustShader.Use();
+	glUniform1i(glGetUniformLocation(adjustShader.mShader, "texture0"), 0);
+	glUniform1i(glGetUniformLocation(adjustShader.mShader, "rawScreen"), 1);
+	glUniform1i(glGetUniformLocation(adjustShader.mShader, "letThrough"), 0);
+	glUniform1i(glGetUniformLocation(adjustShader.mShader, "val"), 0);
+
+	unsigned int fbo0, fboColorTex0;
+	generateFBO(fbo0, fboColorTex0);
+
+	npnx::Renderer renderer(&defaultShader, fbo0);
+	npnx::Renderer postRenderer(&adjustShader, 0);
+	postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
+
+	// --------------- Add your layer here--------------//  
+	npnx::RectLayer baseRect(-1.0f, -1.0f, 1.0f, 1.0f, -1.0f);
+	baseRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+	renderer.AddLayer(&baseRect);
+
+	npnx::RectLayer upperRect(-0.5f, -0.1f, -0.2f, 0.8f, 0.0f);
+	std::unique_ptr<unsigned char> anotherBuffer(new unsigned char[600 * 600 * 3]);
+	generateRandomArray(anotherBuffer.get(), 600 * 600 * 3, 0, 255);
+	upperRect.mTexture.push_back(makeTexture(anotherBuffer.get(), 600, 600, 3));
+	upperRect.visibleCallback = [](int nbFrames) {
+		return (nbFrames & 255) < 128;
+	};
+	//renderer.AddLayer(&upperRect);
+
+	npnx::RectLayer postBaseRect(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
+	postBaseRect.beforeDraw = [&](const int nbFrames) {
+		glUniform1i(glGetUniformLocation(postBaseRect.mParent->mDefaultShader->mShader, "letThrough"), 1);
+		return 0;
+	};
+	postBaseRect.afterDraw = [&](const int nbFrames) {
+		glUniform1i(glGetUniformLocation(postBaseRect.mParent->mDefaultShader->mShader, "letThrough"), 0);
+		return 0;
+	};
+	postBaseRect.mTexture.push_back(0);
+	postRenderer.AddLayer(&postBaseRect);
+
+	// float z = 99.9f;
+	// unsigned int wTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
+	// unsigned int bTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
+	// unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
+	// unsigned int whiteTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
+	// int count = 0;
+	// for (float i = -1.0f; i < 1.0f; i += (2.0f / 8.0f)) {
+	  //   npnx::RectLayer postRect(i, -1.0f, i + 0.25f, 1.0f, z);
+	  //   z *= 10.0f;
+	//   postRect.mTexture.push_back(wTex);
+	//   postRect.mTexture.push_back(bTex);
+	  //   postRect.visibleCallback = [](int nbFrames) {
+	  // 	  return (nbFrames % 16 == count) || (nbFrames % 16 == count + 1);
+	  //   };
+	  //   postRect.textureNoCallback = [](int nbFrames) {
+	  // 	  return (nbFrames % 16) % count;
+	  //   };
+	//   postRenderer.AddLayer(&postRect);
+	//   count += 2;
+	// }
+	npnx::RectLayer postRect(-0.5625f, -1.0f, 0.5625f, 1.0f, 9999.9f);
+	//unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
+	//unsigned int whiteTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
+	for (int i = 0; i < bit_len; i++) {
+
+		std::string img_name = prefix + std::to_string(i) + ".png";
+		unsigned int bit = makeTextureFromImage(NPNX_FETCH_DATA(img_name));
+		postRect.mTexture.push_back(bit);
+		// std::string img_name2 = "black_" + std::to_string(i) + ".png";
+		//   unsigned int bit2 = makeTextureFromImage(NPNX_FETCH_DATA(img_name2));
+		//   postRect.mTexture.push_back(bit2);
+	}
+	postRect.visibleCallback = [](int nbFrames) {
+		//if (nbFrames % (bit_len + 3) == bit_len + 2 || nbFrames % (bit_len + 3) == bit_len + 1 || nbFrames % (bit_len + 3) == bit_len) return false;
+		return true;
+	};
+
+	postRect.textureNoCallback = [](int nbFrames) {
+		// if (nbFrames % (bit_len + 3) == bit_len + 2 || nbFrames % (bit_len + 3) == bit_len + 1 || nbFrames % (bit_len + 3) == bit_len) return 0;
+		//return (nbFrames) % (bit_len + 3);
+		/*int zoom = 1;
+		if ((nbFrames / zoom / 480) % 2 == 0)
+		{ std::cout << nbFrames / zoom % 2 << std::endl;
+		return nbFrames/ zoom % 2; }
+		else {
+			std::cout << (nbFrames/ zoom % 4 + 4) << std::endl;
+			return (nbFrames/ zoom % 4 + 4);
+		}*/
+
+		/*int two_seconds = nbFrames / 480;
+		int cur_freq = start_freq + two_seconds;
+		if (cur_freq > end_freq) cur_freq = end_freq;
+
+		return (nbFrames * cur_freq / 240) % 2;*/
+		return nbFrames / 1 % bit_len;
+	};
+
+	postRenderer.AddLayer(&postRect);
+	// ------------------------------------------------//
+	renderer.Initialize();
+	postRenderer.Initialize();
+
+	int nbFrames = 0;
+
+	int lastNbFrames = 0;
+	double lastTime = glfwGetTime();
+	double thisTime = glfwGetTime();
+	while (!glfwWindowShouldClose(window)) {
+
+		// if (renderer.Updated(nbFrames) || postRenderer.Updated(nbFrames)) {
+		renderer.Draw(nbFrames);
+		postRenderer.Draw(nbFrames);
+		// }
+
+		nbFrames++;
+		thisTime = glfwGetTime();
+		double deltaTime = thisTime - lastTime;
+		if (deltaTime > 1.0) {
+			glfwSetWindowTitle(window, std::to_string((nbFrames - lastNbFrames) / deltaTime).c_str());
+			lastNbFrames = nbFrames;
+			lastTime = thisTime;
+		}
+
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+
+	glfwTerminate();
+	return 0;
+}
