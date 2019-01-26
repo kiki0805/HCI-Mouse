@@ -27,7 +27,7 @@ def draw_process(start, end, data, off):
             for j in range(0, WIDTH, BLOCK_SIZE):
                 x = math.floor(i / DATA_BLOCK_SIZE) % DATA_BLOCK_SIZE
                 y = math.floor(j / DATA_BLOCK_SIZE) % DATA_BLOCK_SIZE
-                filtered_data = data[x][y][(n + off[(x,y)]) % (BITS_NUM * EXPEND + PREAMBLE_NP.size)]
+                filtered_data = data[x][y][(n + off[(x,y)]) % (BITS_NUM * EXPEND + PREAMBLE_NP.size + 4)]
                 # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data * 255)
                 if (i / BLOCK_SIZE) % 2 == 0:
                     if (j / BLOCK_SIZE) % 2 == 0:
@@ -51,7 +51,7 @@ DATA_BLOCK_SIZE = 32
 if __name__ == '__main__':
     # raw_data = designed_location_encode(SIZE)
     raw_data = raw_random_location(SIZE)
-    data = np.zeros((DATA_BLOCK_SIZE, DATA_BLOCK_SIZE, BITS_NUM * EXPEND + PREAMBLE_NP.size))
+    data = np.zeros((DATA_BLOCK_SIZE, DATA_BLOCK_SIZE, BITS_NUM * EXPEND + PREAMBLE_NP.size + 4))
     print('Using ' + CODING_METHOD + '...')
     # quiet = True
     quiet = False
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     if FILTER:
         for i in range(DATA_BLOCK_SIZE):
             for j in range(DATA_BLOCK_SIZE):
-                off[(i,j)] = random.randint(1, BITS_NUM * EXPEND + PREAMBLE_NP.size)
+                off[(i,j)] = random.randint(1, BITS_NUM * EXPEND + PREAMBLE_NP.size + 4)
                 if not quiet:
                     data[i][j] = np.array(filter_normalize(raw_data[i][j].tolist()))
                     quiet = input('quiet? ')
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     else:
         for i in range(DATA_BLOCK_SIZE):
             for j in range(DATA_BLOCK_SIZE):
-                off[(i,j)] = random.randint(1, BITS_NUM * EXPEND + PREAMBLE_NP.size)
+                off[(i,j)] = random.randint(1, BITS_NUM * EXPEND + PREAMBLE_NP.size + 4)
                 # data[i][j] = raw_data[i][j]
                 if not quiet:
                     data[i][j] = np.array(filter_normalize(raw_data[i][j].tolist(), nothing=True))
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     process_num = 4
     pl = []
     for n in range(process_num):
-        total_bits_num = BITS_NUM * EXPEND + PREAMBLE_NP.size
+        total_bits_num = BITS_NUM * EXPEND + PREAMBLE_NP.size + 4
         end_index = (n + 1) * math.floor(total_bits_num / process_num)
         if n == process_num - 1:
             end_index = total_bits_num

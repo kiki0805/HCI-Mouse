@@ -1,7 +1,7 @@
 # Trial
 # CODING_METHOD = 'FREQ'
-CODING_METHOD = 'MANCHESTER_MODE'
-# CODING_METHOD = 'DESIGNED_CODE'
+# CODING_METHOD = 'MANCHESTER_MODE'
+CODING_METHOD = 'DESIGNED_CODE'
 # print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
 # print('\t1. FREQ')
 # print('\t2. MANCHESTER_MODE')
@@ -38,7 +38,7 @@ FILTER = True
 
 FILTER_H = False
 GRAPHICS = False #True
-TESTING_MODE = False #True
+TESTING_MODE = True
 FORCED_EXIT = False
 
 if TESTING_MODE:

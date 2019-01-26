@@ -23,7 +23,8 @@ line_num = 19
 img = Image.new("RGB", (line_num * times, pixel_num * times))
 
 f2 = plt.figure()
-ax2 = f2.add_subplot(111)
+ax2 = f2.add_subplot(211)
+ax = f2.add_subplot(212)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
@@ -52,7 +53,7 @@ def draw_pixel(img, value, i, j):
 plt.ion()
 
 
-def detect_line(im, threshold, ref=None, vote=1):
+def detect_line(im, threshold, mode, ref=None, vote=1):
     img = pil2cv(im)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     edges = gray.copy()
@@ -64,8 +65,8 @@ def detect_line(im, threshold, ref=None, vote=1):
         return im, [], None
 
     remained_lines, angles = _detect_line(lines, ref)
-    if remained_lines is None and threshold == 60:
-        return detect_line(im, threshold, ref, vote+1)
+    if remained_lines is None and mode=='red':
+        return detect_line(im, threshold, mode, ref, vote+1)
         # return cv2pil(img), angles, remained_lines
 
     for l in remained_lines:
@@ -77,7 +78,7 @@ def detect_line(im, threshold, ref=None, vote=1):
 def _detect_line(lines, ref=None):
     angles = []
     ls = []
-    for line in lines[:20]:
+    for line in lines[:10]:
         for rho,theta in line:
             a = np.cos(theta)
             b = np.sin(theta)
@@ -140,7 +141,7 @@ def binirization(im, value):
     im = np.array(im)
     new = im.copy()
     new[im < value] = 0
-    new[im > value] = 255
+    new[im >= value] = 255
     return Image.fromarray(new)
 
 def erode(img, kernel, iterations):
@@ -167,6 +168,14 @@ def change_cur(cur):
         time.sleep(1.5)
         print('done')
         return 'red'
+
+def get_threshold(im, mode):
+    ratio = 3 / 2 if mode == 'white' else 2.5 / 2
+    threshold = 10
+    im = np.array(im)
+    while sum(sum(sum(im > threshold))) > sum(sum(sum(im >= 0))) / ratio:
+        threshold += 10
+    return threshold
 
 cur = 'red'
 
@@ -203,14 +212,18 @@ while True:
     # plt.show()
     # plt.pause(1e-16)
     # img = ImageOps.invert(img)
-    threshold = 60 if cur == 'red' else 170
+
+    # threshold = 60 if cur == 'red' else 170
+    threshold = get_threshold(img, cur)
+    img2 = binirization(img, threshold)
     
     if cur == 'red':
-        img = ImageEnhance.Contrast(img).enhance(5)
-        img = binirization(img, threshold)
-        kernel = np.ones(((2,2)),np.uint8)
-        img = openning(img, kernel)
-        img, angles, remained_lines = detect_line(img, threshold)
+        # img = ImageEnhance.Contrast(img).enhance(5)
+        # img = binirization(img, threshold)
+        # kernel = np.ones(((2,2)),np.uint8)
+        # img = openning(img, kernel)
+        img, angles, remained_lines = detect_line(img, threshold, 'red')
+        
         if angles == []:
             continue
         most_comm_ele = Counter(angles).most_common()[0][0]
@@ -220,36 +233,38 @@ while True:
             cur = change_cur(cur)
             collect = 3
     else:
-        img = ImageEnhance.Contrast(img).enhance(5)
-        img = binirization(img, threshold)
-        kernel2 = np.zeros((2,2), np.uint8)
-        img = erode(img, kernel2, 1)
-        img, angles, remained_lines = detect_line(img, threshold, red_angle)
-        if angles != []:
-            if len(angles) > 1 and remained_lines is not None:
-                most_comm_ele = Counter(angles).most_common()[0][0]
-                white_angle = most_comm_ele
-                white_lines = remained_lines
-                md = move_direction(red_lines, white_lines)
-                # print(white_angle)
-                if md == '↑':
-                    print(md, 180 - white_angle)
-                    # c = input('continue: ')
-                    # if c == '0':
-                    #     break
-                elif md == '↓':
-                    print(md, 360 - white_angle)
-                    # c = input('continue: ')
-                    # if c == '0':
-                    #     break
-                elif type(md) == int:
-                    print(md)
-                    # c = input('continue: ')
-                    # if c == '0':
-                    #     break
-                cur = change_cur(cur)
-                collect = 3
-
+        # img = ImageEnhance.Contrast(img).enhance(5)
+        # img = binirization(img, threshold)
+        # kernel2 = np.zeros((2,2), np.uint8)
+        # img = erode(img, kernel2, 1) # maybe 2
+        img, angles, remained_lines = detect_line(img, threshold, 'white', red_angle)
+        while angles == []:
+            threshold += 5
+            img, angles, remained_lines = detect_line(img, threshold, 'white', red_angle)
+        if len(angles) > 1 and remained_lines is not None:
+            most_comm_ele = Counter(angles).most_common()[0][0]
+            white_angle = most_comm_ele
+            white_lines = remained_lines
+            md = move_direction(red_lines, white_lines)
+            # print(white_angle)
+            if md == '↑':
+                print(md, 180 - white_angle)
+                # c = input('continue: ')
+                # if c == '0':
+                #     break
+            elif md == '↓':
+                print(md, 360 - white_angle)
+                # c = input('continue: ')
+                # if c == '0':
+                #     break
+            elif type(md) == int:
+                print(md)
+                # c = input('continue: ')
+                # if c == '0':
+                #     break
+            cur = change_cur(cur)
+            collect = 3
+    ax.imshow(img2)
     ax2.imshow(img)
     plt.show()
     plt.pause(1e-16)

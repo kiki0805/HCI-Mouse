@@ -235,7 +235,7 @@ def num2bin(num, bit_num): # return str
 
 
 def crc_cal(num, binary=True, bit_num=10):
-    if binary:
+    if type(num) == str:
         num = bit_str2num(num)
     byte_arr = bytearray(num.to_bytes(2, 'big'))
     crc = Crc4Itu.calc(byte_arr)
@@ -307,7 +307,7 @@ def raw_random_location(size):
     for i in range(pow(2, BITS_NUM)):
         bits = num2bin(i, BITS_NUM)
         bits_pool[i] = np.array(list(bits))
-    data = np.zeros((size[0], size[1], BITS_NUM * EXPEND + PREAMBLE_NP.size), dtype=np.int16)
+    data = np.zeros((size[0], size[1], BITS_NUM * EXPEND + PREAMBLE_NP.size + 4), dtype=np.int16)
     # print(index_pool)
     for i in range(size[0]):
         for j in range(size[1]):
@@ -326,7 +326,10 @@ def raw_random_location(size):
             elif FREQ:
                 # encoded_str = '1001' + freq_encode(''.join(temp))
                 encoded_str = '1001' + freq_encode(Manchester_encode(''.join(temp)))
-            data[i,j,:] = list(encoded_str)
+            # encoded_str = encoded_str + list(crc_cal(bits_pool[random_index]))
+            r = [str(i) for i in bits_pool[random_index].astype(int)]
+            # print(''.join(r))
+            data[i,j,:] = list(encoded_str) + list(crc_cal(''.join(r)))
             # index_pool.remove(random_index)
     return data
 
@@ -483,11 +486,17 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
     amax = max(abs(a2.max()), abs(a2.min()))
     amin = -amax
 
-    a2 = [(0.7 + (1.3 - 0.7) * (i - amin)/(amax - amin)) / 2 for i in a2]
+    min_val = 0.7 #0.7
+    max_val = 1.3 # 1.3
+    a2 = [(0.7 + (1.3-0.7) * (i - amin)/(amax - amin)) for i in a2]
     # print('a2 ', end='')
     # print(a2)
     return a2
 
+def bound(arr, min_val, max_val):
+    amax = max(abs(arr.max()), abs(arr.min()))
+    amin = -amax
+    return [(min_val + (max_val - min_val) * (i - amin)/(amax - amin)) / 2 for i in arr]
 
 
 ##########################################

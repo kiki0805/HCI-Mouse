@@ -22,9 +22,11 @@ line_num = 19
 img = Image.new("RGB", (line_num * times, pixel_num * times))
 
 f2 = plt.figure()
-ax2 = f2.add_subplot(312)
-ax = f2.add_subplot(311)
-ax3 = f2.add_subplot(313)
+ax2 = f2.add_subplot(211)
+ax = f2.add_subplot(212)
+# ax2 = f2.add_subplot(312)
+# ax = f2.add_subplot(311)
+# ax3 = f2.add_subplot(313)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
@@ -53,39 +55,39 @@ def draw_pixel(img, value, i, j):
 plt.ion()
 
 
-def detect_line(im):
+def detect_line(im, threshold):
     img = pil2cv(im)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     edges = gray.copy()
-    edges[gray<60] = 255
-    edges[gray>60] = 0
+    edges[gray<threshold] = 255
+    edges[gray>threshold] = 0
 
-    edges2 = gray.copy()
-    edges2[gray<170] = 255
-    edges2[gray>170] = 0
+    # edges2 = gray.copy()
+    # edges2[gray<170] = 255
+    # edges2[gray>170] = 0
 
     lines = cv2.HoughLines(edges, 1, np.pi/180, 1)
-    lines2 = cv2.HoughLines(edges2, 1, np.pi/180, 1)
+    # lines2 = cv2.HoughLines(edges2, 1, np.pi/180, 1)
     if lines is None:
         return im, None
 
-    remained_lines, ref_angle = _detect_line(lines)
-    print('red: ', end='')
-    print(remained_lines)
+    remained_lines, most_comm_ele = _detect_line(lines)
+    # print('red: ', end='')
+    # print(remained_lines)
     for l in remained_lines:
         (x1,y1), (x2,y2) = l
         cv2.line(img, (x1,y1), (x2,y2),(0,0,255),1)
     
-    remained_lines2, most_comm_ele = _detect_line(lines2, ref_angle)
-    remained_lines2, most_comm_ele = _detect_line(lines2)
-    print('white: ', end='')
-    print(remained_lines2)
+    # remained_lines2, most_comm_ele = _detect_line(lines2, ref_angle)
+    # remained_lines2, most_comm_ele = _detect_line(lines2)
+    # print('white: ', end='')
+    # print(remained_lines2)
     # for l in remained_lines2:
     #     (x1,y1), (x2,y2) = l
     #     cv2.line(img, (x1,y1), (x2,y2),(255,0,0),1)
 
-    print(ref_angle)
-    print(most_comm_ele)
+    # print(ref_angle)
+    # print(most_comm_ele)
 
     return cv2pil(img), most_comm_ele
 
@@ -158,15 +160,23 @@ def closing(img, kernel):
 def binirization(im, value):
     im = np.array(im)
     new = im.copy()
-    new[im < value] = 0
+    new[im <= value] = 0
     new[im > value] = 255
     return Image.fromarray(new)
 
-
+def get_threshold(im):
+    # ratio = 3 / 2
+    ratio = 2.5 / 2
+    threshold = 10
+    im = np.array(im)
+    while sum(sum(sum(im > threshold))) > sum(sum(sum(im >= 0))) / ratio:
+        threshold += 10
+    return threshold
 
 while True:
     count = 0
     while count < pixel_num * line_num:
+        # start = time.time()
         temp = 0
         response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                          bRequest = 0x01,
@@ -180,23 +190,30 @@ while True:
         count += 1
         draw_pixel(img, val, i, j)
         time.sleep(0.001)
+        # print(time.time() - start)
 
-    img = ImageEnhance.Contrast(img).enhance(5) # 5 for first step, 3 for second step
+    # ax.imshow(img)
+    # print(get_threshold(img))
+    threshold = get_threshold(img)
+    # img = ImageEnhance.Contrast(img).enhance(5) # 5 for first step, 3 for second step
     
-    ax.imshow(img)
-    img = binirization(img, 60)
-    # img = binirization(img, 170)
-    kernel = np.ones(((2,2)),np.uint8)
-    img = openning(img, kernel)
-    # img = closing(img, kernel)
-    kernel2 = np.zeros((2,2), np.uint8)
-    # img = erode(img, kernel2,1)
-    # img = erode(img, kernel2, 1)
-    # img = closing(img, kernel)
-    ax3.imshow(img)
-    img, angle = detect_line(img)
-
+    # img = binirization(img, threshold)
+    # # img = binirization(img, 170)
+    # kernel = np.ones(((2,2)), np.uint8)
+    # # img = openning(img, kernel)
+    # img2 = openning(img, kernel)
+    img2 = binirization(img, threshold)
+    ax.imshow(img2)
+    # # img = closing(img, kernel)
+    # # kernel2 = np.zeros((2,2), np.uint8)
+    # # img2 = erode(img, kernel2, 2)
+    # # img = closing(img, kernel)
+    # # img2, angle = detect_line(img2)
+    # ax3.imshow(img2)
+    img, angle = detect_line(img, threshold)
     ax2.imshow(img)
+    
+
     plt.show()
     plt.pause(1e-16)
 

@@ -87,7 +87,16 @@ if __name__ == '__main__':
         print('Using DESIGNED CODE...')
         # data = designed_code(Manchester_encode(raw_data))
         data = designed_code(raw_data)
-
+    data = [str(i) for i in data]
+    data = data + list(crc_cal(raw_data))
+    if DESIGNED_CODE:
+        tmp = []
+        for i in data:
+            if i == '0':
+                tmp.append(-1)
+            else:
+                tmp.append(1)
+        data = tmp
     # crc
     # data = data + list(crc_cal(raw_data))
 
