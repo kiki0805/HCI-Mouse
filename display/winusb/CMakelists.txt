@@ -1,23 +1,37 @@
 cmake_minimum_required(VERSION 3.0)
 
+
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/libusb/MS64)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/libusb)
 
+
 add_executable(testusb 
-  libusb_utils.cpp 
-  basictest.cpp
+libusb_utils.cpp 
+basictest.cpp
 )
 target_link_libraries(testusb libusb-1.0)
 
 add_executable(testmousecore
-  libusb_utils.cpp
-  mousecore.cpp 
-  mousecoretest.cpp 
+libusb_utils.cpp
+mousecore.cpp 
+mousecoretest.cpp 
 )
 target_link_libraries(testmousecore libusb-1.0)
 
+add_library(mousecore 
+
+libusb_utils.cpp
+mousecore.cpp 
+)
+target_link_libraries(mousecore libusb-1.0)
+
 #This is for dll moving
-add_custom_command(TARGET testmousecore POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/libusb/MS64"
-        $<TARGET_FILE_DIR:testusb>)
+add_custom_command(TARGET mousecore POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_directory
+"${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/libusb/MS64"
+$<TARGET_FILE_DIR:mousecore>)
+
+# for parent directory
+set(NPNXWINUSB_INC ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/libusb PARENT_SCOPE)
+set(NPNXWINUSB_LIBPTH ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/libusb/MS64 PARENT_SCOPE)
+set(NPNXWINUSB_LIB mousecore libusb-1.0 PARENT_SCOPE)

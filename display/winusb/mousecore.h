@@ -49,6 +49,9 @@ public:
   int ControlTransfer(int mouse_idx, uint8_t request_type, uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
                       unsigned char *data, uint16_t wLength, unsigned int timeout);
   
+  //start polling for all mouses.
+  void Start();
+
 private: 
   void poll(int idx);
   MouseReport raw_to_mousereport(uint8_t *buffer, size_t size);

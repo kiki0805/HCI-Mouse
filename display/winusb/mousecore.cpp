@@ -73,11 +73,15 @@ int MouseCore::Init(uint16_t vid, uint16_t pid, MOUSEREPORTCALLBACKFUNC func) {
     printf("\n");
 
     LIBUSB_ASSERTCALL(libusb_set_configuration(devs_handle[i], target_report_configuration));
-    
-    pollThread[i] = std::thread([&, this] (int idx) {poll(idx);}, i);
   }
   
   return num_mouse;
+}
+
+void MouseCore::Start() {
+  for (int i=0; i < num_mouse; i++) {
+    pollThread[i] = std::thread([&, this](int idx) { poll(idx); }, i);
+  }
 }
 
 int MouseCore::ControlTransfer(int mouse_idx, uint8_t request_type, uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
