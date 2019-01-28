@@ -1,6 +1,6 @@
 import numpy as np
 from collections import deque
-from setting import MOUSE_FRAME_RATE, PREAMBLE_LIST, BITS_NUM
+from setting import MOUSE_FRAME_RATE, PREAMBLE_LIST, BITS_NUM, FRAME_RATE
 from utils import smooth, interpl, chunk_decode
 
 class Localizer:
@@ -20,15 +20,15 @@ class Localizer:
         if last_ts is None:
             last_ts = self.frames[0][0]
         
-        if self.frames[-1][0] - last_ts < (self.len_e + 100) / 1200:
+        if self.frames[-1][0] - last_ts < (self.len_e + 100) / FRAME_RATE / 5:
             return
 
         M = np.array(self.frames)
-        M = M[np.logical_and(M[:,0] > last_ts, M[:,0] < last_ts + self.len_e / 1200)]
+        M = M[np.logical_and(M[:,0] > last_ts, M[:,0] < last_ts + self.len_e / FRAME_RATE / 5)]
         Mtime = M[:,0]
         value = M[:,1]
         last_ts = Mtime[-1]
-        sample_time = np.arange(Mtime[0], Mtime[-1], 1/1200)
+        sample_time = np.arange(Mtime[0], Mtime[-1], 1 / FRAME_RATE / 5)
         sample_value = interpl(Mtime, value, sample_time, 'nearest')
         sample_value_smooth = smooth(sample_value, 21)
         sample_value_DCremove = smooth(sample_value - sample_value_smooth, 5)

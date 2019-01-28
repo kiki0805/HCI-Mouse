@@ -12,6 +12,13 @@ class TypeName:
     ANGLE_COLOR2RED = 'ANGLE_COLOR2RED'
 
 
+def bytes_arr2_int_arr(bytes_arr):
+    data = []
+    for i in bytes_arr:
+        data.append(int.from_bytes(i, 'big'))
+    return data
+
+
 def data_resolve(read_data):
     read_data = read_data.decode()
     type_id = read_data[0]

@@ -1,5 +1,5 @@
 from crccheck.crc import Crc4Itu
-from setting import BITS_NUM, PREAMBLE_LIST
+from setting import BITS_NUM, PREAMBLE_LIST, TOTAL_LEN, CRC_LEN, PREAMBLE_LEN, EXPEND, SIZE
 import numpy as np
 
 
@@ -13,22 +13,22 @@ def chunk_decode(np_chunk, flip=False):
     rtn = []
 
     for i in range(len(chunk)):
-        if chunk[i:i+4] == pat:
-            bit_str = designed_decode(chunk[i+4:i+34], flip=flip)
-            crc_str = chunk[i+34:i+38]
+        if chunk[i:i + PREAMBLE_LEN] == pat:
+            bit_str = designed_decode(chunk[i + PREAMBLE_LEN:i + PREAMBLE_LEN + BITS_NUM * EXPEND], flip=flip)
+            crc_str = chunk[i + TOTAL_LEN - CRC_LEN:i + TOTAL_LEN]
             if not bit_str:
                 continue
             if len(bit_str) != BITS_NUM:
                 continue
             decoded_num = bit_str2num(bit_str)
             if crc_validate(bit_str, crc_str):
-                rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+                rtn.append([decoded_num, bit_str, naive_location(decoded_num)])
 
     if rtn != []:
         return rtn
 
 
-def naive_location(data, SIZE):
+def naive_location(data):
     return (int(data / SIZE[0]), data % SIZE[0])
     # return ()
 
@@ -41,8 +41,8 @@ def designed_decode(received, recurse=True, flip=False):
         one = '100'
         zero = '110'
     decoded = ''
-    for i in range(0, len(received), 3):
-        sub_data = received[i:i+3]
+    for i in range(0, len(received), EXPEND):
+        sub_data = received[i:i + EXPEND]
         if sub_data == one:
             decoded += '1'
         elif sub_data == zero:
@@ -50,6 +50,7 @@ def designed_decode(received, recurse=True, flip=False):
         else:
             return
     return decoded
+
 
 def designed_code(raw):
     new_code = []
@@ -60,10 +61,12 @@ def designed_code(raw):
             new_code += [1, 1, -1]
     return PREAMBLE_LIST + new_code
 
+
 from scipy.interpolate import interp1d
 def interpl(x, y, x_sample, method='nearest'):
     inter = interp1d(x, y, kind=method)
     return inter(x_sample)
+
 
 def smooth(a,WSZ):
     # a: NumPy 1-D array containing the data to be smoothed

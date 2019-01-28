@@ -3,7 +3,7 @@ import time
 import win32pipe
 import win32file
 from multiprocessing import Queue, Process
-from comm_handler import TypeName, data_packing, data_resolve, tagging_index
+from comm_handler import TypeName, TypeID, data_packing, tagging_index
 
 def pipe_client_read(pipe_name, q):
     print("pipe client for reading")
@@ -13,8 +13,15 @@ def pipe_client_read(pipe_name, q):
 
     try:
         while True:
-            resp = win32file.ReadFile(handle, 362)
-            q.put(resp)
+            type_id = win32file.ReadFile(handle, 1)
+            if type_id.decode() == TypeID.POSITION:
+                for _ in range(19 * 19):
+                    resp = win32file.ReadFile(handle, 1)
+                    q.put((TypeName.POSITION, time.time(), int.from_bytes(resp, 'big')))
+            elif type_id.decode() == TypeID.ANGLE:
+                resp = win32file.ReadFile(handle, 19 * 19)
+                q.put((TypeName.ANGLE, bytes_arr2_int_arr(resp)))
+                     
     except:
         print('Inpipe Broken')
         win32file.CloseHandle(handle)
@@ -87,10 +94,11 @@ if __name__ == '__main__':
         # if read_queue.empty():
         #     continue
         read_data = read_queue.get()
-        func, decoded_data = data_resolve(read_data)
+        func = read_data[0]
+
         if func == TypeName.ANGLE:
-            angl_queue.put(decoded_data)
+            angl_queue.put(read_data[1])
         elif func == TypeName.POSITION:
-            loc_queue.put((time.time(), decoded_data))
+            loc_queue.put(read_data[1:])
 
     
