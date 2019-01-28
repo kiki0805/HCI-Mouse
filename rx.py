@@ -246,22 +246,12 @@ while True:
             white_angle = most_comm_ele
             white_lines = remained_lines
             md = move_direction(red_lines, white_lines)
-            # print(white_angle)
             if md == '↑':
                 print(md, 180 - white_angle)
-                # c = input('continue: ')
-                # if c == '0':
-                #     break
             elif md == '↓':
                 print(md, 360 - white_angle)
-                # c = input('continue: ')
-                # if c == '0':
-                #     break
             elif type(md) == int:
                 print(md)
-                # c = input('continue: ')
-                # if c == '0':
-                #     break
             cur = change_cur(cur)
             collect = 3
     ax.imshow(img2)
