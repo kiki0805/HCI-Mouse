@@ -2,36 +2,108 @@ import math
 from scipy.spatial.distance import euclidean
 
 
-def move_direction(red_points, white_points):
-    points1 = red_points
-    points2 = white_points
-    # red
-    # points1 =[((-694, -719), (694, 719)), ((-691, -722), (698, 715)), ((-723, 690), (739, -673)), ((-699, 714), (714, -699))]
-
-    # white
-    # points2 = [((-706, -707), (707, 706)), ((-723, 690), (739, -673)), ((-731, 681), (754, -656)), ((-660, 751), (678, -735)), ((-699, 714), (714, -699)), ((-709, -704), (704, 709)), ((-694, 719), (719, -694))]
+def move_direction(data):
+    points1, points2, red_rhos, white_rhos, red_thetas, white_thetas = data
     dists = []
     diff = {}
-    for p1 in points1:
-        for p2 in points2:
-            # print(p1[0][0] - p1[1][0], p2[0][0] - p2[1][0])
+    for i in range(len(points1)):
+        for j in range(len(points2)):
+            p1 = points1[i]
+            p2 = points2[j]
+            # if (p1[0][0] == p1[1][0] and abs(p2[0][0] - p2[1][0]) < 105) or \
+            #         (p2[0][0] == p2[1][0] and abs(p1[0][0] - p1[1][0]) < 105):
             if p1[0][0] == p1[1][0] and p2[0][0] == p2[1][0]:
-                if p1[0][0] - p2[0][0] > 0:
-                    return 180
-                else:
+                if (p1[0][0] + p1[1][0]) - (p2[0][0] + p2[1][0]) < 0:
                     return 0
-            if p1 == p2 or p1[0][0] == p1[1][0] or p2[0][0] == p2[1][0]:
+                else:
+                    return 180
+            # if p1 == p2 or p1[0][0] == p1[1][0] or p2[0][0] == p2[1][0]:
+            if p1 == p2:
                 continue
+            if p1[0][0] == p1[1][0] or p2[0][0] == p2[1][0]:
+                if p1[0][0] + p1[1][0] < p2[0][0] + p2[1][0]:
+                    return '↓'
+                elif p1[0][0] + p1[1][0] > p2[0][0] + p2[1][0]:
+                    return '↑'
+                return 'None'
+
+            red_rho = red_rhos[i]
+            white_rho = white_rhos[j]
+            red_theta = red_thetas[i]
+            white_theta = white_thetas[j]
+
             line1 = calc_line(p1)
             line2 = calc_line(p2)
+
+            # print('diff of rho: ',end='')
+            # print(red_rho - white_rho)
+            # print('diff of theta: ', end='')
+            # print(red_theta - white_theta)
+            # if abs( - white_rho) < 1.1 and abs(red_theta - white_theta) < 0.3:
+            #     dist = calc_dist((line1, line2))
+            #     dists.append(dist)
+            #     diff[dist] = line1[2] - line2[2]
+            #     print('diff of rho: ',end='')
+            #     print(red_rho - white_rho)
+            #     print(red_theta, white_theta)
+            #     print('diff of theta: ', end='')
+            #     print(red_theta - white_theta)
+            #     if abs(red_theta - white_theta) < 0.3:
+            #         if red_theta > 0:
+            #             if red_rho - white_rho > 0:
+            #                 return '↓'
+            #             return '↑'
+            #         if red_rho - white_rho > 0:
+            #             return '↑'
+            #         return '↓'
+            # if abs( - white_rho) < 1.1 and abs(red_theta - white_theta) < 0.3:
+            if red_theta - white_theta == 0 and abs( - white_rho) < 0.4:
+                if red_theta > 0 and red_rho - white_rho < 0:
+                    return '↓'
+                elif red_theta > 0 and red_rho - white_rho > 0:
+                    return '↑'
+                elif red_theta < 0 and red_rho - white_rho > 0:
+                    return '↓'
+                elif red_theta < 0 and red_rho - white_rho < 0:
+                    return '↑'
+            if red_rho - white_rho == 0 and abs(red_theta - white_theta) < 0.3:
+                if red_theta > 0 and red_theta - white_theta < 0:
+                    return '↓'
+                elif red_theta > 0 and red_theta - white_theta > 0:
+                    return '↑'
+                elif red_theta < 0 and red_theta - white_theta < 0:
+                    return '↑'
+                elif red_theta < 0 and red_theta - white_theta > 0:
+                    return '↓'
+            # if abs( - white_rho) < 0.4 and abs(red_theta - white_theta) < 0.3:
+            #     if red_theta - white_theta < 0 and red_rho - white_rho < 0:
+            #         return '↓'
+            #     elif red_theta - white_theta > 0 and red_rho - white_rho > 0:
+            #         return '↑'
+
+
+            # # print('Direction judge: ', end='')
+            # # print(p1, p2)
+            # # print('Line args: ', end='')
+            # # print(line1, line2)
             # print('dist of k ' + str(abs(line1[0] - line2[0])))
-            if abs(line1[0] - line2[0]) < 0.1:
+
+            if abs(line1[0] - line2[0]) < 0.4 or (abs(red_rho - white_rho) < 0.4 and abs(red_theta - white_theta) < 0.3):
                 dist = calc_dist((line1, line2))
                 dists.append(dist)
                 diff[dist] = line1[2] - line2[2]
+            # # print(abs(line1[0] - line2[0]))
 
-    if dists == []:
+    if dists == [] or abs(diff[min(dists)]) > 3:
         return 'None'
+    # count = 0
+    # for i in dists:
+    #     if diff[i] < 0:
+    #         count += 1
+    # if count * 2 > len(dists):
+    #     return '↓'
+    # else:
+    #     return '↑'
     if diff[min(dists)] < 0:
         # print('↓')
         return '↓'
