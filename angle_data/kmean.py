@@ -92,23 +92,30 @@ def calc_angle(im, mode):
     # rtn = draw_lines(I_copy, (((points[0], points[1]), (points[2], points[3])),))
 
     ag = angles[index]
-    # if mode == 'red':
-    #     th = get_threshold(I_DCremove, 0.6)
-    #     BW_temp = I_DCremove < th
-    # BW[int(BORDER/2):19+BORDER-int(BORDER/2),int(BORDER/2):19+BORDER-int(BORDER/2)] = BW_temp
-    H, T, R = hough_line(BW * 255)
-    hspace, angles, dists = hough_line_peaks(H, T, R, min_distance=1, min_angle=1, num_peaks=NUM_PEAKS*50)
-    rhos = [[], []]
-    for i in range(len(angles)):
-        if math.degrees(abs(angles[i] - ag)) < TOLERATE_DIFF*2:
-            # print('same angle')
-            rhos[0].append(dists[i])
-        if abs(90 - math.degrees(abs(angles[i] - ag))) < TOLERATE_DIFF*2:
-            # print('verticle angle')
-            rhos[1].append(dists[i])
+    if mode == 'red':
+        th = get_threshold(I_DCremove, 0.8)
+        BW_temp = I_DCremove < th
+        BW[int(BORDER/2):19+BORDER-int(BORDER/2),int(BORDER/2):19+BORDER-int(BORDER/2)] = BW_temp
+        H, T, R = hough_line(BW * 255)
+        hspace, angles, dists = hough_line_peaks(H, T, R, min_distance=3, min_angle=1, num_peaks=NUM_PEAKS*50)
+        rhos = [[], []]
+        for i in range(len(angles)):
+            if math.degrees(abs(angles[i] - ag)) < TOLERATE_DIFF * 2:
+                # print('same angle')
+                rhos[0].append(dists[i])
+    else:
+        hspace, angles, dists = hough_line_peaks(H, T, R, min_distance=3, min_angle=1, num_peaks=NUM_PEAKS*50)
+        rhos = [[], []]
+        for i in range(len(angles)):
+            if math.degrees(abs(angles[i] - ag)) < TOLERATE_DIFF * 2:
+                # print('same angle')
+                rhos[0].append(dists[i])
+            if abs(90 - math.degrees(abs(angles[i] - ag))) < TOLERATE_DIFF * 2:
+                # print('verticle angle')
+                rhos[1].append(dists[i])
     # rhos[0]: rhos of the similar angle as returned one
     # rhos[1]: rhos of the verticle angle as returned one
-    return ang, rtn, rhos, x
+    return ang, rtn, rhos, x, BW_temp
 
 
 def pil2cv(im):
@@ -140,8 +147,10 @@ def red_img_name(idx_str, prefix='./'):
     return prefix + 'red_' + idx_str + '.png'
 
 fig = plt.figure()
-ax = fig.add_subplot(211)
-ax2 = fig.add_subplot(212)
+ax = fig.add_subplot(221)
+ax2 = fig.add_subplot(222)
+ax3 = fig.add_subplot(223)
+ax4 = fig.add_subplot(224)
 plt.ion()
 imgs_val = get_imgs()
 # imgs_val = ['138']
@@ -151,11 +160,13 @@ c=0
 for i in imgs_val:
     r_im = Image.open(red_img_name(i))
     w_im = Image.open(white_img_name(i))
-    r_ang, rtn_r, r_rhos, raw_rx = calc_angle(r_im, 'red')
-    w_ang, rtn_w, w_rhos, raw_wx = calc_angle(w_im, 'white')
+    r_ang, rtn_r, r_rhos, raw_rx, b_r = calc_angle(r_im, 'red')
+    w_ang, rtn_w, w_rhos, raw_wx, b_w = calc_angle(w_im, 'white')
     # ax.imshow(rtn)
     # plt.show()
     # plt.pause(3)
+    ax3.imshow(b_r)
+    ax4.imshow(b_w)
     rhos = []
     if abs(r_ang - w_ang) <= 45:
         ang = w_ang
@@ -167,17 +178,21 @@ for i in imgs_val:
         rhos.append(r_rhos[0])
     min_dist = 999
     min_dist_r = [[], []]
-    km1 = KMeans(n_clusters=3).fit(np.array(rhos[0]).reshape(-1,1))
-    km2 = KMeans(n_clusters=3).fit(np.array(rhos[1]).reshape(-1,1))
-    result1 = km1.cluster_centers_.reshape(1,-1).tolist()[0]
-    result2 = km2.cluster_centers_.reshape(1,-1).tolist()[0]
-    result1.remove(min(result1))
-    result1.remove(max(result1))
-    result2.remove(min(result2))
-    result2.remove(max(result2))
-    extract_rho1 = min(result1)
-    extract_rho2 = min(result2)
-    print('extract:', extract_rho1-extract_rho2)
+    # km1 = KMeans(n_clusters=5).fit(np.array(rhos[0]).reshape(-1,1))
+    # km2 = KMeans(n_clusters=5).fit(np.array(rhos[1]).reshape(-1,1))
+    # result1 = km1.cluster_centers_.reshape(1,-1).tolist()[0]
+    # result2 = km2.cluster_centers_.reshape(1,-1).tolist()[0]
+    # result1.remove(min(result1))
+    # result1.remove(max(result1))
+    # result1.remove(min(result1))
+    # result1.remove(max(result1))
+    # result2.remove(min(result2))
+    # result2.remove(max(result2))
+    # result2.remove(min(result2))
+    # result2.remove(max(result2))
+    # extract_rho1 = min(result1)
+    # extract_rho2 = min(result2)
+    # print('extract:', extract_rho1-extract_rho2)
     # print('km1',km1.cluster_centers_.reshape(1,-1).tolist()[0])
     # print('km2',km2.cluster_centers_.reshape(1,-1).tolist()[0])
 
@@ -189,31 +204,31 @@ for i in imgs_val:
                 min_dist = abs(r1-r2)
                 min_dist_r[0] = [r1]
                 min_dist_r[1] = [r2]
-            elif abs(r1-r2) == min_dist:
-                # print(min_dist_r[0] - r1, min_dist_r[1] - r2)
-                # if abs(np.mean(min_dist_r[0]) - r1) < min_dist:
-                #     min_dist_r[0].append(r1)
-                #     min_dist = abs(np.mean(min_dist_r[0]) - np.mean(min_dist_r[1]))
-                if abs(np.mean(min_dist_r[1]) - r2) < min_dist:
-                    min_dist_r[1].append(r2)
-                    min_dist = abs(np.mean(min_dist_r[0]) - np.mean(min_dist_r[1]))
+            # elif abs(r1-r2) == min_dist:
+            #     # print(min_dist_r[0] - r1, min_dist_r[1] - r2)
+            #     # if abs(np.mean(min_dist_r[0]) - r1) < min_dist:
+            #     #     min_dist_r[0].append(r1)
+            #     #     min_dist = abs(np.mean(min_dist_r[0]) - np.mean(min_dist_r[1]))
+            #     if abs(np.mean(min_dist_r[1]) - r2) < min_dist:
+            #         min_dist_r[1].append(r2)
+            #         min_dist = abs(np.mean(min_dist_r[0]) - np.mean(min_dist_r[1]))
     if min_dist_r == [[], []]:
         print(i)
         # c+=1
     min_dist_r = [np.mean(min_dist_r[0]), np.mean(min_dist_r[1])]
     raw_rx = math.radians(raw_rx)
-    # points = calc_points(min_dist_r[0], raw_rx)
-    points = calc_points(extract_rho1, raw_rx)
+    points = calc_points(min_dist_r[0], raw_rx)
+    # points = calc_points(extract_rho1, raw_rx)
     
     fim_w = draw_lines(rtn_w, (((points[0], points[1]), (points[2], points[3])),), \
             color=(255, 0, 0))
-    # points = calc_points(min_dist_r[1], raw_rx)
-
-    points = calc_points(extract_rho2, raw_rx)
+    points = calc_points(min_dist_r[1], raw_rx)
+    # points = calc_points(extract_rho2, raw_rx)
 
     fim_r = draw_lines(rtn_r, (((points[0], points[1]), (points[2], points[3])),), \
             color=(255, 255, 0))
 
+    # positive = extract_rho1 - extract_rho2 > 0
     positive = min_dist_r[0] - min_dist_r[1] > 0
     if min_dist > 3:
         print('too large min_dist', min_dist)
@@ -245,10 +260,10 @@ for i in imgs_val:
             c += 1
         else:
             print(positive, theta_positive, abs(int(i) - ang), min_dist_r)
-            ax.imshow(fim_r)
-            ax2.imshow(fim_w)
-            plt.show()
-            plt.pause(3)
+            # ax.imshow(fim_r)
+            # ax2.imshow(fim_w)
+            # plt.show()
+            # plt.pause(3)
             print(i)
     else:
         assert2 = abs(int(i) - ang) < 10
@@ -257,10 +272,10 @@ for i in imgs_val:
             c += 1
         else:
             print(positive, theta_positive, int(i), ang, min_dist_r)
-            ax.imshow(fim_r)
-            ax2.imshow(fim_w)
-            plt.show()
-            plt.pause(3)
+            # ax.imshow(fim_r)
+            # ax2.imshow(fim_w)
+            # plt.show()
+            # plt.pause(3)
             print(i)
 print(len(t))
 print(100-c)
