@@ -7,6 +7,7 @@ import math
 from cv2 import cv2
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
+import collections
 from sklearn.cluster import KMeans
 
 def get_imgs():
@@ -39,7 +40,7 @@ def get_threshold(im, ratio=0.8):
 def closing(img, kernel):
     img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
     return img
-def calc_angle(im_raw, mode):
+def calc_angle(im_raw, mode, ref=None):
     BORDER = 6
     if mode == 'white':
         im = im_raw
@@ -95,48 +96,31 @@ def calc_angle(im_raw, mode):
     ang = - x + 90
     points = calc_points(rho, theta)
     rtn = I_copy
-    # rtn = draw_lines(I_copy, (((points[0], points[1]), (points[2], points[3])),))
+    rtn = draw_lines(I_copy, (((points[0], points[1]), (points[2], points[3])),))
 
-    ag = angles[index]
-    if mode == 'red':
-        # im = ImageEnhance.Contrast(im_raw).enhance(5)
-        im = np.array(im_raw.convert('L'))
-        I_DC = im
-        # I_DC = gaussian_filter(im, 2.5)
-        I_DC = I_DC - np.min(I_DC)
-        # I_DCremove = im - I_DC
-        I_DCremove = im
-        th = get_threshold(I_DCremove, 0.55)
-        BW_temp = I_DCremove < th
-        BW[int(BORDER/2):19+BORDER-int(BORDER/2),int(BORDER/2):19+BORDER-int(BORDER/2)] = BW_temp
-        kernel = np.ones((2,2))
-        BW = erode(BW, kernel, 1)
-        # BW = closing(BW, kernel)
-        H, T, R = hough_line(BW * 255)
-        hspace, angles, dists = hough_line_peaks(H, T, R, min_distance=1, min_angle=1, num_peaks=NUM_PEAKS*30)
-        rhos = [[], []]
-        votes = [[], []]
-        for i in range(len(angles)):
-            if math.degrees(abs(angles[i] - ag)) < TOLERATE_DIFF * 2:
+    ag = theta
+    if ref is not None:
+        ag = ref
+    rows, cols = H.shape
+    rhos = [[], []]
+    votes = [[], []]
+    for i in range(rows):
+        for j in range(cols):
+            if math.degrees(abs(T[j] - ag)) < 1 and H[i][j] > 4:
                 # print('same angle')
-                rhos[0].append(dists[i])
-                votes[0].append(hspace[i])
-    else:
-        hspace, angles, dists = hough_line_peaks(H, T, R, min_distance=3, min_angle=1, num_peaks=NUM_PEAKS*50)
-        rhos = [[], []]
-        votes = [[], []]
-        for i in range(len(angles)):
-            if math.degrees(abs(angles[i] - ag)) < TOLERATE_DIFF * 2:
+                rhos[0].append(R[i])
+                votes[0].append(H[i][j])
+            if abs(180 - math.degrees(abs(T[j] - ag))) < 1 and H[i][j] > 4:
                 # print('same angle')
-                rhos[0].append(dists[i])
-                votes[0].append(hspace[i])
-            if abs(90 - math.degrees(abs(angles[i] - ag))) < TOLERATE_DIFF * 2:
+                rhos[0].append(R[i])
+                votes[0].append(H[i][j])
+            if abs(90 - math.degrees(abs(T[j] - ag))) < 2 and H[i][j] > 4:
                 # print('verticle angle')
-                rhos[1].append(dists[i])
-                votes[1].append(hspace[i])
+                rhos[1].append(R[i])
+                votes[1].append(H[i][j])
     # rhos[0]: rhos of the similar angle as returned one
     # rhos[1]: rhos of the verticle angle as returned one
-    return ang, rtn, rhos, votes, x, BW
+    return ang, rtn, rhos, votes, x, BW, H, rho
 
 
 def pil2cv(im):
@@ -177,133 +161,217 @@ imgs_val = get_imgs()
 # imgs_val = ['138']
 t=[]
 d=[]
-c=0
+c=[0, 0, 0, 0]
 for i in imgs_val:
     r_im = Image.open(red_img_name(i))
     w_im = Image.open(white_img_name(i))
-    r_ang, rtn_r, r_rhos, r_votes, raw_rx, b_r = calc_angle(r_im, 'red')
-    w_ang, rtn_w, w_rhos, w_votes, raw_wx, b_w = calc_angle(w_im, 'white')
+    r_ang, rtn_r, r_rhos, r_votes, raw_rx, b_r, H_r, rho_raw_r = calc_angle(r_im, 'red')
+    w_ang, rtn_w, w_rhos, w_votes, raw_wx, b_w, H_w, rho_raw_w = calc_angle(w_im, 'white')
+    
+    
+    # points = calc_points(r)
     # ax.imshow(rtn)
     # plt.show()
     # plt.pause(3)
-    ax3.imshow(b_r)
-    ax4.imshow(b_w)
-    rhos = []
-    votes = []
-    if abs(r_ang - w_ang) <= 45:
+#     ax3.imshow(b_r)
+#     ax4.imshow(b_w)
+    rhos = [] # 0: white 1: red
+    votes = [] # 0: white 1: red
+    # white_rho = None
+    if abs(r_ang - w_ang) <= 45 or abs(180 - abs(r_ang - w_ang)) <= 45:
         ang = w_ang
-        rhos.append(w_rhos[0])
-        votes.append(w_votes[0])
+        rhos = [w_rhos[0]]
+        votes = [w_votes[0]]
+        ref = math.radians(raw_wx)
+        # white_rho = rho_raw_w
     else:
         ang = w_ang + 90
-        rhos.append(w_rhos[1])
-        votes.append(w_votes[1])
-    rhos.append(r_rhos[0])
-    votes.append(r_votes[0])
-    min_dist = 999
-    min_dist_r = [[], []]
-    min_dists_votes = []
-    # print(rhos)
-    # print(votes)
-    for a in range(len(rhos[0])):
-        for b in range(len(rhos[1])):
-            r1 = rhos[0][a]
-            r2 = rhos[1][b]
-            vote1 = votes[0][a]
-            vote2 = votes[1][b]
-            if r1 == r2:
-                continue
-            if abs(r1-r2) < min_dist:
-                min_dist = abs(r1-r2)
-                min_dist_r[0] = [r1]
-                min_dist_r[1] = [r2]
-                min_dists_votes = [vote1 + vote2]
-            elif abs(r1-r2) == min_dist:
-                # if abs(np.mean(min_dist_r[0]) - r1) < min_dist:
-                min_dists_votes = min_dists_votes + [vote1 + vote2]
-                min_dist_r[0].append(r1)
-                min_dist = abs(np.mean(min_dist_r[0]) - np.mean(min_dist_r[1]))
-                # if abs(np.mean(min_dist_r[1]) - r2) < min_dist:
-                min_dist_r[1].append(r2)
-                min_dist = abs(np.mean(min_dist_r[0]) - np.mean(min_dist_r[1]))
-    # print(min_dist_r)
-    # print(min_dists_votes)
-    diff_dist = []
-    # sum_votes = []
-    for index in range(len(min_dist_r[0])):
-        diff_dist = diff_dist + [min_dist_r[0][index] - min_dist_r[1][index]]
-        # sum_votes = sum_votes + [votes[0][index] + votes[1][index]]
-    max_index = min_dists_votes.index(max(min_dists_votes))
-    
-    # if min_dist_r == [[], []]:
-    #     print(i)
-    #     # c+=1
-    # max_i = min_dists_votes.index(max(min_dists_votes))
-    # min_dist_r = [min_dist_r[0][max_i], min_dist_r[1][max_i]]
-    # # print(min_dist_r)
-    raw_rx = math.radians(raw_rx)
-    points = calc_points(min_dist_r[0][max_index], raw_rx)
-    # points = calc_points(extract_rho1, raw_rx)
-    
-    fim_w = draw_lines(rtn_w, (((points[0], points[1]), (points[2], points[3])),), \
-            color=(255, 0, 0))
-    points = calc_points(min_dist_r[1][max_index], raw_rx)
-    # points = calc_points(extract_rho2, raw_rx)
+        raw_wx = raw_wx + 90 if raw_wx < 0 else raw_wx - 90
+        rhos = [w_rhos[1]]
+        votes = [w_votes[1]]
+        ref = raw_wx # + 90 if raw_wx < 0 else raw_wx - 90
+        ref = math.radians(ref)
+    r_ang, rtn_r, r_rhos, r_votes, raw_rx, b_r, H_r, rho_raw_r = calc_angle(r_im, 'red', ref=ref)
+    rhos = rhos + [r_rhos[0]]
+    votes = votes + [r_votes[0]]
+    # print(rhos, votes)
 
-    fim_r = draw_lines(rtn_r, (((points[0], points[1]), (points[2], points[3])),), \
-            color=(255, 255, 0))
+    assert rhos[0] != [] and rhos[1] != []
 
-    # # positive = extract_rho1 - extract_rho2 > 0
-    # positive = min_dist_r[0] - min_dist_r[1] > 0
-    positive = diff_dist[max_index] > 0
-    # if min_dist > 3:
-    #     print('too large min_dist', min_dist)
-    # # print(min_dist, min_dist_r, raw_rx)
+    white_rho_blocks = []
+    tmp = []
+    for rho_i in range(len(rhos[0])):
+        # vs = list(dic_white.keys())
+        # rs = list(dic_white.values())
+        r = rhos[0][rho_i]
+        v = votes[0][rho_i]
+        if v > 8:
+            if len(tmp) > 0:
+                if abs(r -tmp[-1]) < 2:
+                    tmp.append(r)
+                else:
+                    white_rho_blocks.append(tmp)
+                    tmp = []
+            else:
+                tmp.append(r)
+        elif tmp != []:
+            white_rho_blocks.append(tmp)
+            tmp = []
+
+    red_rho_blocks = []
+    tmp = []
+    for rho_i in range(len(rhos[1])):
+        # vs = list(dic_white.keys())
+        # rs = list(dic_white.values())
+        r = rhos[1][rho_i]
+        v = votes[1][rho_i]
+        if v > 8:
+            if len(tmp) > 0:
+                if abs(r -tmp[-1]) < 2:
+                    tmp.append(r)
+                else:
+                    if red_rho_blocks != []:
+                        if np.mean(tmp) != np.mean(red_rho_blocks[-1]):
+                            red_rho_blocks.append(tmp)
+                    else:
+                        red_rho_blocks.append(tmp)
+                    tmp = []
+            else:
+                tmp.append(r)
+        elif tmp != []:
+            if red_rho_blocks != []:
+                if np.mean(tmp) != np.mean(red_rho_blocks[-1]):
+                    red_rho_blocks.append(tmp)
+            else:
+                red_rho_blocks.append(tmp)
+            tmp = []
+   
+    min_dists = []
+    mid_r_record = None
+    mid_w_record = None
+    for w_block in white_rho_blocks:
+        for r_block in red_rho_blocks:
+            mid_w = (max(w_block)+min(w_block)) / 2
+            mid_r = (max(r_block) + min(r_block)) / 2
+            # mid_w = min(w_block)
+            # mid_r = max(r_block)
+            if abs(mid_w - mid_r) < 3 and mid_w != mid_r:
+                min_dists.append(mid_w - mid_r)
+    
+    # continue
+    if min_dists == []:
+        for w_block in white_rho_blocks:
+            for r_block in red_rho_blocks:
+                # mid_w = (max(w_block)+min(w_block)) / 2
+                # mid_r = (max(r_block) + min(r_block)) / 2
+                mid_w = min(w_block)
+                mid_r = max(r_block)
+                if abs(mid_w - mid_r) < 3 and mid_w != mid_r:
+                    min_dists.append(mid_w - mid_r)
+    print('white blocks:', white_rho_blocks)
+    print('red blocks:', red_rho_blocks)
+    print(min_dists)
+    print()
+
+    assert min_dists != []
+    abs_min_dists = [abs(i) for i in min_dists]
+    # min_abs = min(abs_min_dists)
+    # if min_abs < 2:
+    #     for ele in min_dists:
+    #         if abs(ele) > 2:
+    #             min_dists.remove(ele)
+    # abs_min_dists = [abs(i) for i in min_dists]
+    positive_num, negative_num = 0, 0
+    for num in min_dists:
+        if num > 0:
+            positive_num += 1
+        else:
+            negative_num += 1
+    # if abs(positive_num - negative_num) == 0:
+    #     min_index = abs_min_dists.index(min(abs_min_dists))
+    #     positive = min_dists[min_index] > 0
+    # else:
+    # print(min_dists)
+    positive = np.mean(min_dists) > 0
+    # if white_rho is None:
+    #     max_index = votes[0].index(max(votes[0]))
+    #     white_rho = rhos[0][max_index]
+
+    # red_rho = []
+    # for rho_i in range(len(rhos[1])):
+    #     r = rhos[1][rho_i]
+    #     if abs(r - white_rho) < 1.5 and r * white_rho > 0:
+    #         red_rho.append(r)
+    #         print(votes[1][rho_i])
+
+    # if red_rho == []:
+    #     for white_rho in rhos[0]:
+    #         red_rho = []
+    #         for rho_i in range(len(rhos[1])):
+    #             r = rhos[1][rho_i]
+    #             if abs(r - white_rho) < 1.5 and r * white_rho > 0:
+    #                 red_rho.append(r)
+    #         if len(red_rho) > 1:
+    #             print(votes[1][rho_i])
+    #             break
+    # red_rho = (max(red_rho) + min(red_rho)) / 2
+    # points = calc_points(red_rho, math.radians(raw_rx))
+    # red_drawed = draw_lines(Image.fromarray(b_r*255).convert('RGB'), (((points[0], points[1]), (points[2], points[3])),))
+    # points = calc_points(white_rho, math.radians(raw_rx))
+    # white_drawed = draw_lines(Image.fromarray(b_w*255).convert('RGB'), (((points[0], points[1]), (points[2], points[3])),))
+
+
     if ang > 180:
         ang -= 180
     ang -= 90
     if ang < 0:
         ang += 180
-    correct = int(i)
-    if correct > 180:
-        correct -= 180
-    diff1= abs(ang-correct)
-    # diff2 = abs(90-abs(ang-correct))
-    diff3 = abs(180-abs(ang-correct))
-    min_diff = min([diff1,diff3])
-    # min_diff = diff2
-    if round(min_diff) > 3:
-        t.append(i)
-        d.append(min_diff)
-        print(i, ang, min_diff)
-#     break
-    theta_positive = raw_rx > 0
-    if abs(raw_rx) < 1:
-        print(positive, raw_rx)
-    
-    if positive == theta_positive:
+    # positive = white_rho - red_rho > 0
+    theta_positive = raw_wx > 0
+    print(positive, theta_positive, int(i), ang, raw_wx)
+    error = False
+    if theta_positive and positive:
         assert1 = abs(180 - abs(int(i) - ang)) < 10
-        # print(abs(180 - abs(int(i) - ang)) < 10)
         if assert1:
-            c += 1
+            c[0] += 1
         else:
-            print(positive, theta_positive, int(i), ang, min_dist_r)
-            # ax.imshow(fim_r)
-            # ax2.imshow(fim_w)
-            # plt.show()
-            # plt.pause(3)
-            print(i)
-    else:
+            # print(i)
+            error = True
+            
+    elif theta_positive and not positive:
         assert2 = abs(int(i) - ang) < 10
-        # print(abs(int(i) - ang) < 10)
         if assert2:
-            c += 1
+            c[1] += 1
         else:
-            print(positive, theta_positive, int(i), ang, min_dist_r)
-            # ax.imshow(fim_r)
-            # ax2.imshow(fim_w)
-            # plt.show()
-            # plt.pause(3)
-            print(i)
+            error = True
+    elif not theta_positive and not positive:
+        assert1 = abs(180 - abs(int(i) - ang)) < 10
+        if assert1:
+            c[2] += 1
+        else:
+            # print(i)
+            error = True
+            
+    elif not theta_positive and positive:
+        assert2 = abs(int(i) - ang) < 10
+        if assert2:
+            c[3] += 1
+        else:
+            error = True
+    # else:
+    #     c+=1
+    # elif (not theta_positive) and not positive:
+
+    if error:
+        t.append(int(i))
+        ax.imshow(H_r)
+        ax2.imshow(H_w)
+        ax3.imshow(rtn_r)
+        ax4.imshow(rtn_w)
+        plt.show()
+        plt.pause(3)
+        input()
 print(len(t))
-print(100-c)
+print(c)
+print(sum(c))
+print('error list:', t)
