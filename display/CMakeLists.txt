@@ -44,6 +44,9 @@ elseif(CMAKE_SYSTEM MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "BSD")
 endif()
 
 add_definitions(-DNPNX_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data")
+add_definitions(-DNPNX_PY_PATH="${CMAKE_CURRENT_SOURCE_DIR}/py")
+add_definitions(-DNPNX_PY_EXECUTABLE="test.exe")
+add_definitions(-DUNICODE)
 
 if (NOT WIN32 AND NOT APPLE) 
 add_compile_options(-std=c++11)
@@ -93,6 +96,7 @@ add_executable(
   winusbdemo
 
   winusbdemo.cpp
+  hcicontroller.cpp
   multimouse.cpp
   dragrectlayer.cpp
   shader.cpp

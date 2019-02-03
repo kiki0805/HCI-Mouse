@@ -12,17 +12,18 @@ struct MouseFifoReport {
   double screenX, screenY;
 };
 
-class MouseFifo {
+template <class T>
+class NpnxFifo {
 public:
-  MouseFifo() = default;
-  ~MouseFifo() = default;
+  NpnxFifo() {data.clear();}
+  ~NpnxFifo() {}
 
-  inline void Push(const MouseFifoReport & report) {
+  inline void Push(const T & report) {
     std::lock_guard<std::mutex> lck(objectMutex);
     data.push_back(report);
   } 
 
-  inline bool Pop(MouseFifoReport *report) {
+  inline bool Pop(T *report) {
     std::lock_guard<std::mutex> lck(objectMutex);
     if (data.empty()) return false;
     *report = data.front();
@@ -32,8 +33,10 @@ public:
 
 private:
   std::mutex objectMutex;
-  std::deque<MouseFifoReport> data;
+  std::deque<T> data;
 };
+
+typedef NpnxFifo<MouseFifoReport> MouseFifo;
 
 }
 

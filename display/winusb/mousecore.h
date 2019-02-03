@@ -56,8 +56,6 @@ private:
   void poll(int idx);
   MouseReport raw_to_mousereport(uint8_t *buffer, size_t size);
 
-public:
-
 private:
   libusb_device *devs[NUM_MOUSE_MAXIMUM];
   libusb_device_handle *devs_handle[NUM_MOUSE_MAXIMUM];

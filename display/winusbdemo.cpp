@@ -238,9 +238,9 @@ int main()
   Renderer renderer(&defaultShader, fbo0);
   Renderer mouseRenderer(&defaultShader, fbo0);
   Renderer postRenderer(&adjustShader, 0);
-
+  Renderer postMouseRenderer(&defaultShader, 0);
+  
   postRenderer.mDefaultTexture.assign({0, fboColorTex0});
-
   dragDemo.renderer = &renderer;
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
@@ -280,17 +280,32 @@ int main()
   ruler.visibleCallback = [&](int nbFrames) { return dragDemo.sceneState==SceneState::ADJUSTING; };
   renderer.AddLayer(&ruler);
 
+  GLuint mouseTex = makeTextureFromImage(NPNX_FETCH_DATA("cursor.png"));
+  GLuint mouseWhiteBlockTex = makeTextureFromImage(NPNX_FETCH_DATA("whiteblock.png"));
+  GLuint mouseRedBlockTex = makeTextureFromImage(NPNX_FETCH_DATA("redblock.png"));
   for (int i = 0; i < multiMouseSystem.cNumLimit; i++) {
     const float cursorSize = 0.1f;
     RectLayer *cursorLayer = new RectLayer(0.0f, -cursorSize, cursorSize * WINDOW_HEIGHT / WINDOW_WIDTH, 0.0f, *(float *) &i);
-    cursorLayer->mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("cursor.png")));
+    cursorLayer->mTexture.push_back(mouseTex);
     cursorLayer->visibleCallback = [] (int) {return false;};
     mouseRenderer.AddLayer(cursorLayer);
+
+    const float blockVSize = 0.1f;
+    const float blockHSize = cursorSize * WINDOW_HEIGHT / WINDOW_WIDTH;
+    RectLayer *postColor = new RectLayer(-blockHSize / 2, -blockVSize / 2, blockHSize / 2, blockVSize /2, *(float *)&i);
+    postColor->mTexture.push_back(mouseWhiteBlockTex);
+    postColor->mTexture.push_back(mouseRedBlockTex);
+    postColor->visibleCallback = [](int) {return false;};
+    postMouseRenderer.AddLayer(postColor);
   }
 
   mouseRenderer.Initialize();
-  multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return dragDemo.sceneState == SceneState::GAMING;});
+  postMouseRenderer.Initialize();
+
+  multiMouseSystem.RegisterPoseMouseRenderer(&postMouseRenderer);
   
+  multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return dragDemo.sceneState == SceneState::GAMING;});
+
   RectLayer postBaseRect(-1.0,-1.0,1.0,1.0,-999.9);
   postBaseRect.mTexture.push_back(0);
   postBaseRect.beforeDraw = [&](const int nbFrames) {
@@ -309,10 +324,8 @@ int main()
   postRenderer.AddLayer(&postRect);
   dragDemo.postLayer = &postRect;
 
-
   renderer.Initialize();
   postRenderer.Initialize();
-
 
   glfwSetKeyCallback(window, key_callback);
   dragDemo.nbFrames = 0;
@@ -333,6 +346,7 @@ int main()
     renderer.Draw(dragDemo.nbFrames);
     mouseRenderer.Draw(dragDemo.nbFrames);
     postRenderer.Draw(dragDemo.nbFrames);
+    postMouseRenderer.Draw(dragDemo.nbFrames);
 
     dragDemo.nbFrames++;
     double thisTime = glfwGetTime();
@@ -349,6 +363,7 @@ int main()
     multiMouseSystem.PollMouseEvents();
   }
   mouseRenderer.FreeLayers();
+  postMouseRenderer.FreeLayers();
   
   glfwTerminate();
   return 0;

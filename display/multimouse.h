@@ -6,6 +6,7 @@
 #include "renderer.h"
 #include "mousefifo.h"
 #include "winusb/mousecore.h"
+#include "hcicontroller.h"
 
 #include <mutex>
 #include <functional>
@@ -51,7 +52,9 @@ public:
   //              |
   //              |
   //
-  void SetMouseState(double rotate, double xCoord, double yCoord); 
+  void SetMouseAngle(double rotate);
+  
+  void SetMousePos(double xCoord, double yCoord); 
   
   void HandleReport(const MouseReport & report);
 
@@ -92,8 +95,13 @@ public:
 
   void Init(MOUSEBUTTONCALLBACKFUNC func); //register raw input for mouse equipments;
 
+  inline void RegisterPoseMouseRenderer(Renderer* renderer) {
+    postMouseRenderer = renderer;
+  } 
+  
   //renderer should have cNumLimit Rectlayers. 
   void RegisterMouseRenderer(Renderer* renderer, std::function<bool(int)> defaultVisibleFunc);
+
 
   void GetCursorPos(int hDevice, double *x, double *y);
 
@@ -110,10 +118,12 @@ public:
   double mSensitivityX = 1.0, mSensitivityY = 1.0;
   MOUSEBUTTONCALLBACKFUNC mouseButtonCallback;
   MouseFifo fifo;
+  MouseCore core;
+  HCIController hciController;
 
 private:
-  MouseCore core;
   Renderer *mouseRenderer;
+  Renderer *postMouseRenderer = NULL;
   std::function<bool(int)> originalMouseVisibleFunc;
 
 
