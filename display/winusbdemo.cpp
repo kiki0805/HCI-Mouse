@@ -15,6 +15,8 @@
 
 using namespace npnx;
 
+const int num_position_texture = 38;
+
 enum class MouseButtonState {
   LEFT_PUSHED, RIGHT_PUSHED, RELEASED 
 };
@@ -226,7 +228,7 @@ int main()
   glUniform1f(glGetUniformLocation(defaultShader.mShader, "yTrans"), 0.0f);
 
   Shader adjustShader;
-  adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment1.glsl"));
+  adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment.glsl"));
   adjustShader.Use();
   glUniform1i(glGetUniformLocation(adjustShader.mShader, "texture0"), 0);
   glUniform1i(glGetUniformLocation(adjustShader.mShader, "rawScreen"), 1);
@@ -318,9 +320,15 @@ int main()
   };
   postRenderer.AddLayer(&postBaseRect);
 
-  RectLayer postRect(-0.9f, -0.9f, 0.1f, 0.8f, 999.9f);
-  postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("hitcircle.png")));
-  postRect.visibleCallback = [] (int) {return false;};
+  RectLayer postRect(-9.0f/16.0f, -1.0f, 9.0f/16.0f, 1.0f, 999.9f);
+  for (int i=0; i<num_position_texture; i++) {
+    std::string pos_texture_path = "fre_m_";
+    pos_texture_path += std::to_string(i);
+    pos_texture_path += ".png";
+    postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
+  }
+  postRect.visibleCallback = [] (int) {return true;};
+  postRect.textureNoCallback = [=] (int nbFrames) {return (nbFrames/10) % num_position_texture;};
   postRenderer.AddLayer(&postRect);
   dragDemo.postLayer = &postRect;
 
