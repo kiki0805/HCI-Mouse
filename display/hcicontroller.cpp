@@ -83,9 +83,9 @@ void HCIInstance::senderEntry(HANDLE hPipe) {
         {
           unsigned char buf[4096];
           buf[0] = nowState;
+          unsigned char tempbuf[255];
+          mParent->core->ControlTransfer(mouseIdx, 0x40, 0x01, 0x0000, 0x010D, tempbuf, 1, 1000);
           for (int i = 0; i < 19*19; i++) {
-            unsigned char tempbuf[255];
-            mParent->core->ControlTransfer(mouseIdx, 0x40, 0x01, 0x0000, 0x010D, tempbuf, 1, 1000);
             int cnt = mParent->core->ControlTransfer(0, 0xC0, 0x01, 0x0000, 0x0D, buf + 1 + i, 1, 1000);
             LIBUSB_CHECK_RET(hcisender_position_controlTrans, cnt);
           }
