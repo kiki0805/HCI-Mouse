@@ -53,10 +53,18 @@
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
 
-// the NPNX_DATA_PATH is set by cmake scripts so that we don't need to care about
+// the NPNX_DATA_PATH NPNX_PY_PATH NPNX_PY_EXECUTABLE is set by cmake scripts so that we don't need to care about
 // where are the binary files in.
 #ifndef NPNX_DATA_PATH
 #define NPNX_DATA_PATH "./data"
+#endif
+
+#ifndef NPNX_PY_PATH
+#define NPNX_PY_PATH "./py"
+#endif
+
+#ifndef NPNX_PY_EXECUTABLE
+#define NPNX_PY_EXECUTABLE "target.py"
 #endif
 
 // CAUTION : Use this will make the pointer invalid immediately after the caller end.

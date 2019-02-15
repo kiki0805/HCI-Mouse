@@ -20,6 +20,8 @@ target_link_libraries(testmousecore libusb-1.0)
 
 add_library(mousecore 
 
+STATIC
+
 libusb_utils.cpp
 mousecore.cpp 
 )
