@@ -17,7 +17,12 @@ void main()
         FragColor = rawColor;
     } else {
         float temp = texture(texture0, TexCoord).x;
-        FragColor = temp * rawColor * 2;
+        // if (temp > 0.5) FragColor = vec4(1.0,1.0,1.0,1.0);
+        // else FragColor = vec4(0.0,0.0,0.0,1.0);
+
+        FragColor = vec4(temp + 0.3*(1 - rawColor.x * 2), temp + 0.3*(1 - rawColor.y * 2), temp + 0.3*(1 - rawColor.z * 2), 1.0);
+        // FragColor = vec4(temp * rawColor.x * 2,temp * rawColor.y * 2,temp * rawColor.z * 2, 1.0);
+        // FragColor = vec4(temp, temp, temp, 1.0);
     }
     //vec4(texture(texture0, TexCoord).xyz, texture(texture0, TexCoord).w) * (1 - letThrough);
     //caution: FragColor.w should always be newColor.w so the gl_blend will be correct
