@@ -1,10 +1,7 @@
 # Trial
 # CODING_METHOD = 'FREQ'
 CODING_METHOD = 'MANCHESTER_MODE'
-<<<<<<< Updated upstream
 # CODING_METHOD = 'INFRAME++'
-=======
->>>>>>> Stashed changes
 # CODING_METHOD = 'DESIGNED_CODE'
 # print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
 # print('\t1. FREQ')
