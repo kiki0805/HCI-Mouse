@@ -13,21 +13,49 @@ from scipy.signal import savgol_filter
 def chunk_decode(np_chunk, flip=False):
     chunk = [str(i) for i in np_chunk]
     chunk = ''.join(chunk)
+    preamble = PREAMBLE_STR
     if flip:
-        pat = '0101'
+        pat = list(preamble)
+        for i in range(len(preamble)):
+            pat[i] = '0' if pat[i] == '1' else '1'
+        pat = ''.join(pat)
     else:
-        pat = '1010'
+        pat = preamble
+    # print(pat)
     rtn = []
 
+    print('try to decode')
     for i in range(len(chunk)):
-        if chunk[i:i+4] == pat:
-            bit_str = designed_decode(chunk[i+4:i+34], flip=flip)
-            if not bit_str:
-                continue
-            if len(bit_str) != BITS_NUM:
-                continue
-            decoded_num = bit_str2num(bit_str)
+        if chunk[i:i+len(pat)] != pat:
+            continue
+        wait2decode = chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND]
+        if len(wait2decode) != (BITS_NUM + 4)* EXPEND:
+            continue
+        bit_str = Manchester_decode(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], flip=flip)
+        # print(bit_str)
+        # bit_str = designed_decode(chunk[i+len(pat):i+len(pat)+BITS_NUM * EXPEND], flip=flip)
+        if not bit_str:
+            continue
+        if len(bit_str) != BITS_NUM + 4:
+            continue
+        decoded_num = bit_str2num(bit_str[:-4])
+        crc_val = list(bit_str[-4:])
+        crc_val = ''.join(crc_val)
+        crc_check = crc_validate(bit_str[:-4], crc_val)
+        # print(crc_cal(bit_str[:-4]), crc_val)
+        if crc_check:
+            # print(flip)
             rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+        # else:
+        #     for index in range(len(bit_str)):
+        #         bit_str = list(bit_str)
+        #         bit_str[index] = '1' if bit_str[index] == '0' else '0'
+        #         if crc_validate(''.join(bit_str), chunk[i+34:i+38]):
+                    
+        #             rtn.append([decoded_num, ''.join(bit_str), naive_location(decoded_num, (32,32))])
+        #             break
+        #         bit_str[index] = '1' if bit_str[index] == '0' else '0'
+        #         bit_str = ''.join(bit_str)
 
     if rtn != []:
         return rtn
@@ -191,17 +219,30 @@ def Manchester_encode(raw_bit_str): # input: str, output: str
         new_bit_str[i] = '01' if bit == '0' else '10'
     return ''.join(new_bit_str)
 
-def Manchester_decode(raw_bit_str): # input: str, output: str
-    assert len(raw_bit_str) % 2 == 0
-    new_bit_str = ['Unassigned']  * int(len(raw_bit_str) / 2)
+def Manchester_decode(raw_bit_str, flip=False): # input: str, output: str
+    assert len(raw_bit_str) % 4 == 0
+    new_bit_str = ['Unassigned']  * int(len(raw_bit_str) / 4)
     for i in range(len(raw_bit_str)):
-        if i % 2 != 0:
+        if i % 4 != 0:
             continue
-        bit0 = raw_bit_str[i]
-        bit1 = raw_bit_str[i + 1]
-        if not (bit0 + bit1 != '11' and bit0 + bit1 != '00'):
+        bits = raw_bit_str[i:i+4]
+
+        # if manhattan_dist(bits, '1010') >= 3:
+        #     bits = '1010'
+        #     # print('fix1')
+        # elif manhattan_dist(bits, '0101') >= 3:
+        #     bits = '0101'
+        #     # print('fix2')
+        # else:
+        if bits != '1010' and bits != '0101':
+            # print(bits, raw_bit_str)
             return None
-        new_bit_str[int(i / 2)] = '0' if bit0 == '0' and bit1 == '1' else '1'
+        
+        if flip:
+            new_bit_str[int(i / 4)] = '1' if bits == '0101' else '0'
+        else:
+            new_bit_str[int(i / 4)] = '0' if bits == '0101' else '1'
+        # print(new_bit_str)
     return ''.join(new_bit_str)
 
 def get_coordinate(x, y):

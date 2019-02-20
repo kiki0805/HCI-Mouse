@@ -24,7 +24,7 @@ def handle_data():
     import time
     import re
     from utils import smooth, interpl, chunk_decode
-    len_e = 1000
+    len_e = 3000
     
     last_ts = None
     plt.ion()
@@ -51,32 +51,43 @@ def handle_data():
         # plt.draw() # plot new figure
         # plt.pause(1e-17)
 
-        continue
+        # continue
 
         if last_ts is None:
             last_ts = raw_frames_m.window[0][0]
         
-        if raw_frames_m.window[-1][0] - last_ts < (len_e + 100) / 1200:
+        if raw_frames_m.window[-1][0] - last_ts < 0.6:
             continue
 
         M = raw_frames_m.window
-        M = M[np.logical_and(M[:,0] > last_ts, M[:,0] < last_ts + len_e / 1200)]
+        M = M[np.logical_and(M[:,0] > last_ts - 0.5, M[:,0] < last_ts + 0.5)]
         Mtime = M[:,0]
         value = M[:,1]
         last_ts = Mtime[-1]
-        sample_time = np.arange(Mtime[0], Mtime[-1], 1/1200)
+        sample_time = np.arange(Mtime[0], Mtime[-1], 1/2400)
+        sample_time = sample_time[sample_time<Mtime[-1]]
         sample_value = interpl(Mtime, value, sample_time, 'nearest')
         sample_value_smooth = smooth(sample_value, 21)
         sample_value_DCremove = smooth(sample_value - sample_value_smooth, 5)
 
-        value = np.zeros((5, 1))
-        for i in range(5):
-            temp_sample = sample_value_DCremove[i:len_e:5]
-            value[i] = np.std(temp_sample[temp_sample > (max(temp_sample) + min(temp_sample)) / 2])
-        std_min = min(value)
+        value = np.zeros((10, 1))
+        for i in range(10):
+            # temp_sample = sample_value_DCremove[i:len_e:5]
+            temp_sample = sample_value_DCremove[i:len_e:10]
+            # temp_sample2 = sample_value_DCremove[i+5:len_e:10*4]
+            # temp_sample3 = sample_value_DCremove[i+10:len_e:10*4]
+            # temp_sample4 = sample_value_DCremove[i+15:len_e:10*4]
+            # print(temp_sample)
+            # ts1 = np.hstack((temp_sample, temp_sample3))
+            # print(ts1)
+            # ts2 = np.hstack((temp_sample2, temp_sample4))
+            value[i] = max(temp_sample) + min(temp_sample)
+            # value[i] += np.std(ts2[ts2 > (max(ts2) + min(ts2)) / 2])
+            # value[i]
+        std_min = max(value)
         shift_index = np.where(value==std_min)[0][0]
-        sample_wave = sample_value_DCremove[shift_index:len_e:5]
-
+        sample_wave = sample_value_DCremove[shift_index:len_e:10]
+        temp_sample = sample_value_DCremove[shift_index:len_e:10]
         ###################### draw ########################
 
         # plt.cla()
@@ -86,8 +97,10 @@ def handle_data():
         # plt.plot(np.arange(len(sample_value_DCremove[shift_index:len_e])), sample_value_DCremove[shift_index:len_e])
 
         # plt.subplot(2, 1, 2)
-        # plt.scatter(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5])
+        # plt.plot(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5], marker='x')
+        # # plt.scatter(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5])
         # threshold = np.array([(max(temp_sample) + min(temp_sample)) / 2] * sample_wave.size)
+        # # threshold = np.array([(max(sample_value_DCremove) + min(sample_value_DCremove)) / 2] * sample_wave.size)
         # plt.plot(np.arange(sample_wave.size), threshold)
         # # plt.scatter(sample_wave)
 
@@ -103,7 +116,9 @@ def handle_data():
         ###################### draw ########################
 
         # thresholding
-        bit_stream = sample_wave <= (max(temp_sample) + min(temp_sample)) / 2
+        
+        # bit_stream = sample_wave <= (max(temp_sample) + min(temp_sample)) / 2
+        bit_stream = sample_wave <= np.mean(temp_sample)
         bit_stream = bit_stream.astype(int)
         result = chunk_decode(bit_stream)
         if result is None:
