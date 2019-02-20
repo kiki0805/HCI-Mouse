@@ -21,12 +21,12 @@ pixel_num = 19
 line_num = 19
 img = Image.new("RGB", (line_num * times, pixel_num * times))
 
-f2 = plt.figure()
-ax2 = f2.add_subplot(211)
-ax = f2.add_subplot(212)
-# ax2 = f2.add_subplot(312)
-# ax = f2.add_subplot(311)
-# ax3 = f2.add_subplot(313)
+f = plt.figure()
+# ax2 = f.add_subplot(211)
+# ax = f.add_subplot(212)
+ax = f.add_subplot(311)
+ax2 = f.add_subplot(312)
+ax3 = f.add_subplot(313)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
@@ -66,7 +66,7 @@ def detect_line(im, threshold):
     # edges2[gray<170] = 255
     # edges2[gray>170] = 0
 
-    lines = cv2.HoughLines(edges, 1, np.pi/180, 1)
+    lines = cv2.HoughLines(edges, 1, np.pi/180, 15)
     # lines2 = cv2.HoughLines(edges2, 1, np.pi/180, 1)
     if lines is None:
         return im, None
@@ -149,6 +149,10 @@ def erode(img, kernel, iterations):
     img = cv2.erode(pil2cv(img),kernel,iterations = iterations)
     return cv2pil(img)
 
+def dilation(img, kernel, iterations):
+    dilation = cv2.dilate(pil2cv(img),kernel,iterations = iterations)
+    return cv2pil(dilation)
+
 def openning(img, kernel):
     opening = cv2.morphologyEx(pil2cv(img), cv2.MORPH_OPEN, kernel)
     return cv2pil(opening)
@@ -162,15 +166,17 @@ def binirization(im, value):
     new = im.copy()
     new[im <= value] = 0
     new[im > value] = 255
+    # new[im <= value] = 255
+    # new[im > value] = 0
     return Image.fromarray(new)
 
 def get_threshold(im):
     # ratio = 3 / 2
-    ratio = 2.5 / 2
-    threshold = 10
+    ratio = 0.7 #0.8
+    threshold = 0
     im = np.array(im)
-    while sum(sum(sum(im > threshold))) > sum(sum(sum(im >= 0))) / ratio:
-        threshold += 10
+    while sum(sum(sum(im > threshold))) > sum(sum(sum(im >= 0))) * ratio:
+        threshold += 3
     return threshold
 
 while True:
@@ -193,25 +199,34 @@ while True:
         # print(time.time() - start)
 
     # ax.imshow(img)
+    ax.imshow(img)
     # print(get_threshold(img))
-    threshold = get_threshold(img)
-    # img = ImageEnhance.Contrast(img).enhance(5) # 5 for first step, 3 for second step
+    img2 = cv2pil(cv2.GaussianBlur(pil2cv(img) ,(5,5),0))
+    for i in range(100):
+        img2 = cv2pil(cv2.GaussianBlur(pil2cv(img2) ,(5,5),0))
+
+    img2 = cv2pil(pil2cv(img) - pil2cv(img2) + np.min(img2))
+    kernel2 = np.ones((2,2), np.uint8)
+    kernel = np.ones((2,2), np.uint8)
+    kernel2 = np.array(((0, 0),(0, 1)), np.uint8)
+    img2 = dilation(img2, kernel, 1)
+    img2 = erode(img2, kernel2, 1)
+    img2 = dilation(img2, kernel, 1)
+    img2 = erode(img2, kernel2, 1)
+    threshold = get_threshold(img2)
     
-    # img = binirization(img, threshold)
-    # # img = binirization(img, 170)
-    # kernel = np.ones(((2,2)), np.uint8)
-    # # img = openning(img, kernel)
-    # img2 = openning(img, kernel)
-    img2 = binirization(img, threshold)
-    ax.imshow(img2)
-    # # img = closing(img, kernel)
-    # # kernel2 = np.zeros((2,2), np.uint8)
-    # # img2 = erode(img, kernel2, 2)
-    # # img = closing(img, kernel)
-    # # img2, angle = detect_line(img2)
-    # ax3.imshow(img2)
-    img, angle = detect_line(img, threshold)
-    ax2.imshow(img)
+    img2 = binirization(img2, threshold)
+    ax2.imshow(img2)
+
+    ##########################
+    img3 = ImageEnhance.Contrast(img).enhance(5)
+    threshold = get_threshold(img3)
+    img3 = binirization(img3, threshold)
+    # img3 = erode(img3, kernel2, 1)
+    ax3.imshow(img3)
+
+    img, angle = detect_line(img2, threshold)
+    # ax.imshow(img)
     
 
     plt.show()

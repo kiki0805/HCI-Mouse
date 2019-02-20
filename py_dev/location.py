@@ -29,7 +29,8 @@ class Localizer:
         value = M[:,1]
         last_ts = Mtime[-1]
         sample_time = np.arange(Mtime[0], Mtime[-1], 1 / FRAME_RATE / 5)
-        sample_value = interpl(Mtime, value, sample_time, 'nearest')
+        sample_value = interpl(Mtime, value, sample_time[:-1], 'nearest')
+        sample_time = sample_time[:-1]
         sample_value_smooth = smooth(sample_value, 21)
         sample_value_DCremove = smooth(sample_value - sample_value_smooth, 5)
 
@@ -42,8 +43,26 @@ class Localizer:
         sample_wave = sample_value_DCremove[shift_index:self.len_e:5]
 
         # thresholding
-        bit_stream = sample_wave <= (max(temp_sample) + min(temp_sample)) / 2
-        bit_stream = bit_stream.astype(int)
+        gap = (max(temp_sample) + min(temp_sample)) / 2
+        normal = sample_wave <= gap
+        # dist = max(temp_sample) - min(temp_sample)
+        # ones = sample_wave <= min(temp_sample) + dist / 5
+        # zeros = sample_wave > max(temp_sample) - dist / 5
+        # TBD = np.logical_and(np.logical_not(ones), np.logical_not(zeros))
+        # TBD_copy = TBD.copy()
+        # for i in range(TBD.size):
+        #     if not TBD[i] or i == 0 or i == TBD.size - 1:
+        #         continue
+        #     if normal[i-1] == normal[i+1] and normal[i-1] != normal[i]:
+        #         TBD_copy[i] = normal[i-1]
+        # for i in range(TBD.size):
+        #     if not TBD[i]:
+        #         continue
+        #     normal[i] = TBD_copy[i]
+        
+        # bit_stream = sample_wave <= (max(temp_sample) + min(temp_sample)) / 2
+        # bit_stream = bit_stream.astype(int)
+        bit_stream = normal.astype(int)
         result = chunk_decode(bit_stream)
         if result is None:
             result = chunk_decode(bit_stream, flip=True)

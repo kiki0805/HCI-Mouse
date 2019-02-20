@@ -158,13 +158,17 @@ ax3 = fig.add_subplot(223)
 ax4 = fig.add_subplot(224)
 plt.ion()
 imgs_val = get_imgs()
-# imgs_val = ['138']
+# imgs_val = ['130','135','138','140']
+imgs_val = ['135']
 t=[]
+
 d=[]
 c=[0, 0, 0, 0]
 for i in imgs_val:
     r_im = Image.open(red_img_name(i))
     w_im = Image.open(white_img_name(i))
+    # r_im = Image.open('test_r.png')
+    # w_im = Image.open('test_w.png')
     r_ang, rtn_r, r_rhos, r_votes, raw_rx, b_r, H_r, rho_raw_r = calc_angle(r_im, 'red')
     w_ang, rtn_w, w_rhos, w_votes, raw_wx, b_w, H_w, rho_raw_w = calc_angle(w_im, 'white')
     
@@ -361,6 +365,15 @@ for i in imgs_val:
     # else:
     #     c+=1
     # elif (not theta_positive) and not positive:
+
+    #temp
+    ax.imshow(H_r)
+    ax2.imshow(H_w)
+    ax3.imshow(rtn_r)
+    ax4.imshow(rtn_w)
+    plt.show()
+    plt.pause(3)
+    input()
 
     if error:
         t.append(int(i))

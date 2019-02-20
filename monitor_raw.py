@@ -18,9 +18,9 @@ update_time = -1 if update_time == '' else int(update_time)
 
 dur = 10 if dur == '' else int(dur)
 idVendor = 0x046d
-# idProduct = 0xc077 # dell
+idProduct = 0xc077 # dell
 # idProduct = 0xc019 # logitech without tag
-idProduct = 0xc05b # logitech with tag
+# idProduct = 0xc05b # logitech with tag
 
 device = usb.core.find(idVendor=idVendor, idProduct=idProduct)
 
@@ -47,6 +47,7 @@ def init():
 plt.ion()
 
 line1, = plt.plot([], [], 'r', label='original') 
+# line1 = None
 ax = plt.gca() # get most of the figure elements 
 
 start = time.time()
@@ -103,6 +104,7 @@ def update():
     global q, update_time
     raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, int(MOUSE_FRAME_RATE * 0.05))
     # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, MOUSE_FRAME_RATE)
+    f = open('location_data_without_off.csv', 'w')
     time1 = None
     while True:
 
@@ -114,12 +116,13 @@ def update():
 
         val = int.from_bytes(response, 'big')
         val_fixed = val
-        # if val_fixed < 128:
-        #    # print('+ 128')
-        #    val_fixed += 128
+        if val_fixed < 128:
+           # print('+ 128')
+           val_fixed += 128
         # if val_fixed > 240:
         #    # print('delete')
-        #    continue
+        f.write(str(val_fixed) + ','  + str(timestamp) + '\n')
+        continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
         if raw_frames_m.line and timestamp - time1 > update_time:
@@ -142,6 +145,7 @@ start = time.time()
 global_count = 0
 flag = 0
 while time.time() - start < dur:
+    t1 = time.time()
     response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                      bRequest = 0x01,
                      wValue = 0x0000,
@@ -152,6 +156,7 @@ while time.time() - start < dur:
     
     init()
     q.put((response, time.time()))
+    # print(time.time() - t1)
     global_count += 1
 
 print('Frame rate: ' + str(global_count / (time.time() - start)))

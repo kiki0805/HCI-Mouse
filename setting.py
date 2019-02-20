@@ -1,7 +1,10 @@
 # Trial
 # CODING_METHOD = 'FREQ'
 CODING_METHOD = 'MANCHESTER_MODE'
+<<<<<<< Updated upstream
 # CODING_METHOD = 'INFRAME++'
+=======
+>>>>>>> Stashed changes
 # CODING_METHOD = 'DESIGNED_CODE'
 # print('Choose Coding Method: (current is ' + CODING_METHOD + ')')
 # print('\t1. FREQ')
@@ -61,7 +64,7 @@ FRAME_RATE = 240
 MOUSE_FRAME_RATE = 1600 #2800 # 2400
 
 if MANCHESTER_MODE:
-    PREAMBLE_STR = '10' # '10101010101010' # '000'
+    PREAMBLE_STR = '100110' # '10101010101010' # '000'
 elif CRC4:
     PREAMBLE_STR = ''
 elif fiveBsixB:

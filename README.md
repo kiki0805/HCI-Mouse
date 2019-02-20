@@ -1,3 +1,10 @@
+#
+
+- `python3 hci.py idx inpipe outpipe`
+    - `idx` 用于向 `outpipe` 指明鼠标编号
+
+---
+
 - Frame on the monitor/screen/displayer to display: `frame_d`.
     - For video of 60Hz, the length of `frame_d` is 1/60 = 0.167s.
 - Frame captured by the mouse: `frame_m`.
