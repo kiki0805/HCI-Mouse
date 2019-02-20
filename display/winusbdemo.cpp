@@ -328,7 +328,7 @@ int main()
     postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
   }
   postRect.visibleCallback = [] (int) {return true;};
-  postRect.textureNoCallback = [=] (int nbFrames) {return (nbFrames/10) % num_position_texture;};
+  postRect.textureNoCallback = [=] (int nbFrames) {return nbFrames % num_position_texture;};
   postRenderer.AddLayer(&postRect);
   dragDemo.postLayer = &postRect;
 
