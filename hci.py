@@ -15,20 +15,18 @@ idVendor = 0x046d
 idProduct = 0xc077 # dell
 # idProduct = 0xc019 # logitech without tag
 # idProduct = 0xc05b # logitech with tag
-if idProduct == 0xc077:
-    register = 0x0D # 0x0B
-else:
-    register = 0x0B
+
 
 def handle_data():
     import time
     import re
     from utils import smooth, interpl, chunk_decode
     len_e = 3000
-    
+    register = 0x0D
     last_ts = None
     plt.ion()
     ax = plt.gca()
+    result_ts = time.time()
     while True:
         response, timestamp = q.get()
         if not response:
@@ -37,10 +35,11 @@ def handle_data():
         # Fix raw value
         val = int.from_bytes(response, 'big')
         val_fixed = val
-        if val_fixed < 128:
-            val_fixed += 128
-        if val_fixed > 240:
-            continue
+        if register == 0x0D:
+            if val_fixed < 128:
+                val_fixed += 128
+            if val_fixed > 240:
+                continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
         
@@ -67,7 +66,7 @@ def handle_data():
         sample_time = np.arange(Mtime[0], Mtime[-1], 1/2400)
         sample_time = sample_time[sample_time<Mtime[-1]]
         sample_value = interpl(Mtime, value, sample_time, 'nearest')
-        sample_value_smooth = smooth(sample_value, 21)
+        sample_value_smooth = smooth(sample_value, 41)
         sample_value_DCremove = smooth(sample_value - sample_value_smooth, 5)
 
         value = np.zeros((10, 1))
@@ -125,13 +124,22 @@ def handle_data():
             result = chunk_decode(bit_stream, flip=True)
 
         if result is not None:
+            result_ts = time.time()
             for i in result:
                 print(i)
+
+        if time.time() - result_ts > 2.5:
+            # print('change register')
+            last_ts = None
+            raw_frames_m.window = np.array([[]])
+            register = 0x0B if register == 0x0D else 0x0D
+            result_ts = time.time()
+            flag.put(1)
 
 if __name__ == '__main__':
     dur = input('Duration(default is 10): ')
     dur = 10 if dur == '' else int(dur)
-
+    flag = Queue()
 
 #046d:c077
 #046d:c05a
@@ -153,19 +161,23 @@ if __name__ == '__main__':
 
     start = time.time()
     global_count = 0
-
+    register_ = 0x0D
     while time.time() - start < dur:
+        if not flag.empty():
+            flag.get()
+            register_ = 0x0B if register_ == 0x0D else 0x0D
+            print('change register')
         device.ctrl_transfer(bmRequestType = 0x40, #Write
                         bRequest = 0x01,
                         wValue = 0x0000,
-                        wIndex = register, #PIX_GRAB register value
+                        wIndex = register_, #PIX_GRAB register value
                         data_or_wLength = None
                         )
 
         response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
                         bRequest = 0x01,
                         wValue = 0x0000,
-                        wIndex = register, #PIX_GRAB register value
+                        wIndex = register_, #PIX_GRAB register value
                         data_or_wLength = 1
                         )
         timestamp = time.time()

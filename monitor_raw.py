@@ -1,3 +1,6 @@
+FILE_NAME = 'lab1_loc2.csv'
+# FILE_NAME = None
+
 import usb.core
 import re
 import sys
@@ -12,11 +15,16 @@ import usb.util
 from setting import *
 from utils import *
 
-dur = input('Duration: ')
-update_time = input('update time: _s ')
-update_time = -1 if update_time == '' else int(update_time)
+if not FILE_NAME:
+    
+    dur = input('Duration: ')
+    update_time = input('update time: _s ')
+    update_time = -1 if update_time == '' else int(update_time)
 
-dur = 10 if dur == '' else int(dur)
+    dur = 10 if dur == '' else int(dur)
+else:
+    dur = 999
+    update_time = -1
 idVendor = 0x046d
 idProduct = 0xc077 # dell
 # idProduct = 0xc019 # logitech without tag
@@ -25,7 +33,8 @@ idProduct = 0xc077 # dell
 device = usb.core.find(idVendor=idVendor, idProduct=idProduct)
 
 if idProduct == 0xc077:
-    register = 0x0D # 0x0B
+    # register = 0x0D # 0x0B
+    register = 0x0B # average
 else:
     register = 0x0B
 if device.is_kernel_driver_active(0):
@@ -104,8 +113,10 @@ def update():
     global q, update_time
     raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, int(MOUSE_FRAME_RATE * 0.05))
     # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, MOUSE_FRAME_RATE)
-    f = open('location_data_without_off.csv', 'w')
+    if FILE_NAME:
+        f = open(FILE_NAME, 'w')
     time1 = None
+    print('started')
     while True:
 
         response, timestamp = q.get()
@@ -116,13 +127,15 @@ def update():
 
         val = int.from_bytes(response, 'big')
         val_fixed = val
-        if val_fixed < 128:
-           # print('+ 128')
-           val_fixed += 128
+        if register == 0x0D:
+            if val_fixed < 128:
+            # print('+ 128')
+                val_fixed += 128
         # if val_fixed > 240:
         #    # print('delete')
-        f.write(str(val_fixed) + ','  + str(timestamp) + '\n')
-        continue
+        if FILE_NAME:
+            f.write(str(val_fixed) + ','  + str(timestamp) + '\n')
+            continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
         if raw_frames_m.line and timestamp - time1 > update_time:
@@ -132,7 +145,7 @@ def update():
             plt.draw() # plot new figure
             if update_time != -1:
                 time1 = timestamp
-                plt.pause(update_time)
+                plt.pause(1e-6)
             else:
                 plt.pause(1e-6)
 
@@ -153,8 +166,15 @@ while time.time() - start < dur:
                      wIndex = register, #PIX_GRAB register value
                      data_or_wLength = 1
                      )
-    
-    init()
+    # response2 = device.ctrl_transfer(bmRequestType = 0xC0, #Read
+    #                  bRequest = 0x01,
+    #                  wValue = 0x0000,
+    #                 #  wIndex = 0x0D, #PIX_GRAB register value
+    #                  wIndex = 0x09, #PIX_GRAB register value
+    #                  data_or_wLength = 1
+    #                  )
+    if register == 0x0D:
+        init()
     q.put((response, time.time()))
     # print(time.time() - t1)
     global_count += 1

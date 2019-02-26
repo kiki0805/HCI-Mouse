@@ -32,9 +32,9 @@ def chunk_decode(np_chunk, flip=False):
         if len(wait2decode) != (BITS_NUM + 4)* EXPEND:
             continue
         bit_str = Manchester_decode(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], flip=flip)
-        # print(bit_str)
         # bit_str = designed_decode(chunk[i+len(pat):i+len(pat)+BITS_NUM * EXPEND], flip=flip)
         if not bit_str:
+            # print(wait2decode)
             continue
         if len(bit_str) != BITS_NUM + 4:
             continue
@@ -44,8 +44,11 @@ def chunk_decode(np_chunk, flip=False):
         crc_check = crc_validate(bit_str[:-4], crc_val)
         # print(crc_cal(bit_str[:-4]), crc_val)
         if crc_check:
+            
             # print(flip)
             rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+        else:
+            print('crc fail')
         # else:
         #     for index in range(len(bit_str)):
         #         bit_str = list(bit_str)

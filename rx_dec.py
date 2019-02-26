@@ -24,9 +24,9 @@ img = Image.new("RGB", (line_num * times, pixel_num * times))
 f = plt.figure()
 # ax2 = f.add_subplot(211)
 # ax = f.add_subplot(212)
-ax = f.add_subplot(311)
-ax2 = f.add_subplot(312)
-ax3 = f.add_subplot(313)
+ax = f.add_subplot(111)
+# ax2 = f.add_subplot(312)
+# ax3 = f.add_subplot(313)
 
 device = usb.core.find(idVendor=0x046d, idProduct=0xc077)
 
@@ -200,32 +200,32 @@ while True:
 
     # ax.imshow(img)
     ax.imshow(img)
-    # print(get_threshold(img))
-    img2 = cv2pil(cv2.GaussianBlur(pil2cv(img) ,(5,5),0))
-    for i in range(100):
-        img2 = cv2pil(cv2.GaussianBlur(pil2cv(img2) ,(5,5),0))
+    # # print(get_threshold(img))
+    # img2 = cv2pil(cv2.GaussianBlur(pil2cv(img) ,(5,5),0))
+    # for i in range(100):
+    #     img2 = cv2pil(cv2.GaussianBlur(pil2cv(img2) ,(5,5),0))
 
-    img2 = cv2pil(pil2cv(img) - pil2cv(img2) + np.min(img2))
-    kernel2 = np.ones((2,2), np.uint8)
-    kernel = np.ones((2,2), np.uint8)
-    kernel2 = np.array(((0, 0),(0, 1)), np.uint8)
-    img2 = dilation(img2, kernel, 1)
-    img2 = erode(img2, kernel2, 1)
-    img2 = dilation(img2, kernel, 1)
-    img2 = erode(img2, kernel2, 1)
-    threshold = get_threshold(img2)
+    # img2 = cv2pil(pil2cv(img) - pil2cv(img2) + np.min(img2))
+    # kernel2 = np.ones((2,2), np.uint8)
+    # kernel = np.ones((2,2), np.uint8)
+    # kernel2 = np.array(((0, 0),(0, 1)), np.uint8)
+    # img2 = dilation(img2, kernel, 1)
+    # img2 = erode(img2, kernel2, 1)
+    # img2 = dilation(img2, kernel, 1)
+    # img2 = erode(img2, kernel2, 1)
+    # threshold = get_threshold(img2)
     
-    img2 = binirization(img2, threshold)
-    ax2.imshow(img2)
+    # img2 = binirization(img2, threshold)
+    # ax2.imshow(img2)
 
     ##########################
-    img3 = ImageEnhance.Contrast(img).enhance(5)
-    threshold = get_threshold(img3)
-    img3 = binirization(img3, threshold)
-    # img3 = erode(img3, kernel2, 1)
-    ax3.imshow(img3)
+    # img3 = ImageEnhance.Contrast(img).enhance(5)
+    # threshold = get_threshold(img3)
+    # img3 = binirization(img3, threshold)
+    # # img3 = erode(img3, kernel2, 1)
+    # ax3.imshow(img3)
 
-    img, angle = detect_line(img2, threshold)
+    # img, angle = detect_line(img2, threshold)
     # ax.imshow(img)
     
 

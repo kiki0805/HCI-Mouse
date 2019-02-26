@@ -97,8 +97,11 @@ if __name__ == '__main__':
         func = read_data[0]
 
         if func == TypeName.ANGLE:
+            # whole image 19*19
             angl_queue.put(read_data[1])
         elif func == TypeName.POSITION:
+            # tuple of two tuple
+            # ((ts, v), (ts, v)) 0x0D, 0x0B
             loc_queue.put(read_data[1:])
 
     
