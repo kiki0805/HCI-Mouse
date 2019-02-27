@@ -107,6 +107,10 @@ public:
 
   void PollMouseEvents();
 
+  //TODO: change hci sendertype to position, and discard all the hci-report.
+  void DisableHCIReport();
+
+
 private:
   void checkNewMouse(int hDevice);  
   void reportCallback(int hDevice, MouseReport report);
