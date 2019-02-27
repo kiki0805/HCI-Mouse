@@ -7,6 +7,7 @@ class Localizer:
     def __init__(self):
         self.frames = deque(maxlen=MOUSE_FRAME_RATE * 2)
         self.len_e = 1000
+        self.last_ts = None
     
     def update(self, val_tuple):
         tuple1, tuple2 = val_tuple
@@ -19,23 +20,24 @@ class Localizer:
         timestamp, val = val_tuple
         val_fixed = val
         if fix:
+            # print(val_fixed)
             if val_fixed < 128:
                 val_fixed += 128
             if val_fixed > 240:
                 return
 
         self.frames.append((timestamp, val_fixed))
-        if last_ts is None:
-            last_ts = self.frames[0][0]
+        if self.last_ts is None:
+            self.last_ts = self.frames[0][0]
         
-        if self.frames[-1][0] - last_ts < 0.6:
+        if self.frames[-1][0] - self.last_ts < 0.6:
             return
 
         M = np.array(self.frames)
-        M = M[np.logical_and(M[:,0] > last_ts - 0.5, M[:,0] < last_ts + 0.5)]
+        M = M[np.logical_and(M[:,0] > self.last_ts - 0.5, M[:,0] < self.last_ts + 0.5)]
         Mtime = M[:,0]
         value = M[:,1]
-        last_ts = Mtime[-1]
+        self.last_ts = Mtime[-1]
         sample_time = np.arange(Mtime[0], Mtime[-1], 1 / 2400)
         sample_value = interpl(Mtime, value, sample_time[:-1], 'nearest')
         sample_time = sample_time[:-1]
@@ -58,5 +60,6 @@ class Localizer:
             result = chunk_decode(bit_stream, flip=True)
 
         if result is not None:
+            print(result)
             return result
     
