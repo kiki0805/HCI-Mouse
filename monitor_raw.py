@@ -1,5 +1,5 @@
-FILE_NAME = 'lab1_loc2.csv'
-# FILE_NAME = None
+# FILE_NAME = 'lab1_loc2.csv'
+FILE_NAME = None
 
 import usb.core
 import re

@@ -1,8 +1,8 @@
 class TypeID:
-    POSITION = '\x00'
-    ANGLE = '\x01'
-    ANGLE_COLOR2WHITE = '\x02'
-    ANGLE_COLOR2RED = '\x03'
+    POSITION = 0#'\x00'
+    ANGLE = 1#'\x01'
+    ANGLE_COLOR2WHITE = 2#'\x02'
+    ANGLE_COLOR2RED = 3#'\x03'
 
 
 class TypeName:

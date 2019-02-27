@@ -11,20 +11,21 @@ def pipe_client_read(pipe_name, q):
         win32file.GENERIC_READ | win32file.GENERIC_WRITE,
         0, None, win32file.OPEN_EXISTING, 0, None)
 
-    try:
-        while True:
-            type_id = win32file.ReadFile(handle, 1)
-            if type_id.decode() == TypeID.POSITION:
-                for _ in range(19 * 19):
-                    resp = win32file.ReadFile(handle, 1)
-                    q.put((TypeName.POSITION, time.time(), int.from_bytes(resp, 'big')))
-            elif type_id.decode() == TypeID.ANGLE:
-                resp = win32file.ReadFile(handle, 19 * 19)
-                q.put((TypeName.ANGLE, bytes_arr2_int_arr(resp)))
-                     
-    except:
-        print('Inpipe Broken')
-        win32file.CloseHandle(handle)
+    # try:
+    while True:
+        data = win32file.ReadFile(handle, 1024)
+        type_id = data[1][0]
+        if type_id == TypeID.POSITION:
+            t1 = (time.time(), data[1][1])
+            t2 = (time.time(), data[1][2])
+            q.put((TypeName.POSITION, t1, t2))
+        elif type_id == TypeID.ANGLE:
+            resp = win32file.ReadFile(handle, 19 * 19)
+            q.put((TypeName.ANGLE, bytes_arr2_int_arr(resp)))
+
+    # except:
+    #     print('Inpipe Broken')
+    #     win32file.CloseHandle(handle)
 
 
 def pipe_client_write(pipe_name, q, idx):
@@ -95,13 +96,16 @@ if __name__ == '__main__':
         #     continue
         read_data = read_queue.get()
         func = read_data[0]
-
+        # print(func)
         if func == TypeName.ANGLE:
+            # print('received angle data')
             # whole image 19*19
             angl_queue.put(read_data[1])
         elif func == TypeName.POSITION:
+            # print('received position data')
             # tuple of two tuple
             # ((ts, v), (ts, v)) 0x0D, 0x0B
             loc_queue.put(read_data[1:])
+
 
     
