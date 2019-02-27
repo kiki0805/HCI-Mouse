@@ -14,14 +14,15 @@ def pipe_client_read(pipe_name, q):
     # try:
     while True:
         data = win32file.ReadFile(handle, 1024)
-        type_id = data[1][0]
-        if type_id == TypeID.POSITION:
-            t1 = (time.time(), data[1][1])
-            t2 = (time.time(), data[1][2])
-            q.put((TypeName.POSITION, t1, t2))
-        elif type_id == TypeID.ANGLE:
-            resp = win32file.ReadFile(handle, 19 * 19)
-            q.put((TypeName.ANGLE, bytes_arr2_int_arr(resp)))
+        q.put(data[1])
+        # type_id = data[1][0]
+        # if type_id == TypeID.POSITION:
+        #     t1 = (time.time(), data[1][1])
+        #     t2 = (time.time(), data[1][2])
+        #     q.put((TypeName.POSITION, t1, t2))
+        # elif type_id == TypeID.ANGLE:
+        #     resp = win32file.ReadFile(handle, 19 * 19)
+        #     q.put((TypeName.ANGLE, bytes_arr2_int_arr(resp)))
 
     # except:
     #     print('Inpipe Broken')
@@ -80,32 +81,59 @@ if __name__ == '__main__':
     
     read_queue = Queue()
     write_queue = Queue()
-    angl_queue = Queue()
-    loc_queue = Queue()
+    # angl_queue = Queue()
+    # loc_queue = Queue()
 
     # create four processes
     read_process = Process(target=pipe_client_read, args=(INPIPE_NAME, read_queue))
     write_process = Process(target=pipe_client_write, args=(OUTPIPE_NAME, write_queue, MOUSE_INDEX))
-    angl_process = Process(target=angl_detect, args=(angl_queue, write_queue))
-    loc_process = Process(target=loc_recog, args=(loc_queue, write_queue))
-    for p in [read_process, write_process, angl_process, loc_process]:
+    # angl_process = Process(target=angl_detect, args=(angl_queue, write_queue))
+    # loc_process = Process(target=loc_recog, args=(loc_queue, write_queue))
+    for p in [read_process, write_process]: #, angl_process, loc_process]:
         p.start()
 
+
+    import angle, location
+    measurer = angle.AngleMeasurer()
+    localizer = location.Localizer()
+    angle_buf = []
+    buf_len = 0
+    last_pos_ts = time.time()
     while True:
         # if read_queue.empty():
         #     continue
         read_data = read_queue.get()
         func = read_data[0]
         # print(func)
-        if func == TypeName.ANGLE:
+        if func == TypeID.ANGLE:
             # print('received angle data')
             # whole image 19*19
-            angl_queue.put(read_data[1])
-        elif func == TypeName.POSITION:
+            # angl_queue.put(read_data[1])
+            if buf_len == 0:
+                localizer.reset()
+            angle_buf.append(read_data[1])
+            buf_len += 1
+            if buf_len == 19 * 19:
+                ret = measurer.update(angle_buf)
+                if ret is not None:
+                    write_queue.put(data_packing(ret[0], ret[1]))
+                buf_len = 0
+                angle_buf = []
+        elif func == TypeID.POSITION:
+            if buf_len != 0:
+                measurer.reset()
+                buf_len = 0
+                angle_buf = []
+            ret = localizer.update(read_data[1])
+            if ret is not None:
+                if time.time() - last_pos_ts > 2:
+                # for i in ret:
+                    write_queue.put(data_packing(TypeName.POSITION, ret[0]))
+                    last_pos_ts = time.time()
             # print('received position data')
             # tuple of two tuple
             # ((ts, v), (ts, v)) 0x0D, 0x0B
-            loc_queue.put(read_data[1:])
+            # loc_queue.put(read_data[1:])
 
 
     

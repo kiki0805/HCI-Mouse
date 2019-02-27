@@ -158,6 +158,23 @@ class AngleMeasurer:
         # self.white_angle = None
         # self.white_lines = None
     
+    def reset(self):
+        self.img = Image.new("RGB", RESOLUTION)
+        self.red_img = None
+        self.white_img = None
+        self.collect = 0
+        self.cur = 'red'
+        self.red_angle = None
+        self.red_lines = None
+        self.r_ang = None
+        self.w_ang = None
+        self.raw_rx = None
+        self.raw_wx = None
+        self.r_rhos = None
+        self.w_rhos = None
+        self.r_votes = None
+        self.w_votes = None
+
     def update_red_mode(self, threshold):
         _, angles, remained_lines = detect_line(self.img, threshold, 'red')
         

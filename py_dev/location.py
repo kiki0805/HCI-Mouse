@@ -16,6 +16,10 @@ class Localizer:
             return self.resolve(tuple2, fix=False) # 0x0B
         return rlt
     
+    def reset(self):
+        self.frames = deque(maxlen=MOUSE_FRAME_RATE * 2)
+        self.last_ts = None
+
     def resolve(self, val_tuple, fix=True):
         timestamp, val = val_tuple
         val_fixed = val
