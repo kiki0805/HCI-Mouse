@@ -24,7 +24,7 @@ def chunk_decode(np_chunk, flip=False):
     # print(pat)
     rtn = []
 
-    print('try to decode')
+    # print('try to decode')
     for i in range(len(chunk)):
         if chunk[i:i+len(pat)] != pat:
             continue

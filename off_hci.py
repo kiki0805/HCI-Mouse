@@ -11,15 +11,11 @@ import numpy as np
 import usb.util
 from main_variables import *
 
-idVendor = 0x046d
-idProduct = 0xc077 # dell
-# idProduct = 0xc019 # logitech without tag
-# idProduct = 0xc05b # logitech with tag
-
 
 def handle_data():
     import time
     import re
+    from numpy import genfromtxt
     from utils import smooth, interpl, chunk_decode
     len_e = 3000
     register = 0x0D
@@ -27,13 +23,13 @@ def handle_data():
     plt.ion()
     ax = plt.gca()
     result_ts = time.time()
-    while True:
-        response, timestamp = q.get()
+    pos_data = genfromtxt('pos_data.csv', delimiter=',')
+    for timestamp, response in pos_data:
         if not response:
             return
 
         # Fix raw value
-        val = int.from_bytes(response, 'big')
+        val = response
         val_fixed = val
         if register == 0x0D:
             if val_fixed < 128:
@@ -42,13 +38,13 @@ def handle_data():
                 continue
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
+        # print(raw_frames_m.window)
         
-        
-        # raw_frames_m.update_line_data()
-        # ax.relim() # renew the data limits
-        # ax.autoscale_view(True, True, True) # rescale plot view
-        # plt.draw() # plot new figure
-        # plt.pause(1e-17)
+        raw_frames_m.update_line_data()
+        ax.relim() # renew the data limits
+        ax.autoscale_view(True, True, True) # rescale plot view
+        plt.draw() # plot new figure
+        plt.pause(1e-17)
 
         # continue
 
@@ -73,13 +69,6 @@ def handle_data():
         for i in range(10):
             # temp_sample = sample_value_DCremove[i:len_e:5]
             temp_sample = sample_value_DCremove[i:len_e:10]
-            # temp_sample2 = sample_value_DCremove[i+5:len_e:10*4]
-            # temp_sample3 = sample_value_DCremove[i+10:len_e:10*4]
-            # temp_sample4 = sample_value_DCremove[i+15:len_e:10*4]
-            # print(temp_sample)
-            # ts1 = np.hstack((temp_sample, temp_sample3))
-            # print(ts1)
-            # ts2 = np.hstack((temp_sample2, temp_sample4))
             value[i] = max(temp_sample) + min(temp_sample)
             # value[i] += np.std(ts2[ts2 > (max(ts2) + min(ts2)) / 2])
             # value[i]
@@ -89,28 +78,28 @@ def handle_data():
         temp_sample = sample_value_DCremove[shift_index:len_e:10]
         ###################### draw ########################
 
-        # plt.cla()
+        plt.cla()
 
-        # plt.subplot(2, 1, 1)
-        # plt.cla()
-        # plt.plot(np.arange(len(sample_value_DCremove[shift_index:len_e])), sample_value_DCremove[shift_index:len_e])
+        plt.subplot(2, 1, 1)
+        plt.cla()
+        plt.plot(np.arange(len(sample_value_DCremove[shift_index:len_e])), sample_value_DCremove[shift_index:len_e])
 
-        # plt.subplot(2, 1, 2)
-        # plt.plot(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5], marker='x')
-        # # plt.scatter(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5])
-        # threshold = np.array([(max(temp_sample) + min(temp_sample)) / 2] * sample_wave.size)
-        # # threshold = np.array([(max(sample_value_DCremove) + min(sample_value_DCremove)) / 2] * sample_wave.size)
-        # plt.plot(np.arange(sample_wave.size), threshold)
-        # # plt.scatter(sample_wave)
+        plt.subplot(2, 1, 2)
+        plt.plot(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5], marker='x')
+        # plt.scatter(np.arange(sample_wave.size), sample_value_DCremove[shift_index:len_e:5])
+        threshold = np.array([(max(temp_sample) + min(temp_sample)) / 2] * sample_wave.size)
+        # threshold = np.array([(max(sample_value_DCremove) + min(sample_value_DCremove)) / 2] * sample_wave.size)
+        plt.plot(np.arange(sample_wave.size), threshold)
+        # plt.scatter(sample_wave)
 
-        # # for i in range(2, len_e, 10):
-        # #     plt.plot(sample_value_DCremove[i:i + 10], '.-')
+        # for i in range(2, len_e, 10):
+        #     plt.plot(sample_value_DCremove[i:i + 10], '.-')
         
-        # raw_frames_m.update_line_data()
-        # ax.relim() # renew the data limits
-        # ax.autoscale_view(True, True, True) # rescale plot view
-        # plt.draw() # plot new figure
-        # plt.pause(1)
+        raw_frames_m.update_line_data()
+        ax.relim() # renew the data limits
+        ax.autoscale_view(True, True, True) # rescale plot view
+        plt.draw() # plot new figure
+        plt.pause(1)
 
         ###################### draw ########################
 
@@ -132,22 +121,24 @@ def handle_data2():
     import time
     import re
     from utils import smooth, interpl, chunk_decode
+    from numpy import genfromtxt
     len_e = 3000
     register = 0x0B
     last_ts = None
     plt.ion()
     ax = plt.gca()
     result_ts = time.time()
-    while True:
-        response, timestamp = q2.get()
+    pos_data2 = genfromtxt('pos_data2.csv', delimiter=',')
+    for  timestamp, response in pos_data2:
         if not response:
             return
 
         # Fix raw value
-        val = int.from_bytes(response, 'big')
+        val = response
         val_fixed = val
 
         raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
+        # print(raw_frames_m.window)
 
         if last_ts is None:
             last_ts = raw_frames_m.window[0][0]
@@ -192,15 +183,6 @@ if __name__ == '__main__':
     dur = input('Duration(default is 10): ')
     dur = 10 if dur == '' else int(dur)
 
-#046d:c077
-#046d:c05a
-    device = usb.core.find(idVendor=idVendor, idProduct=idProduct)
-
-    if device.is_kernel_driver_active(0):
-        device.detach_kernel_driver(0)
-
-    device.set_configuration()
-
     # plt.legend()
     ax = plt.gca() # get most of the figure elements 
     plt.ion()
@@ -210,43 +192,27 @@ if __name__ == '__main__':
     q2 = Queue()
     p2 = Process(target=handle_data2) # for display
     p2.start()
-    f = open('pos_lin.csv','w')
-    f2 = open('pos2_lin.csv', 'w')
+    from numpy import genfromtxt
+
     start = time.time()
     global_count = 0
     register_ = 0x0D
-    while time.time() - start < dur:
-        device.ctrl_transfer(bmRequestType = 0x40, #Write
-                        bRequest = 0x01,
-                        wValue = 0x0000,
-                        wIndex = register_, #PIX_GRAB register value
-                        data_or_wLength = None
-                        )
-
-        response = device.ctrl_transfer(bmRequestType = 0xC0, #Read
-                        bRequest = 0x01,
-                        wValue = 0x0000,
-                        wIndex = register_, #PIX_GRAB register value
-                        data_or_wLength = 1
-                        )
-        timestamp = time.time()
-        f.write(str(timestamp) + ',' + str(int.from_bytes(response,'big')) + '\n')
+    pos_data = genfromtxt('pos_lin.csv', delimiter=',')
+    pos_data2 = genfromtxt('pos2_lin.csv', delimiter=',')
+    # while time.time() - start < dur:
+    for timestamp, response in pos_data:
+        # print((response, timestamp))
         q.put((response, timestamp))
-
-        response2 = device.ctrl_transfer(bmRequestType = 0xC0, #Read
-                        bRequest = 0x01,
-                        wValue = 0x0000,
-                        wIndex = 0x0B, #PIX_GRAB register value
-                        data_or_wLength = 1
-                        )
-        timestamp2 = time.time()
+        # timestamp2 = time.time()
+        # time.sleep(0.01)
+    for timestamp2, response2 in pos_data2:
+        # print((response2, timestamp2))
         q2.put((response2, timestamp2))
-        f2.write(str(timestamp2) + ',' + str(int.from_bytes(response2,'big')) + '\n')
-        global_count += 1
-
+        # global_count += 1
+        # time.sleep(0.01)
+    time.sleep(10)
     print('Frame rate: ' + str(global_count / (time.time() - start)))
-    f.close()
-    f2.close()
+    # f.close()
 
     if FORCED_EXIT:
         p.terminate()
