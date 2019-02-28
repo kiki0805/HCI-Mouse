@@ -36,37 +36,16 @@ def pipe_client_write(pipe_name, q, idx):
         win32file.FILE_SHARE_WRITE, None,
         win32file.OPEN_EXISTING, 0, None)
     
-    try:
-        while True:
-            packet = q.get()
-            packet_tagged = tagging_index(packet, idx)
-            win32file.WriteFile(handle, packet_tagged)
-    except:
-        print('Outpipe Broken')
-        win32file.CloseHandle(handle)
-
-
-def angl_detect(in_queue, out_queue):
-    import angle
-    measurer = angle.AngleMeasurer()
-
+    # try:
     while True:
-        pixel_val = in_queue.get()
-        ret = measurer.update(pixel_val)
-        if ret is not None:
-            out_queue.put(data_packing(ret[0], ret[1]))
-
-
-def loc_recog(in_queue, out_queue):
-    import location
-    localizer = location.Localizer()
-
-    while True:
-        val = in_queue.get()
-        ret = localizer.update(val)
-        if ret is not None:
-            for i in ret:
-                out_queue.put(data_packing(TypeName.POSITION, i))
+        packet = q.get()
+        packet_tagged = tagging_index(packet, int(idx))
+        win32file.WriteFile(handle, packet_tagged)
+        print('send data: ',end='')
+        print(packet_tagged)
+    # except:
+    #     print('Outpipe Broken')
+    #     win32file.CloseHandle(handle)
 
 
 if __name__ == '__main__':
@@ -96,39 +75,58 @@ if __name__ == '__main__':
     import angle, location
     measurer = angle.AngleMeasurer()
     localizer = location.Localizer()
-    angle_buf = []
-    buf_len = 0
     last_pos_ts = time.time()
+    last_agl_ts = time.time()
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    f = open('pos_data.csv', 'w')
+    f2 = open('pos_data2.csv','w')
+    update_time = time.time()
+    stt = time.time()
+    count = 0
     while True:
         # if read_queue.empty():
         #     continue
         read_data = read_queue.get()
         func = read_data[0]
-        # print(func)
-        if func == TypeID.ANGLE:
+        # print(read_data)
+        # print(int.from_bytes(read_data[-8:],'little'))
+        if func == TypeID.ANGLE or func == TypeID.ANGLE_WHITE:
             # print('received angle data')
             # whole image 19*19
             # angl_queue.put(read_data[1])
-            if buf_len == 0:
-                localizer.reset()
-            angle_buf.append(read_data[1])
-            buf_len += 1
-            if buf_len == 19 * 19:
-                ret = measurer.update(angle_buf)
-                if ret is not None:
-                    write_queue.put(data_packing(ret[0], ret[1]))
-                buf_len = 0
-                angle_buf = []
-        elif func == TypeID.POSITION:
-            if buf_len != 0:
-                measurer.reset()
-                buf_len = 0
-                angle_buf = []
-            ret = localizer.update(read_data[1])
+            localizer.reset()
+            try:
+                ret = measurer.update(read_data[1:])
+            except:
+                continue
             if ret is not None:
+                # if time.time() - last_agl_ts > 1:
+                write_queue.put(data_packing(ret[0], ret[1]))
+                    # last_agl_ts = time.time()
+        elif func == TypeID.POSITION:
+            measurer.reset()
+            count += 1
+            ts = int.from_bytes(read_data[-16:-8],'little') / (1e6)
+            ts2 = int.from_bytes(read_data[-8:],'little') / (1e6)
+            f.write(str(ts) + ',' + str(read_data[1]) + '\n')
+            f2.write(str(ts2) + ',' + str(read_data[2]) + '\n')
+            try:
+                ret = localizer.update(((ts, read_data[1]), (ts2, read_data[2])))
+            except:
+                continue
+            # if time.time() - stt > 1:
+            #     stt = time.time()
+            #     print(count)
+            #     count = 0
+
+            if ret is not None:
+                # if localizer.last_succ is not None:
+                #     print(time.time() - localizer.last_succ)
+                # localizer.last_succ = time.time()
                 if time.time() - last_pos_ts > 2:
-                # for i in ret:
-                    write_queue.put(data_packing(TypeName.POSITION, ret[0]))
+                    write_queue.put(data_packing(TypeID.POSITION, ret[0]))
                     last_pos_ts = time.time()
             # print('received position data')
             # tuple of two tuple
@@ -136,4 +134,3 @@ if __name__ == '__main__':
             # loc_queue.put(read_data[1:])
 
 
-    

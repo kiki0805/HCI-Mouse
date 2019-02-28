@@ -11,7 +11,7 @@ sys.path.append("..")
 from setting import *
 from utils import *
 
-PREFIX = 'fremw2_'
+PREFIX = 'fremw2_28_'
 
 def draw_block(im_arr, i, j, block_size, value):
     for k1 in range(block_size):
@@ -46,6 +46,8 @@ def draw_process(start, end, data, off, real):
                 # if n < 5:
                 #     print(x,y, data[x][y][n])
                 filtered_data = data[x][y][(n + off[(x,y)]) % ((BITS_NUM +4) * EXPEND + PREAMBLE_NP.size )]
+                if (i >= 1080 or j >= 1080) and n < 6:
+                    filtered_data = 0.5
                 # filtered_data = data[x][y][(n) % (BITS_NUM * EXPEND + PREAMBLE_NP.size)]
                 # # print(data[x][y])
                 # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data * 255)

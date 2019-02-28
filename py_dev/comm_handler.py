@@ -1,6 +1,9 @@
+from struct import pack
+
 class TypeID:
     POSITION = 0#'\x00'
     ANGLE = 1#'\x01'
+    ANGLE_WHITE = 2
     ANGLE_COLOR2WHITE = 2#'\x02'
     ANGLE_COLOR2RED = 3#'\x03'
 
@@ -36,16 +39,16 @@ def data_resolve(read_data):
 # data_type: TypeName
 # write_data: (loc1, loc2) or angle or dummy 0
 def data_packing(data_type, write_data):
-    packet = data_type.encode()
-    if data_type == TypeName.POSITION:
-        loc1 = write_data[0].to_bytes(8, 'big')
-        loc2 = write_data[1].to_bytes(8, 'big')
+    packet = data_type.to_bytes(1,'big')
+    if data_type == TypeID.POSITION:
+        loc1 = write_data[2][0].to_bytes(2, 'little')
+        loc2 = write_data[2][1].to_bytes(2, 'little')
         packet = packet + loc1 + loc2
-    elif data_type == TypeName.ANGLE:
-        angl = write_data.to_bytes(16, 'big')
+    elif data_type == TypeID.ANGLE:
+        angl = pack('f', write_data)
         packet = packet + angl
-    elif data_type == TypeName.ANGLE_COLOR2RED or data_type == TypeName.ANGLE_COLOR2WHITE:
-        packet = packet + (0).to_bytes(16, 'big')
+    elif data_type == TypeID.ANGLE_COLOR2RED: # or data_type == TypeID.ANGLE_COLOR2WHITE:
+        packet = packet #+ (0).to_bytes(16, 'little')
     return packet
 
 

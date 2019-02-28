@@ -8,7 +8,7 @@ from direction_judge import move_direction
 from skimage.transform import hough_line, hough_line_peaks
 from PIL import Image, ImageEnhance
 from scipy.ndimage.filters import gaussian_filter
-from comm_handler import TypeName
+from comm_handler import TypeName, TypeID
 
 
 RESOLUTION = (19, 19)
@@ -143,7 +143,7 @@ class AngleMeasurer:
         self.img = Image.new("RGB", RESOLUTION)
         self.red_img = None
         self.white_img = None
-        self.collect = 0
+        self.collect = 2
         self.cur = 'red'
         self.red_angle = None
         self.red_lines = None
@@ -162,7 +162,7 @@ class AngleMeasurer:
         self.img = Image.new("RGB", RESOLUTION)
         self.red_img = None
         self.white_img = None
-        self.collect = 0
+        self.collect = 2
         self.cur = 'red'
         self.red_angle = None
         self.red_lines = None
@@ -174,44 +174,6 @@ class AngleMeasurer:
         self.w_rhos = None
         self.r_votes = None
         self.w_votes = None
-
-    def update_red_mode(self, threshold):
-        _, angles, remained_lines = detect_line(self.img, threshold, 'red')
-        
-        if angles == []:
-            return
-        most_comm_ele = Counter(angles).most_common()[0][0]
-        if remained_lines is None:
-            return
-        self.red_angle = most_comm_ele
-        self.red_lines = remained_lines
-        self.cur = change_cur(self.cur)
-        self.collect = 3
-        return TypeName.ANGLE_COLOR2WHITE, 0
-
-    def update_white_mode(self, threshold):
-        _, angles, remained_lines = detect_line(self.img, threshold, 'white', self.red_angle)
-        while angles == []:
-            threshold += 5
-            _, angles, remained_lines = detect_line(self.img, threshold, 'white', self.red_angle)
-        if len(angles) == 0 or remained_lines is None:
-            return
-        most_comm_ele = Counter(angles).most_common()[0][0]
-        white_angle = most_comm_ele
-        white_lines = remained_lines
-        md = move_direction(self.red_lines, white_lines)
-        if md == '↑':
-            print(md, 180 - white_angle)
-            return TypeName.ANGLE, 180 - white_angle
-        elif md == '↓':
-            print(md, 360 - white_angle)
-            return TypeName.ANGLE, 360 - white_angle
-        elif type(md) == int:
-            print(md)
-            return TypeName.ANGLE, md
-        self.cur = change_cur(self.cur)
-        self.collect = 3
-        return TypeName.ANGLE_COLOR2RED, 0
 
     def calc_angle(self, im_raw, mode, ref=None):
         # mode = self.cur
@@ -299,6 +261,7 @@ class AngleMeasurer:
 
     def update(self, vals):
         count = 0
+        print('angle: received values')
         for v in vals:
             i = math.floor(count / RESOLUTION[0])
             j = count % RESOLUTION[1]
@@ -308,22 +271,29 @@ class AngleMeasurer:
         if self.collect != 0:
             self.collect -= 1
             return
+        self.img.save(self.cur+'.png')
+        print('decoding ' + self.cur)
         
         # threshold = get_threshold(self.img, self.cur)
         
         if self.cur == 'red':
-            # return self.update_red_mode(threshold)
-            self.r_ang, _, self.r_rhos, self.r_votes, self.raw_rx, \
+            # ang, rhos, votes, x, BW, H, rho
+            self.r_ang, self.r_rhos, self.r_votes, self.raw_rx, \
                 _, _, _ = self.calc_angle(self.img, 'red')
             self.red_img = self.img.copy()
-            return TypeName.ANGLE_COLOR2WHITE, 0
+            self.collect = 2
+            self.cur = 'white'
+            return TypeID.ANGLE_COLOR2WHITE, 0
         else:
-            self.w_ang, _, self.w_rhos, self.w_votes, self.raw_wx, \
+            self.w_ang, self.w_rhos, self.w_votes, self.raw_wx, \
                 _, _, _ = self.calc_angle(self.img, 'white')
             ang = self.get_angle()
+            if ang is None:
+                return
             self.white_img = self.img.copy()
-            return TypeName.ANGLE, ang
-            # return self.update_white_mode(threshold)
+            print('angle:', ang)
+            return TypeID.ANGLE, ang
+            # return TypeID.ANGLE, 30
     
     def get_angle(self):
         r_ang=self.r_ang
@@ -351,7 +321,9 @@ class AngleMeasurer:
         rhos = rhos + [r_rhos[0]]
         votes = votes + [r_votes[0]]
 
-        assert rhos[0] != [] and rhos[1] != []
+        if not (rhos[0] != [] and rhos[1] != []):
+            print('angle detecting fail')
+            return
 
         white_rho_blocks = []
         tmp = []
@@ -413,7 +385,9 @@ class AngleMeasurer:
                     if abs(mid_w - mid_r) < 3 and mid_w != mid_r:
                         min_dists.append(mid_w - mid_r)
 
-        assert min_dists != []
+        if min_dists == []:
+            print('angle detecting fail')
+            return
         positive_num, negative_num = 0, 0
         for num in min_dists:
             if num > 0:

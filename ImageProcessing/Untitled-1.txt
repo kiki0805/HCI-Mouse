@@ -11,12 +11,38 @@
 
 #include "imageUtils.h"
 #include "IOUtils.h"
-#define bit_len 24
-#define start_freq 30
-#define end_freq 240
+#define bit_len 248
+
+int image_shift = 0;
+bool post1 = true;
+bool post2 = false;
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (action != GLFW_PRESS) return;
+	switch (key) {
+	case GLFW_KEY_W:
+		image_shift += 62;
+		image_shift %= 248;
+		std::cout << image_shift << std::endl;
+		break;
+	case GLFW_KEY_S:
+		image_shift += 62;
+		image_shift %= 248;
+		std::cout << image_shift << std::endl;
+		break;
+	case GLFW_KEY_C:
+		post1 = !post1;
+		post2 = !post2;
+		std::cout << post1 << " " << post2 << std::endl;
+		break;
+	default:
+		break;
+	}
+}
 int main()
 {
-	std::string prefix = "fre_m_";
+	
+	std::string prefix = "fremw_";
+	std::string prefix2 = "fremn_";
 	srand(time(NULL));
 	NPNX_LOG(NPNX_DATA_PATH);
 	glfwInit();
@@ -58,18 +84,6 @@ int main()
 	assert(!err);
 
 #ifndef NPNX_BENCHMARK
-#ifdef __linux__
-	if (glxewIsSupported("GLX_MESA_swap_control"))
-	{
-		printf("OK, we can use GLX_MESA_swap_control\n");
-	}
-	else
-	{
-		printf("[WARNING] GLX_MESA_swap_control is NOT supported.\n");
-	}
-	glXSwapIntervalMESA(1);
-	printf("Swap interval: %d\n", glXGetSwapIntervalMESA());
-#endif
 
 #ifdef _WIN32
 	if (wglewIsSupported("WGL_EXT_swap_control"))
@@ -112,6 +126,7 @@ int main()
 	// --------------- Add your layer here--------------//  
 	npnx::RectLayer baseRect(-1.0f, -1.0f, 1.0f, 1.0f, -1.0f);
 	baseRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+	//baseRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
 	renderer.AddLayer(&baseRect);
 
 	npnx::RectLayer upperRect(-0.5f, -0.1f, -0.2f, 0.8f, 0.0f);
@@ -135,70 +150,66 @@ int main()
 	postBaseRect.mTexture.push_back(0);
 	postRenderer.AddLayer(&postBaseRect);
 
-	// float z = 99.9f;
-	// unsigned int wTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
-	// unsigned int bTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
-	// unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
-	// unsigned int whiteTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
-	// int count = 0;
-	// for (float i = -1.0f; i < 1.0f; i += (2.0f / 8.0f)) {
-	  //   npnx::RectLayer postRect(i, -1.0f, i + 0.25f, 1.0f, z);
-	  //   z *= 10.0f;
-	//   postRect.mTexture.push_back(wTex);
-	//   postRect.mTexture.push_back(bTex);
-	  //   postRect.visibleCallback = [](int nbFrames) {
-	  // 	  return (nbFrames % 16 == count) || (nbFrames % 16 == count + 1);
-	  //   };
-	  //   postRect.textureNoCallback = [](int nbFrames) {
-	  // 	  return (nbFrames % 16) % count;
-	  //   };
-	//   postRenderer.AddLayer(&postRect);
-	//   count += 2;
-	// }
 	npnx::RectLayer postRect(-0.5625f, -1.0f, 0.5625f, 1.0f, 9999.9f);
 	//unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
 	//unsigned int whiteTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
 	for (int i = 0; i < bit_len; i++) {
-
 		std::string img_name = prefix + std::to_string(i) + ".png";
 		unsigned int bit = makeTextureFromImage(NPNX_FETCH_DATA(img_name));
 		postRect.mTexture.push_back(bit);
-		// std::string img_name2 = "black_" + std::to_string(i) + ".png";
-		//   unsigned int bit2 = makeTextureFromImage(NPNX_FETCH_DATA(img_name2));
-		//   postRect.mTexture.push_back(bit2);
 	}
 	postRect.visibleCallback = [](int nbFrames) {
-		//if (nbFrames % (bit_len + 3) == bit_len + 2 || nbFrames % (bit_len + 3) == bit_len + 1 || nbFrames % (bit_len + 3) == bit_len) return false;
-		return true;
+		return post1;
+	};
+	postRect.textureNoCallback = [](int nbFrames) {
+		return nbFrames % 62 + image_shift;
 	};
 
-	postRect.textureNoCallback = [](int nbFrames) {
-		// if (nbFrames % (bit_len + 3) == bit_len + 2 || nbFrames % (bit_len + 3) == bit_len + 1 || nbFrames % (bit_len + 3) == bit_len) return 0;
-		//return (nbFrames) % (bit_len + 3);
-		/*int zoom = 1;
-		if ((nbFrames / zoom / 480) % 2 == 0)
-		{ std::cout << nbFrames / zoom % 2 << std::endl;
-		return nbFrames/ zoom % 2; }
-		else {
-			std::cout << (nbFrames/ zoom % 4 + 4) << std::endl;
-			return (nbFrames/ zoom % 4 + 4);
-		}*/
+	npnx::RectLayer postRect2(-0.5625f, -1.0f, 0.5625f, 1.0f, 9998.9f);
+	//unsigned int circleTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_1.png"));
+	//unsigned int whiteTex = makeTextureFromImage(NPNX_FETCH_DATA("space2_test_2.png"));
+	for (int i = 0; i < bit_len; i++) {
+		std::string img_name = prefix2 + std::to_string(i) + ".png";
+		unsigned int bit = makeTextureFromImage(NPNX_FETCH_DATA(img_name));
+		postRect2.mTexture.push_back(bit);
+	}
+	postRect2.visibleCallback = [](int nbFrames) {
+		return post2;
+	};
+	postRect2.textureNoCallback = [](int nbFrames) {
+		return nbFrames % 62 + image_shift;
+	};
 
-		/*int two_seconds = nbFrames / 480;
-		int cur_freq = start_freq + two_seconds;
-		if (cur_freq > end_freq) cur_freq = end_freq;
+	npnx::RectLayer leftRect(-1.0f, -1.0f, 0.0f, 1.0f, 100.0f);
+	leftRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("left0.png")));
+	leftRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("left1.png")));
+	leftRect.visibleCallback = [](int nbFrames) {
+		return true;
+	};
+	leftRect.textureNoCallback = [](int nbFrames) {
+		return nbFrames % bit_len;
+	};
 
-		return (nbFrames * cur_freq / 240) % 2;*/
-		return nbFrames / 1 % bit_len;
+	npnx::RectLayer rightRect(0.0f, -1.0f, 1.0f, 1.0f, 200.0f);
+	rightRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("right0.png")));
+	rightRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("right1.png")));
+	rightRect.visibleCallback = [](int nbFrames) {
+		return true;
+	};
+	rightRect.textureNoCallback = [](int nbFrames) {
+		return nbFrames % bit_len;
 	};
 
 	postRenderer.AddLayer(&postRect);
+	postRenderer.AddLayer(&postRect2);
+	//postRenderer.AddLayer(&rightRect);
+	//postRenderer.AddLayer(&leftRect);
 	// ------------------------------------------------//
 	renderer.Initialize();
 	postRenderer.Initialize();
 
 	int nbFrames = 0;
-
+	glfwSetKeyCallback(window, key_callback);
 	int lastNbFrames = 0;
 	double lastTime = glfwGetTime();
 	double thisTime = glfwGetTime();
@@ -210,13 +221,6 @@ int main()
 		// }
 
 		nbFrames++;
-		thisTime = glfwGetTime();
-		double deltaTime = thisTime - lastTime;
-		if (deltaTime > 1.0) {
-			glfwSetWindowTitle(window, std::to_string((nbFrames - lastNbFrames) / deltaTime).c_str());
-			lastNbFrames = nbFrames;
-			lastTime = thisTime;
-		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

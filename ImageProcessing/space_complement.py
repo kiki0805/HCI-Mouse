@@ -9,7 +9,7 @@ sys.path.append("..")
 from setting import *
 from utils import *
 
-PREFIX = 'freq2_'
+PREFIX = 'freq_'
 WIDTH = 1080
 HEIGHT = 1080
 
@@ -31,19 +31,25 @@ def draw_process(start, end, filtered_data, filtered_data2):
             for j in range(0, WIDTH, BLOCK_SIZE):
                 # if i < int(HEIGHT / 2):
                 #     im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                #     # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
                 # else:
                 #     im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data2[n] * 255)
+                    # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data2[n]+128)
                 if (i / BLOCK_SIZE) % 2 == 0:
                     if (j / BLOCK_SIZE) % 2 == 0:
                         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
                     else:
-                        im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
+                       im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
+                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, 255 - filtered_data[n] + 128)
                     
                 else:
                     if (j / BLOCK_SIZE) % 2 == 0:
                         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
+                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, 255 - filtered_data[n] + 128)
                     else:
                         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
         im = Image.fromarray(np.uint8(im_arr))
         im.save('../display/data/' + PREFIX + str(n) + '.png')
 
@@ -79,7 +85,7 @@ if __name__ == '__main__':
             print(add_NRZI(raw_data))
             data = Manchester_encode(add_NRZI(raw_data))
         else:
-            data = Manchester_encode(raw_data)
+            data = PREAMBLE_STR + Manchester_encode(raw_data)
     elif FREQ:
         print('Using FREQ...')
         data = list(freq_encode(raw_data))
@@ -87,22 +93,27 @@ if __name__ == '__main__':
         print('Using DESIGNED CODE...')
         # data = designed_code(Manchester_encode(raw_data))
         data = designed_code(raw_data)
+    elif INFRAMEPP:
+        print('Using INFRAME++...')
+        data = inframe_encode(raw_data)
     data = [str(i) for i in data]
-    data = data + list(crc_cal(raw_data))
-    if DESIGNED_CODE:
-        tmp = []
-        for i in data:
-            if i == '0':
-                tmp.append(-1)
-            else:
-                tmp.append(1)
-        data = tmp
+    # data = data + list(crc_cal(raw_data))
+    # if DESIGNED_CODE:
+    #     tmp = []
+    #     for i in data:
+    #         if i == '0':
+    #             tmp.append(-1)
+    #         elif i == '-1':
+    #             tmp.append(-1)
+    #         else:
+    #             tmp.append(1)
+    #     data = tmp
     # crc
     # data = data + list(crc_cal(raw_data))
 
     import matplotlib.pyplot as plt
-    #plt.plot(list(range(len(data))), data)
-    #plt.show()
+    # plt.plot(list(range(len(data))), data)
+    # plt.show()
 
     if direct_data != -1:
         raw_data = direct_data
@@ -112,7 +123,7 @@ if __name__ == '__main__':
     print('Decoded data(' +  str(len(data)) + '): ' + str(data))
 
 
-    data = [int(i) for i in data]
+    data = [float(i) for i in data]
     quiet = False
     if FILTER:
         if quiet:
@@ -143,8 +154,10 @@ if __name__ == '__main__':
     # filtered_data2 = [(0.7 + (1.3 - 0.7) * (i -0)/(1)) / 2 for i in filtered_data2]
     # print(filtered_data)
     # print(filtered_data2)
+    plt.plot(list(range(len(data))), data)
+    plt.plot(list(range(len(filtered_data))), filtered_data)
     # plt.plot(list(range(len(filtered_data))), abs(fft(filtered_data)))
-    # plt.show()
+    plt.show()
     process_num = 4
 
     for n in range(process_num):

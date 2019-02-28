@@ -219,7 +219,7 @@ def Manchester_encode(raw_bit_str): # input: str, output: str
     for i in range(len(raw_bit_str)):
         bit = raw_bit_str[i]
         # new_bit_str[i] = '01' if bit == '0' else '10'
-        new_bit_str[i] = '01' if bit == '0' else '10'
+        new_bit_str[i] = '0101' if bit == '0' else '1010'
     return ''.join(new_bit_str)
 
 def Manchester_decode(raw_bit_str, flip=False): # input: str, output: str
@@ -351,7 +351,7 @@ def raw_random_location(size):
     for i in range(pow(2, BITS_NUM)):
         bits = num2bin(i, BITS_NUM)
         bits_pool[i] = np.array(list(bits))
-    data = np.zeros((size[0], size[1], BITS_NUM * EXPEND + PREAMBLE_NP.size + 4), dtype=np.int16)
+    data = np.zeros((size[0], size[1], (BITS_NUM+4) * EXPEND + PREAMBLE_NP.size), dtype=np.int16)
     # print(index_pool)
     for i in range(size[0]):
         for j in range(size[1]):
@@ -363,17 +363,17 @@ def raw_random_location(size):
             temp = bits_pool[random_index]
             temp = [str(int(i)) for i in temp]
             # temp = temp[5:]
+            r = [str(i) for i in bits_pool[random_index].astype(int)]
             if MANCHESTER_MODE:
-                encoded_str ='0001' +Manchester_encode(''.join(temp))
+                encoded_str =PREAMBLE_STR +Manchester_encode(''.join(temp) + crc_cal(''.join(r)))
             elif DESIGNED_CODE:
                 encoded_str = designed_code(''.join(temp))
             elif FREQ:
                 # encoded_str = '1001' + freq_encode(''.join(temp))
                 encoded_str = '1001' + freq_encode(Manchester_encode(''.join(temp)))
             # encoded_str = encoded_str + list(crc_cal(bits_pool[random_index]))
-            r = [str(i) for i in bits_pool[random_index].astype(int)]
             # print(''.join(r))
-            data[i,j,:] = list(encoded_str) + list(crc_cal(''.join(r)))
+            data[i,j,:] = list(encoded_str) #+ list(crc_cal(''.join(r)))
             # index_pool.remove(random_index)
     return data
 
