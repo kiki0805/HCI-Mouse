@@ -111,6 +111,8 @@ void HCIInstance::senderEntry(HANDLE hPipe) {
           for (int i = 0; i < 19*19; i++) {
             int cnt = mParent->core->ControlTransfer(mouseIdx, 0xC0, 0x01, 0x0000, 0x0D, buf + 1 + i, 1, 1000);
             LIBUSB_CHECK_RET(hcisender_position_controlTrans, cnt);
+            std::chrono::duration<double, std::milli> wait_ms(1);
+            std::this_thread::sleep_for(wait_ms);
           }
           DWORD length = 0;
           NPNX_ASSERT_LOG(WriteFile(hPipe, buf, 19 * 19 + 1, &length, NULL), GetLastError());

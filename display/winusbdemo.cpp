@@ -340,11 +340,11 @@ int main()
 		cursorLayer->visibleCallback = [](int) {return false; };
 		mouseRenderer.AddLayer(cursorLayer);
 
-		const float blockVSize = 0.1f;
+		const float blockVSize = 0.15f;
 		const float blockHSize = cursorSize * WINDOW_HEIGHT / WINDOW_WIDTH;
 		RectLayer *postColor = new RectLayer(-blockHSize / 2, -blockVSize / 2, blockHSize / 2, blockVSize / 2, *(float *)&i);
-		postColor->mTexture.push_back(mouseWhiteBlockTex);
 		postColor->mTexture.push_back(mouseRedBlockTex);
+		postColor->mTexture.push_back(mouseWhiteBlockTex);
 		postColor->visibleCallback = [](int) {return false; };
 		postMouseRenderer.AddLayer(postColor);
 	}
