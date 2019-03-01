@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   int count = 0;
+  int report_count = 0;
   clock_t tt = clock();
   while (true) {
     count ++ ;
@@ -35,14 +36,16 @@ int main(int argc, char *argv[]) {
       // if (length != 0 )printf("\n");
     }
     if (clock() - tt > 3 * CLOCKS_PER_SEC) {
-      // unsigned char buf[] = {0, 2, 0, 0, 0, 0}; //do not forget little-endian
-      // unsigned char buf[] = {0, 1, 90, 0, 255, 1}; 
-      unsigned char buf[] = {0, 0, 255, 1, 255, 1}; 
+      //do not forget little-endian
+      unsigned char buf[][6] = {{0, 0, 255, 1, 255, 1},
+                                {0, 2, 0, 0, 0, 0}, 
+                                {0, 1, 0, 0, 255, 1}}; 
       DWORD length;
-      if (!WriteFile(hOutpipe, buf, 6, &length, NULL)) {
+      if (!WriteFile(hOutpipe, buf[report_count % 3], 6, &length, NULL)) {
         return 0;
       }
       tt = clock();
+      report_count++;
     }
   }
   return 0;

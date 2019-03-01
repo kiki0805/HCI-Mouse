@@ -44,7 +44,7 @@ void MouseInstance::HandleReport(const MouseReport & report) {
       if ((report.button & (1 << i)) ^ (mHidLastButton & (1 << i))) {
         double x,y;
         GetCursorPos(&x, &y);
-        mParent->fifo.Push({mDeviceHandle, report.button, (report.button & (1 << i)) >> i, x, y});
+        mParent->fifo.Push({mDeviceHandle, report.button & (1 << i), (report.button & (1 << i)) >> i, x, y});
       }
     }
     mHidLastButton = report.button;
@@ -67,14 +67,22 @@ void MouseInstance::GetLastPush(uint8_t *button, double *screenX, double *screen
   *screenY = mLastPushPosInScreenY;
 }
 
-void MouseInstance::GetCursorPos(double *x, double *y) {
+void MouseInstance::GetCursorPos(double *x, double *y, bool bGetMouseCenterPos) {
   std::lock_guard<std::recursive_mutex> lck(objectMutex);
-  *x = mMousePosX * mRotateMatrix[0][0] + mMousePosY * mRotateMatrix[0][1];
+
+  int mouseX = mMousePosX;
+  int mouseY = mMousePosY;
+  
+  if (!bGetMouseCenterPos) {
+    mouseY += 0.4 / mParent->mSensitivityY;  //  the cursor is outside the mouse. 
+  }
+
+  *x = mouseX * mRotateMatrix[0][0] + mouseY * mRotateMatrix[0][1];
   *x *= mParent->mSensitivityX;
   *x += mOriginInScreenCoordX;
   *x = (*x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2);
 
-  *y = mMousePosX * mRotateMatrix[1][0] + mMousePosY * mRotateMatrix[1][1];
+  *y = mouseX * mRotateMatrix[1][0] + mouseY * mRotateMatrix[1][1];
   *y *= mParent->mSensitivityY;
   *y += mOriginInScreenCoordY;
   *y = - (*y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2);
@@ -93,17 +101,20 @@ MultiMouseSystem::~MultiMouseSystem(){
   mouses.clear();
 }
 
-void MultiMouseSystem::Init(MOUSEBUTTONCALLBACKFUNC func)
+void MultiMouseSystem::Init(MOUSEBUTTONCALLBACKFUNC func, bool enableHCI)
 {
   NPNX_ASSERT(!mInitialized);
+  mEnableHCI = enableHCI;
   mouseButtonCallback = func;
   num_mouse = core.Init(default_vid, default_vid, [&, this] (int idx, MouseReport report) -> void {this->reportCallback(idx, report);});
-  hciController.Init(this, num_mouse);
+  if (mEnableHCI){
+    hciController.Init(this, num_mouse);
+  }
   mInitialized = true;
 }
 
-void MultiMouseSystem::GetCursorPos(int hDevice, double *x, double *y) {
-  mouses[hDevice]->GetCursorPos(x,y);
+void MultiMouseSystem::GetCursorPos(int hDevice, double *x, double *y, bool bGetMouseCenterPos) {
+  mouses[hDevice]->GetCursorPos(x, y, bGetMouseCenterPos);
 }
 
 void MultiMouseSystem::RegisterMouseRenderer(Renderer *renderer, std::function<bool(int)> defaultVisibleFunc){
@@ -118,7 +129,10 @@ void MultiMouseSystem::RegisterMouseRenderer(Renderer *renderer, std::function<b
     checkNewMouse(i);
   }
   core.Start();
-  hciController.Start();
+  
+  if (mEnableHCI) {
+    hciController.Start();
+  }
 }
 
 void MultiMouseSystem::checkNewMouse(int hDevice)
@@ -145,49 +159,52 @@ void MultiMouseSystem::PollMouseEvents() {
   while (fifo.Pop(&report)){
     mouseButtonCallback(report.hDevice, report.button, report.action, report.screenX, report.screenY);
   }
-  HCIMessageReport hciReport;
-  while (hciController.messageFifo.Pop(&hciReport)) {
-    switch (hciReport.type) {
-      case HCIMESSAGEOUTTYPE_POSITION: 
-        {
-          mouses[hciReport.index]->SetMousePos((double)hciReport.param1, (double)hciReport.param2);
-          mouseButtonCallback(hciReport.index, 0xffffffff, GLFW_PRESS, (double)hciReport.param1, (double)hciReport.param2);
-          RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
-          NPNX_ASSERT(targetLayer);
-          targetLayer->visibleCallback = [] (int) {return true;};
-          targetLayer->beforeDraw = [&, hciReport, targetLayer] (int) {
-            double x, y;
-            this->GetCursorPos(hciReport.index, &x, &y);
-            glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "xTrans"), x);
-            glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "yTrans"), y);
-            return 0;
-          };
-          targetLayer->afterDraw = [&, targetLayer] (int) {
-            glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "xTrans"), 0.0f);
-            glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "yTrans"), 0.0f);
-            return 0;
-          };
-          targetLayer->textureNoCallback = [] (const int) -> unsigned int{return 0;};
-          hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_1;
-        }
-        break;
-      case HCIMESSAGEOUTTYPE_ANGLE:
-        {
-          mouses[hciReport.index]->SetMouseAngle((double)hciReport.param1);
-          RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
-          NPNX_ASSERT(targetLayer);
-          targetLayer->visibleCallback = [] (int) {return false;};
-          hciController.instances[hciReport.index]->messageType = HCIMESSAGEINTYPE_POSITION;
-        }
-        break;
-      case HCIMESSAGEOUTTYPE_ANGLE_SIGNAL:
-        {
-          RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
-          NPNX_ASSERT(targetLayer);
-          targetLayer->textureNoCallback = [] (const int) -> unsigned int {return 1;};
-          hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_2;
-        }
-        break;
+
+  if (mEnableHCI) {
+    HCIMessageReport hciReport;
+    while (hciController.messageFifo.Pop(&hciReport)) {
+      switch (hciReport.type) {
+        case HCIMESSAGEOUTTYPE_POSITION: 
+          {
+            mouses[hciReport.index]->SetMousePos((double)hciReport.param1, (double)hciReport.param2);
+            mouseButtonCallback(hciReport.index, 0xffffffff, GLFW_PRESS, (double)hciReport.param1, (double)hciReport.param2);
+            RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
+            NPNX_ASSERT(targetLayer);
+            targetLayer->visibleCallback = [] (int) {return true;};
+            targetLayer->beforeDraw = [&, hciReport, targetLayer] (int) {
+              double x, y;
+              this->GetCursorPos(hciReport.index, &x, &y, true);
+              glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "xTrans"), x);
+              glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "yTrans"), y);
+              return 0;
+            };
+            targetLayer->afterDraw = [&, targetLayer] (int) {
+              glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "xTrans"), 0.0f);
+              glUniform1f(glGetUniformLocation(targetLayer->mParent->mDefaultShader->mShader, "yTrans"), 0.0f);
+              return 0;
+            };
+            targetLayer->textureNoCallback = [] (const int) -> unsigned int{return 0;};
+            hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_1;
+          }
+          break;
+        case HCIMESSAGEOUTTYPE_ANGLE:
+          {
+            mouses[hciReport.index]->SetMouseAngle((double)hciReport.param1);
+            RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
+            NPNX_ASSERT(targetLayer);
+            targetLayer->visibleCallback = [] (int) {return false;};
+            hciController.instances[hciReport.index]->messageType = HCIMESSAGEINTYPE_POSITION;
+          }
+          break;
+        case HCIMESSAGEOUTTYPE_ANGLE_SIGNAL:
+          {
+            RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
+            NPNX_ASSERT(targetLayer);
+            targetLayer->textureNoCallback = [] (const int) -> unsigned int {return 1;};
+            hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_2;
+          }
+          break;
+      }
     }
   }
 }

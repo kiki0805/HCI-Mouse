@@ -92,10 +92,11 @@ link_directories(${NPNXWINUSB_LIBPTH})
 #   imageUtils.cpp
 # )
 
-add_executable(
-  winusbdemo
+add_library(
+  HCI_display
 
-  winusbdemo.cpp
+  OBJECT
+
   hcicontroller.cpp
   multimouse.cpp
   dragrectlayer.cpp
@@ -105,6 +106,34 @@ add_executable(
   imageUtils.cpp
 )
 
+add_executable(
+  winusbdemo
+
+  winusbdemo.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
+
+add_executable(
+  test_Pointer
+
+  test_Pointer.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
+
+add_executable(
+  test_Ruler
+
+  test_Ruler.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
+
+add_executable(
+  test_HCIPointer
+
+  test_HCIPointer.cpp
+  $<TARGET_OBJECTS:HCI_display>
+
+)
 # target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 # if (NOT MSVC)
 #   target_compile_options(display PRIVATE -Wl,-rpath=./)
@@ -121,6 +150,9 @@ add_executable(
 # endif()
 
 target_link_libraries(winusbdemo ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-if (NOT MSVC)
-  target_compile_options(winusbdemo PRIVATE -Wl,-rpath=./)
-endif()
+
+target_link_libraries(test_Pointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_Ruler ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_HCIPointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})

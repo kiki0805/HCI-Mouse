@@ -62,7 +62,7 @@ public:
 
   void GetLastPush(uint8_t *button, double *screenX, double *screenY);
 
-  void GetCursorPos(double *x, double *y);
+  void GetCursorPos(double *x, double *y, bool bGetMouseCenterPos = false);
 
 private:
   std::recursive_mutex objectMutex;
@@ -90,10 +90,10 @@ typedef void (*MOUSEBUTTONCALLBACKFUNC)(int hDevice, int button, int action, dou
 
 class MultiMouseSystem {
 public:
-  MultiMouseSystem();
+   MultiMouseSystem(); // if enableHCI == false, We handle moving and button event as a normal mouse.
   ~MultiMouseSystem();
 
-  void Init(MOUSEBUTTONCALLBACKFUNC func); //register raw input for mouse equipments;
+  void Init(MOUSEBUTTONCALLBACKFUNC func, bool enableHCI = true); //register raw input for mouse equipments;
 
   inline void RegisterPoseMouseRenderer(Renderer* renderer) {
     postMouseRenderer = renderer;
@@ -103,13 +103,9 @@ public:
   void RegisterMouseRenderer(Renderer* renderer, std::function<bool(int)> defaultVisibleFunc);
 
 
-  void GetCursorPos(int hDevice, double *x, double *y);
+  void GetCursorPos(int hDevice, double *x, double *y, bool bGetMouseCenterPos = false);
 
   void PollMouseEvents();
-
-  //TODO: change hci sendertype to position, and discard all the hci-report.
-  void DisableHCIReport();
-
 
 private:
   void checkNewMouse(int hDevice);  
@@ -126,6 +122,7 @@ public:
   HCIController hciController;
 
 private:
+  bool mEnableHCI;
   Renderer *mouseRenderer;
   Renderer *postMouseRenderer = NULL;
   std::function<bool(int)> originalMouseVisibleFunc;
