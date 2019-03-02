@@ -11,6 +11,7 @@
 #include <mutex>
 #include <functional>
 #include <map>
+#include <chrono>
 
 // mouse part 
 // Mouse data is read by render thread, written by mousecore thread and HCI thread.
@@ -64,6 +65,8 @@ public:
 
   void GetCursorPos(double *x, double *y, bool bGetMouseCenterPos = false);
 
+  double NoMovementTimer();
+
 private:
   std::recursive_mutex objectMutex;
   MultiMouseSystem *mParent = NULL;
@@ -83,6 +86,8 @@ private:
   //every time we get a rotate angle, we calc the matrix.
   double mRotateMatrix[2][2]; 
   double mOriginInScreenCoordX = WINDOW_WIDTH / 2, mOriginInScreenCoordY = WINDOW_HEIGHT / 2;
+
+  std::chrono::high_resolution_clock::time_point lastMovementTime;
 
 };
 
@@ -115,14 +120,14 @@ public:
   static const size_t cNumLimit = NUM_MOUSE_MAXIMUM;
   std::vector<MouseInstance *> mouses;
   inline size_t GetNumMouse() { return mouses.size(); }
-  double mSensitivityX = 1.0, mSensitivityY = 1.0;
+  double mSensitivityX = 0.092, mSensitivityY = 0.094;
   MOUSEBUTTONCALLBACKFUNC mouseButtonCallback;
   MouseFifo fifo;
   MouseCore core;
   HCIController hciController;
+  bool mEnableHCI;
 
 private:
-  bool mEnableHCI;
   Renderer *mouseRenderer;
   Renderer *postMouseRenderer = NULL;
   std::function<bool(int)> originalMouseVisibleFunc;

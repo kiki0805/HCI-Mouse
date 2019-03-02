@@ -37,6 +37,13 @@ void MouseInstance::SetMouseAngle(double rotateInRad)
 
 void MouseInstance::HandleReport(const MouseReport & report) {
   std::lock_guard<std::recursive_mutex> lck(objectMutex);
+  if (report.xTrans != 0 || report.yTrans != 0) {
+    lastMovementTime = std::chrono::high_resolution_clock::now();
+    if (mParent->mEnableHCI && mParent->hciController.instances[mDeviceHandle]->messageType.load() != HCIMESSAGEINTYPE_POSITION) {
+      mParent->hciController.instances[mDeviceHandle]->messageType = HCIMESSAGEINTYPE_POSITION;
+      mParent->hciController.messageFifo.Push({mDeviceHandle, HCIMESSAGEOUTTYPE_ANGLE_HALT, 0, 0});
+    }
+  }
   mMousePosX+=report.xTrans;
   mMousePosY+=report.yTrans;
   if (report.button != mHidLastButton){
@@ -44,7 +51,7 @@ void MouseInstance::HandleReport(const MouseReport & report) {
       if ((report.button & (1 << i)) ^ (mHidLastButton & (1 << i))) {
         double x,y;
         GetCursorPos(&x, &y);
-        mParent->fifo.Push({mDeviceHandle, report.button & (1 << i), (report.button & (1 << i)) >> i, x, y});
+        mParent->fifo.Push({mDeviceHandle, 1 << i, (report.button & (1 << i)) >> i, x, y});
       }
     }
     mHidLastButton = report.button;
@@ -74,7 +81,7 @@ void MouseInstance::GetCursorPos(double *x, double *y, bool bGetMouseCenterPos) 
   int mouseY = mMousePosY;
   
   if (!bGetMouseCenterPos) {
-    mouseY += 0.4 / mParent->mSensitivityY;  //  the cursor is outside the mouse. 
+    mouseY += 250 / mParent->mSensitivityY;  //  the cursor is outside the mouse. 
   }
 
   *x = mouseX * mRotateMatrix[0][0] + mouseY * mRotateMatrix[0][1];
@@ -87,6 +94,12 @@ void MouseInstance::GetCursorPos(double *x, double *y, bool bGetMouseCenterPos) 
   *y += mOriginInScreenCoordY;
   *y = - (*y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2);
 }
+
+double MouseInstance::NoMovementTimer() {
+  std::lock_guard<std::recursive_mutex> lck(objectMutex);
+  return std::chrono::duration_cast<std::chrono::duration<double>> (std::chrono::high_resolution_clock::now() - lastMovementTime).count();
+}
+
 
 MultiMouseSystem::MultiMouseSystem() {
   mouses.clear();
@@ -168,6 +181,7 @@ void MultiMouseSystem::PollMouseEvents() {
           {
             mouses[hciReport.index]->SetMousePos((double)hciReport.param1, (double)hciReport.param2);
             mouseButtonCallback(hciReport.index, 0xffffffff, GLFW_PRESS, (double)hciReport.param1, (double)hciReport.param2);
+            
             RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
             NPNX_ASSERT(targetLayer);
             targetLayer->visibleCallback = [] (int) {return true;};
@@ -185,11 +199,14 @@ void MultiMouseSystem::PollMouseEvents() {
             };
             targetLayer->textureNoCallback = [] (const int) -> unsigned int{return 0;};
             hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_1;
+          
           }
           break;
         case HCIMESSAGEOUTTYPE_ANGLE:
           {
-            mouses[hciReport.index]->SetMouseAngle((double)hciReport.param1);
+            float angleInRad = *(float *)&hciReport.param1;
+            NPNX_LOG(angleInRad / 3.1415926535897f);
+            mouses[hciReport.index]->SetMouseAngle(angleInRad);
             RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
             NPNX_ASSERT(targetLayer);
             targetLayer->visibleCallback = [] (int) {return false;};
@@ -202,6 +219,14 @@ void MultiMouseSystem::PollMouseEvents() {
             NPNX_ASSERT(targetLayer);
             targetLayer->textureNoCallback = [] (const int) -> unsigned int {return 1;};
             hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_2;
+          }
+          break;
+        case HCIMESSAGEOUTTYPE_ANGLE_HALT:
+          {
+            RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
+            NPNX_ASSERT(targetLayer);
+            targetLayer->visibleCallback = [] (int) {return false;};
+            // MESSAGEINTYPE is set by mouse movement report handler, do not do it again.
           }
           break;
       }

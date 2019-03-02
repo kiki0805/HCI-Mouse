@@ -14,7 +14,7 @@
 using namespace npnx;
 
 const int num_position_texture = 248;
-const double rulerSizeX = 0.6f, rulerSizeY = 0.6f;
+const double rulerSizeX = 0.5f, rulerSizeY = 0.5f;
 int image_shift = 0;
 
 class Test_Ruler {
@@ -28,6 +28,8 @@ Test_Ruler test_;
 
 void mouse_button_callback(int hDevice, int button, int action, double screenX, double screenY) 
 {
+  NPNX_LOG(button);
+  NPNX_LOG(action);
   if (hDevice == 0 && button == 1) {
     if (action == GLFW_PRESS) {
       test_.lastX = screenX;

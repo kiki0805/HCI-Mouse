@@ -27,12 +27,13 @@ enum HCIMessageOutType {
   HCIMESSAGEOUTTYPE_POSITION = 0x00,
   HCIMESSAGEOUTTYPE_ANGLE = 0x01,
   HCIMESSAGEOUTTYPE_ANGLE_SIGNAL = 0x02,
+  HCIMESSAGEOUTTYPE_ANGLE_HALT = 0x03,
 };
 
 struct HCIMessageReport {
   int index;
   unsigned char type;
-  uint16_t param1, param2;
+  uint32_t param1, param2;
 };
 
 typedef NpnxFifo<HCIMessageReport> HCIMessageFifo;

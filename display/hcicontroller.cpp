@@ -37,26 +37,26 @@ void HCIInstance::Start() {
   memset(&pi, 0, sizeof(PROCESS_INFORMATION));
   WCHAR processCmd[8192];
   
-  // //if use python, add python at the beginning like this
-  // wsprintf(processCmd, TEXT("python %ls/%ls %d %ls %ls"), TEXT(NPNX_PY_PATH), TEXT(NPNX_PY_EXECUTABLE), mouseIdx, senderPipePath, receiverPipePath);
+  //if use python, add python at the beginning like this
+  wsprintf(processCmd, TEXT("python %ls/%ls %d %ls %ls"), TEXT(NPNX_PY_PATH), TEXT(NPNX_PY_EXECUTABLE), mouseIdx, senderPipePath, receiverPipePath);
   
   // // wsprintf(processCmd, TEXT("%ls/%ls %d %ls %ls"), TEXT(NPNX_PY_PATH), TEXT(NPNX_PY_EXECUTABLE), mouseIdx, senderPipePath, receiverPipePath);
-  // printf("processCmd %ls\n", processCmd);
-  // if (!CreateProcess(NULL,
-  //                    processCmd,
-  //                    NULL,
-  //                    NULL,
-  //                    FALSE,
-  //                    0,
-  //                    NULL,
-  //                    NULL,
-  //                    &si,
-  //                    &pi)) {
-  //   NPNX_ASSERT_LOG(false && "createPyProcessFailed", GetLastError());
-  // } else {
-  //   CloseHandle(pi.hProcess);
-  //   CloseHandle(pi.hThread);
-  // }
+  printf("processCmd %ls\n", processCmd);
+  if (!CreateProcess(NULL,
+                     processCmd,
+                     NULL,
+                     NULL,
+                     FALSE,
+                     0,
+                     NULL,
+                     NULL,
+                     &si,
+                     &pi)) {
+    NPNX_ASSERT_LOG(false && "createPyProcessFailed", GetLastError());
+  } else {
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+  }
 
   bool fConnected = ConnectNamedPipe(hSenderPipe, NULL) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
   NPNX_ASSERT(fConnected && "sender");
@@ -161,7 +161,10 @@ void HCIInstance::receiverEntry(HANDLE hPipe) {
         thisReport.param1 += 420;
         break;
       case HCIMESSAGEOUTTYPE_ANGLE:
-        thisReport.param1 = *(int16_t *)&(buf[2]);
+        {
+          float ff = (540 - *(float *)&(buf[2])) / 180.0f * 3.1415926535897f;
+          thisReport.param1 = *(uint32_t *) &ff;
+        }
         break;
       case HCIMESSAGEOUTTYPE_ANGLE_SIGNAL:
         break;

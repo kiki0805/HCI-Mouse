@@ -128,5 +128,7 @@ MouseReport MouseCore::raw_to_mousereport(uint8_t *buffer, size_t size) {
   result.wheel = MOUSECORE_EXTRACT_BUFFER(buffer, size, 4, int8_t);
   if (result.wheel & 0x80) result.wheel |= 0xff00;
 
+  printf("%02hhx %02hhx %02hhx\n", xxbyte, xybyte, yybyte);
+  printf("%04hx %04hx\n", result.xTrans, result.yTrans);
   return result;
 }

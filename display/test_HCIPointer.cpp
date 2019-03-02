@@ -31,26 +31,12 @@ Test_HCIPointer test_;
 void mouse_button_callback(int hDevice, int button, int action, double screenX, double screenY) 
 {
   if (hDevice != 0) return;
-  if (button == 0xffffffff && action == GLFW_PRESS) {
+  if (button == 0x01 && action == GLFW_PRESS) {
     if (test_.showing == false && test_.nextBeginDrawNbFrame < test_.nbFrames ) {
       test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-      test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 1.0 - 0.5;
-      test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.4 - 0.7;
-      NPNX_LOG(test_.targetRect->mTransX);
+      test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.9 - 0.45;
+      test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1; NPNX_LOG(test_.targetRect->mTransX);
       NPNX_LOG(test_.targetRect->mTransY);
-    } else if (test_.showing == true) {
-      if (test_.targetRect->isInside(screenX, screenY, test_.nbFrames)) {
-        double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastShowingTime).count();
-        respondTimer /= 1e6;
-        NPNX_LOG(respondTimer);
-        test_.showing = false;
-        test_.targetRect->visibleCallback = [] (int) {return false;};
-        test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-        test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 1.1 - 0.5;
-        test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.4 - 0.7;
-        NPNX_LOG(test_.targetRect->mTransX);
-        NPNX_LOG(test_.targetRect->mTransY);
-      }
     }
   } 
 }
@@ -66,6 +52,20 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
 
 void before_every_frame() 
 {
+  double x,y;
+  multiMouseSystem.GetCursorPos(0, &x, &y);
+  if (test_.showing == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
+    double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastShowingTime).count();
+    respondTimer /= 1e6;
+    NPNX_LOG(respondTimer);
+    test_.showing = false;
+    test_.targetRect->visibleCallback = [] (int) {return false;};
+    test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
+    test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.9 - 0.45;
+    test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
+    NPNX_LOG(test_.targetRect->mTransX);
+    NPNX_LOG(test_.targetRect->mTransY);
+  }
   if (test_.nbFrames == test_.nextBeginDrawNbFrame) {
     test_.targetRect->visibleCallback = [] (int) {return true;};
     test_.showing = true;
