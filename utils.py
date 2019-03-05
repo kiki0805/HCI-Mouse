@@ -376,11 +376,7 @@ def raw_random_location(size):
             # temp = temp[5:]
             r = [str(i) for i in bits_pool[random_index].astype(int)]
             if MANCHESTER_MODE:
-<<<<<<< HEAD
-                encoded_str = '0001' + Manchester_encode(''.join(temp))
-=======
                 encoded_str =PREAMBLE_STR +Manchester_encode(''.join(temp) + crc_cal(''.join(r)))
->>>>>>> f101e265912ee480e6bf577be6d6a91a6b00da53
             elif DESIGNED_CODE:
                 encoded_str = designed_code(''.join(temp))
             elif FREQ:
