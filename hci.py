@@ -24,7 +24,7 @@ def handle_data():
     import re
     from utils import smooth, interpl, chunk_decode
     len_e = 3000
-    register = 0x0D
+    register = 0x0B
     last_ts = None
     plt.ion()
     ax = plt.gca()
@@ -135,7 +135,10 @@ def handle_data():
             succ_count += len(result)
             print('succ_count', succ_count)
             print('crc_fail', np.mean(crc_count))
-            bit_error_rate = (succ_count * 14 * 4 + (100 + 48.65 - succ_count) * (14*4 - np.mean(crc_count))) / ((100 + 48.65) * 14*4)
+            crc_fail_count = len(crc_count)
+            miss_count = 100 + 48.65 - succ_count - crc_fail_count
+            # bit_error_rate = (succ_count * 14 * 4 + (100 + 48.65 - succ_count) * (14*4 - np.mean(crc_count))) / ((100 + 48.65) * 14*4)
+            bit_error_rate = (succ_count * 14 * 4 + crc_fail_count * (14*4 - np.mean(crc_count))) / ((100 + 48.65) * 14*4)
             print('bit_error_rate', 1 - bit_error_rate)
             for i in result:
                 print(i)
