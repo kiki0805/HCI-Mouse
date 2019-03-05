@@ -127,7 +127,14 @@ void MultiMouseSystem::Init(MOUSEBUTTONCALLBACKFUNC func, bool enableHCI)
 }
 
 void MultiMouseSystem::GetCursorPos(int hDevice, double *x, double *y, bool bGetMouseCenterPos) {
-  mouses[hDevice]->GetCursorPos(x, y, bGetMouseCenterPos);
+  if (num_mouse == 0) {
+    *x = 0;
+    *y = 0;
+    return;
+  } else {
+    NPNX_ASSERT(hDevice < num_mouse);
+    mouses[hDevice]->GetCursorPos(x, y, bGetMouseCenterPos);
+  }
 }
 
 void MultiMouseSystem::RegisterMouseRenderer(Renderer *renderer, std::function<bool(int)> defaultVisibleFunc){
