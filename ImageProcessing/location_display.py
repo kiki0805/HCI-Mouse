@@ -24,14 +24,15 @@ def draw_block(im_arr, i, j, block_size, value):
 
 def draw_process(start, end, data, off, real):
     shiftn = start / real
+    shift_pixels = 15 # 14
     if shiftn == 0:
         shift = [0, 0]
     elif shiftn == 1:
-        shift = [14, 0]
+        shift = [shift_pixels, 0]
     elif shiftn == 2:
-        shift = [14, 14]
+        shift = [shift_pixels, shift_pixels]
     elif shiftn == 3:
-        shift = [0, 14]
+        shift = [0, shift_pixels]
     print(shift)
     shiftn += 1
     start = 0
@@ -46,8 +47,8 @@ def draw_process(start, end, data, off, real):
                 # if n < 5:
                 #     print(x,y, data[x][y][n])
                 filtered_data = data[x][y][(n + off[(x,y)]) % ((BITS_NUM +4) * EXPEND + PREAMBLE_NP.size )]
-                if (i >= 1080 or j >= 1080) and n < 6:
-                    filtered_data = 0.5
+                # if (i >= 1080 or j >= 1080) and n < 6:
+                #     filtered_data = 0.5
                 # filtered_data = data[x][y][(n) % (BITS_NUM * EXPEND + PREAMBLE_NP.size)]
                 # # print(data[x][y])
                 # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data * 255)
@@ -76,8 +77,8 @@ def draw_process(start, end, data, off, real):
 
 WIDTH = 1080
 HEIGHT = 1080
-BLOCK_SIZE = 4
-DATA_BLOCK_SIZE = 32
+BLOCK_SIZE = 6#4
+DATA_BLOCK_SIZE = 36#32
 
 if __name__ == '__main__':
     # raw_data = designed_location_encode(SIZE)

@@ -16,15 +16,14 @@ idProduct = 0xc077 # dell
 # idProduct = 0xc019 # logitech without tag
 # idProduct = 0xc05b # logitech with tag
 succ_count = 0
-crc_count = []
 
 def handle_data():
-    global succ_count, crc_count
+    global succ_count
     import time
     import re
     from utils import smooth, interpl, chunk_decode
     len_e = 3000
-    register = 0x0B
+    register = 0x0D
     last_ts = None
     plt.ion()
     ax = plt.gca()
@@ -121,25 +120,14 @@ def handle_data():
         # bit_stream = sample_wave <= (max(temp_sample) + min(temp_sample)) / 2
         bit_stream = sample_wave <= np.mean(temp_sample)
         bit_stream = bit_stream.astype(int)
-        result, crc_fail = chunk_decode(bit_stream)
+        result = chunk_decode(bit_stream)
         if result is None:
-            result, crc_fail = chunk_decode(bit_stream, flip=True)
-            if crc_fail != []:
-                crc_count.append(np.mean(crc_fail))
-        else:
-            if crc_fail != []:
-                crc_count.append(np.mean(crc_fail))
+            result = chunk_decode(bit_stream, flip=True)
 
         if result is not None:
             result_ts = time.time()
             succ_count += len(result)
             print('succ_count', succ_count)
-            print('crc_fail', np.mean(crc_count))
-            crc_fail_count = len(crc_count)
-            miss_count = 100 + 48.65 - succ_count - crc_fail_count
-            # bit_error_rate = (succ_count * 14 * 4 + (100 + 48.65 - succ_count) * (14*4 - np.mean(crc_count))) / ((100 + 48.65) * 14*4)
-            bit_error_rate = (succ_count * 14 * 4 + crc_fail_count * (14*4 - np.mean(crc_count))) / ((100 + 48.65) * 14*4)
-            print('bit_error_rate', 1 - bit_error_rate)
             for i in result:
                 print(i)
 
@@ -147,7 +135,7 @@ def handle_data():
 
 if __name__ == '__main__':
     dur = input('Duration(default is 10): ')
-    dur = 60 if dur == '' else int(dur)
+    dur = 10 if dur == '' else int(dur)
     flag = Queue()
 
 #046d:c077
