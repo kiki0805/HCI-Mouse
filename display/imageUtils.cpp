@@ -38,7 +38,7 @@ unsigned int makeTexture(unsigned char *buffer, int width, int height, int chann
 unsigned int makeTextureFromImage(const char * imagepath){
   cv::Mat img;
   img = cv::imread(imagepath, cv::IMREAD_UNCHANGED);
-  // NPNX_LOG(imagepath);
+  NPNX_LOG(imagepath);
   // NPNX_LOG(img.rows);
   // NPNX_LOG(img.cols);
   // NPNX_LOG(img.channels());

@@ -19,6 +19,7 @@ def get_location():
 
 test = 0
 angle = get_rotate()
+angle = 45
 img = pygame.transform.rotate(ori_img[index], angle)
 location = get_location()
 
@@ -31,7 +32,8 @@ while True:
             if event.key == K_q:
                 sys.exit()
             if event.key == K_r:
-                angle = get_rotate()
+                # angle = get_rotate()
+                angle += 90
                 print('Test ' + str(test) + ': ' + str(angle) + ', ' + str(location))
                 test += 1
                 img = pygame.transform.rotate(ori_img[index], angle)

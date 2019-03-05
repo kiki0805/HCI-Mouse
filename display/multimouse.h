@@ -11,6 +11,7 @@
 #include <mutex>
 #include <functional>
 #include <map>
+#include <chrono>
 
 // mouse part 
 // Mouse data is read by render thread, written by mousecore thread and HCI thread.
@@ -62,7 +63,9 @@ public:
 
   void GetLastPush(uint8_t *button, double *screenX, double *screenY);
 
-  void GetCursorPos(double *x, double *y);
+  void GetCursorPos(double *x, double *y, bool bGetMouseCenterPos = false);
+
+  double NoMovementTimer();
 
 private:
   std::recursive_mutex objectMutex;
@@ -84,16 +87,18 @@ private:
   double mRotateMatrix[2][2]; 
   double mOriginInScreenCoordX = WINDOW_WIDTH / 2, mOriginInScreenCoordY = WINDOW_HEIGHT / 2;
 
+  std::chrono::high_resolution_clock::time_point lastMovementTime;
+
 };
 
 typedef void (*MOUSEBUTTONCALLBACKFUNC)(int hDevice, int button, int action, double ScreenX, double ScreenY);
 
 class MultiMouseSystem {
 public:
-  MultiMouseSystem();
+   MultiMouseSystem(); // if enableHCI == false, We handle moving and button event as a normal mouse.
   ~MultiMouseSystem();
 
-  void Init(MOUSEBUTTONCALLBACKFUNC func); //register raw input for mouse equipments;
+  void Init(MOUSEBUTTONCALLBACKFUNC func, bool enableHCI = true); //register raw input for mouse equipments;
 
   inline void RegisterPoseMouseRenderer(Renderer* renderer) {
     postMouseRenderer = renderer;
@@ -103,13 +108,9 @@ public:
   void RegisterMouseRenderer(Renderer* renderer, std::function<bool(int)> defaultVisibleFunc);
 
 
-  void GetCursorPos(int hDevice, double *x, double *y);
+  void GetCursorPos(int hDevice, double *x, double *y, bool bGetMouseCenterPos = false);
 
   void PollMouseEvents();
-
-  //TODO: change hci sendertype to position, and discard all the hci-report.
-  void DisableHCIReport();
-
 
 private:
   void checkNewMouse(int hDevice);  
@@ -119,11 +120,12 @@ public:
   static const size_t cNumLimit = NUM_MOUSE_MAXIMUM;
   std::vector<MouseInstance *> mouses;
   inline size_t GetNumMouse() { return mouses.size(); }
-  double mSensitivityX = 1.0, mSensitivityY = 1.0;
+  double mSensitivityX = 0.092, mSensitivityY = 0.094;
   MOUSEBUTTONCALLBACKFUNC mouseButtonCallback;
   MouseFifo fifo;
   MouseCore core;
   HCIController hciController;
+  bool mEnableHCI;
 
 private:
   Renderer *mouseRenderer;

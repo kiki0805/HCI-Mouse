@@ -65,6 +65,8 @@
     "xloctime": "cpp",
     "windowsx.h": "c",
     "shellapi.h": "c",
-    "internal.h": "c"
+    "internal.h": "c",
+    "atomic": "cpp",
+    "deque": "cpp"
   }
 }

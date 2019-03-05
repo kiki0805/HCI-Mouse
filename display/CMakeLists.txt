@@ -44,8 +44,8 @@ elseif(CMAKE_SYSTEM MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "BSD")
 endif()
 
 add_definitions(-DNPNX_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data")
-add_definitions(-DNPNX_PY_PATH="${CMAKE_CURRENT_SOURCE_DIR}/py")
-add_definitions(-DNPNX_PY_EXECUTABLE="test.exe")
+add_definitions(-DNPNX_PY_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../py_dev")
+add_definitions(-DNPNX_PY_EXECUTABLE="hci.py")
 add_definitions(-DUNICODE)
 
 if (NOT WIN32 AND NOT APPLE) 
@@ -60,31 +60,45 @@ link_directories(${NPNXWINUSB_LIBPTH})
 # add_definitions(-DNPNX_BENCHMARK) 
 
 #add source file here
-add_executable(
-  display 
+# add_executable(
+#   display 
 
-  main.cpp
-  shader.cpp
-  renderer.cpp
-  layerobject.cpp
-  imageUtils.cpp
-)
+#   main.cpp
+#   shader.cpp
+#   renderer.cpp
+#   layerobject.cpp
+#   imageUtils.cpp
+# )
 
-add_executable(
-  chess
+# add_executable(
+#   chess
 
-  chessdemo.cpp
-  shader.cpp
-  renderer.cpp
-  layerobject.cpp
-  imageUtils.cpp
-  simpleChess.cpp
-)
+#   chessdemo.cpp
+#   shader.cpp
+#   renderer.cpp
+#   layerobject.cpp
+#   imageUtils.cpp
+#   simpleChess.cpp
+# )
 
-add_executable(
-  drag
+# add_executable(
+#   drag
 
-  dragdemo.cpp
+#   dragdemo.cpp
+#   dragrectlayer.cpp
+#   shader.cpp
+#   renderer.cpp
+#   layerobject.cpp
+#   imageUtils.cpp
+# )
+
+add_library(
+  HCI_display
+
+  OBJECT
+
+  hcicontroller.cpp
+  multimouse.cpp
   dragrectlayer.cpp
   shader.cpp
   renderer.cpp
@@ -96,31 +110,49 @@ add_executable(
   winusbdemo
 
   winusbdemo.cpp
-  hcicontroller.cpp
-  multimouse.cpp
-  dragrectlayer.cpp
-  shader.cpp
-  renderer.cpp
-  layerobject.cpp
-  imageUtils.cpp
+  $<TARGET_OBJECTS:HCI_display>
 )
 
-target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-if (NOT MSVC)
-  target_compile_options(display PRIVATE -Wl,-rpath=./)
-endif()
+add_executable(
+  test_Pointer
 
-target_link_libraries(chess glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-if (NOT MSVC)
-  target_compile_options(chess PRIVATE -Wl,-rpath=./)
-endif()
+  test_Pointer.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
 
-target_link_libraries(drag glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-if (NOT MSVC)
-  target_compile_options(drag PRIVATE -Wl,-rpath=./)
-endif()
+add_executable(
+  test_Ruler
+
+  test_Ruler.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
+
+add_executable(
+  test_HCIPointer
+
+  test_HCIPointer.cpp
+  $<TARGET_OBJECTS:HCI_display>
+
+)
+# target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+# if (NOT MSVC)
+#   target_compile_options(display PRIVATE -Wl,-rpath=./)
+# endif()
+
+# target_link_libraries(chess glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+# if (NOT MSVC)
+#   target_compile_options(chess PRIVATE -Wl,-rpath=./)
+# endif()
+
+# target_link_libraries(drag glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+# if (NOT MSVC)
+#   target_compile_options(drag PRIVATE -Wl,-rpath=./)
+# endif()
 
 target_link_libraries(winusbdemo ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-if (NOT MSVC)
-  target_compile_options(winusbdemo PRIVATE -Wl,-rpath=./)
-endif()
+
+target_link_libraries(test_Pointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_Ruler ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_HCIPointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})

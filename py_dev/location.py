@@ -6,19 +6,28 @@ from utils import smooth, interpl, chunk_decode
 class Localizer:
     def __init__(self):
         self.frames = deque(maxlen=MOUSE_FRAME_RATE * 2)
-        self.len_e = 1000
+        self.frames_accum = deque(maxlen=MOUSE_FRAME_RATE * 2)
+        self.len_e = 3000
+        self.last_succ = None
         self.last_ts = None
+        self.last_ts_accum = None
     
     def update(self, val_tuple):
         tuple1, tuple2 = val_tuple
+        # print('try to decode')
         rlt = self.resolve(tuple1) # 0x0D
-        if not rlt:
+        
+        if rlt is None:
             return self.resolve(tuple2, fix=False) # 0x0B
+        else:
+            self.resolve(tuple2, fix=False)
         return rlt
     
     def reset(self):
         self.frames = deque(maxlen=MOUSE_FRAME_RATE * 2)
+        self.frames_accum = deque(maxlen=MOUSE_FRAME_RATE * 2)
         self.last_ts = None
+        self.last_ts_accum = None
 
     def resolve(self, val_tuple, fix=True):
         timestamp, val = val_tuple
@@ -29,19 +38,30 @@ class Localizer:
                 val_fixed += 128
             if val_fixed > 240:
                 return
-
-        self.frames.append((timestamp, val_fixed))
-        if self.last_ts is None:
-            self.last_ts = self.frames[0][0]
+            self.frames.append((timestamp, val_fixed))
+            frames = self.frames
+            if self.last_ts is None:
+                self.last_ts = frames[0][0]
+            last_ts = self.last_ts
+            # print(timestamp, val_fixed)
+        else:
+            self.frames_accum.append((timestamp, val_fixed))
+            frames = self.frames_accum
+            if self.last_ts_accum is None:
+                self.last_ts_accum = frames[0][0]
+            last_ts = self.last_ts_accum
         
-        if self.frames[-1][0] - self.last_ts < 0.6:
+        if frames[-1][0] - last_ts < 0.6:
             return
 
-        M = np.array(self.frames)
-        M = M[np.logical_and(M[:,0] > self.last_ts - 0.5, M[:,0] < self.last_ts + 0.5)]
+        M = np.array(frames)
+        M = M[np.logical_and(M[:,0] > last_ts - 0.5, M[:,0] < last_ts + 0.5)]
         Mtime = M[:,0]
         value = M[:,1]
-        self.last_ts = Mtime[-1]
+        if fix:
+            self.last_ts = Mtime[-1]
+        else:
+            self.last_ts_accum = Mtime[-1]
         sample_time = np.arange(Mtime[0], Mtime[-1], 1 / 2400)
         sample_value = interpl(Mtime, value, sample_time[:-1], 'nearest')
         sample_time = sample_time[:-1]
