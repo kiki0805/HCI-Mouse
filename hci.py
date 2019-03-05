@@ -15,9 +15,11 @@ idVendor = 0x046d
 idProduct = 0xc077 # dell
 # idProduct = 0xc019 # logitech without tag
 # idProduct = 0xc05b # logitech with tag
-
+succ_count = 0
+crc_count = []
 
 def handle_data():
+    global succ_count, crc_count
     import time
     import re
     from utils import smooth, interpl, chunk_decode
@@ -119,26 +121,30 @@ def handle_data():
         # bit_stream = sample_wave <= (max(temp_sample) + min(temp_sample)) / 2
         bit_stream = sample_wave <= np.mean(temp_sample)
         bit_stream = bit_stream.astype(int)
-        result = chunk_decode(bit_stream)
+        result, crc_fail = chunk_decode(bit_stream)
         if result is None:
-            result = chunk_decode(bit_stream, flip=True)
+            result, crc_fail = chunk_decode(bit_stream, flip=True)
+            if crc_fail != []:
+                crc_count.append(np.mean(crc_fail))
+        else:
+            if crc_fail != []:
+                crc_count.append(np.mean(crc_fail))
 
         if result is not None:
             result_ts = time.time()
+            succ_count += len(result)
+            print('succ_count', succ_count)
+            print('crc_fail', np.mean(crc_count))
+            bit_error_rate = (succ_count * 14 * 4 + (100 + 48.65 - succ_count) * (14*4 - np.mean(crc_count))) / ((100 + 48.65) * 14*4)
+            print('bit_error_rate', 1 - bit_error_rate)
             for i in result:
                 print(i)
 
-        if time.time() - result_ts > 2.5:
-            # print('change register')
-            last_ts = None
-            raw_frames_m.window = np.array([[]])
-            register = 0x0B if register == 0x0D else 0x0D
-            result_ts = time.time()
-            flag.put(1)
+       
 
 if __name__ == '__main__':
     dur = input('Duration(default is 10): ')
-    dur = 10 if dur == '' else int(dur)
+    dur = 60 if dur == '' else int(dur)
     flag = Queue()
 
 #046d:c077
