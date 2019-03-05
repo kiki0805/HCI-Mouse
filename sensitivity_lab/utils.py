@@ -48,6 +48,7 @@ def chunk_decode(np_chunk, flip=False):
             # print(flip)
                 rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
             else:
+                # print(bit_str)
                 print('crc fail check')
             #     crc_fail.append(manhattan_dist('00111010010100', bit_str))
         # else:
