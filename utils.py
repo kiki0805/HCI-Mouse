@@ -23,7 +23,7 @@ def chunk_decode(np_chunk, flip=False):
         pat = preamble
     # print(pat)
     rtn = []
-
+    crc_fail = []
     # print('try to decode')
     for i in range(len(chunk)):
         if chunk[i:i+len(pat)] != pat:
@@ -44,11 +44,20 @@ def chunk_decode(np_chunk, flip=False):
         crc_check = crc_validate(bit_str[:-4], crc_val)
         # print(crc_cal(bit_str[:-4]), crc_val)
         if crc_check:
-            
+            if bit_str == '00111010010100':
             # print(flip)
-            rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+                rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
+            # else:
+            #     crc_fail.append(manhattan_dist('00111010010100', bit_str))
         else:
             print('crc fail')
+            # crc_fail.append(manhattan_dist('00111010010100', bit_str))
+        if flip:
+            crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
+                Manchester_encode('11000101101011')))
+        else:
+            crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
+                Manchester_encode('00111010010100')))
         # else:
         #     for index in range(len(bit_str)):
         #         bit_str = list(bit_str)
@@ -61,7 +70,8 @@ def chunk_decode(np_chunk, flip=False):
         #         bit_str = ''.join(bit_str)
 
     if rtn != []:
-        return rtn
+        return rtn, crc_fail
+    return None, crc_fail
 
 def naive_location(data, SIZE):
     return (int(data / SIZE[0]), data % SIZE[0])
@@ -219,7 +229,7 @@ def Manchester_encode(raw_bit_str): # input: str, output: str
     for i in range(len(raw_bit_str)):
         bit = raw_bit_str[i]
         # new_bit_str[i] = '01' if bit == '0' else '10'
-        new_bit_str[i] = '01' if bit == '0' else '10'
+        new_bit_str[i] = '0101' if bit == '0' else '1010'
     return ''.join(new_bit_str)
 
 def Manchester_decode(raw_bit_str, flip=False): # input: str, output: str
@@ -230,16 +240,17 @@ def Manchester_decode(raw_bit_str, flip=False): # input: str, output: str
             continue
         bits = raw_bit_str[i:i+4]
 
-        # if manhattan_dist(bits, '1010') >= 3:
-        #     bits = '1010'
-        #     # print('fix1')
-        # elif manhattan_dist(bits, '0101') >= 3:
-        #     bits = '0101'
-        #     # print('fix2')
-        # else:
-        if bits != '1010' and bits != '0101':
-            # print(bits, raw_bit_str)
-            return None
+        # if bits != '1010' and bits != '0101':
+        #     # print(bits, raw_bit_str)
+        #     return None
+        if manhattan_dist(bits, '1010') >= 3:
+            bits = '0101'
+            # print('fix1')
+        elif manhattan_dist(bits, '0101') >= 3:
+            bits = '1010'
+            # print('fix2')
+        else:
+            bits = '0101'
         
         if flip:
             new_bit_str[int(i / 4)] = '1' if bits == '0101' else '0'
@@ -364,7 +375,7 @@ def raw_random_location(size):
             temp = [str(int(i)) for i in temp]
             # temp = temp[5:]
             if MANCHESTER_MODE:
-                encoded_str ='0001' +Manchester_encode(''.join(temp))
+                encoded_str = '0001' + Manchester_encode(''.join(temp))
             elif DESIGNED_CODE:
                 encoded_str = designed_code(''.join(temp))
             elif FREQ:
