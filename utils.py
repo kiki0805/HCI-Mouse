@@ -544,7 +544,7 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
 
     min_val = 0.7 #0.7
     max_val = 1.3 # 1.3
-    a2 = [(0.7 + (1.3-0.7) * (i - amin)/(amax - amin)) for i in a2]
+    a2 = [(0.7 + (1.3-0.7) * (i - amin)/(amax - amin))/2 for i in a2]
     # print('a2 ', end='')
     # print(a2)
     return a2
