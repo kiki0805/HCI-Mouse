@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdlib>
 #include <chrono>
+#include <cstdio>
 
 #include "layerobject.h"
 #include "shader.h"
@@ -17,29 +18,30 @@ using namespace npnx;
 const int num_position_texture = 248;
 int image_shift = 0;
 
-class Test_Pointer {
+class Test_Slider {
 public:
   GLFWwindow * window;
   DragRectLayer * targetRect;
-  bool showing = false;
-  int nextBeginDrawNbFrame = -1;
+  bool running = false;
   int nbFrames = 0;
-  std::chrono::high_resolution_clock::time_point lastShowingTime;
+  std::chrono::high_resolution_clock::time_point lastClickTime;
+  FILE * mousePathFile;
 }; 
 
-Test_Pointer test_;
+Test_Slider test_;
 
 void mouse_button_callback(int hDevice, int button, int action, double screenX, double screenY) 
 {
   if (hDevice != 0) return;
   if (button == 0x00000001 && action == GLFW_PRESS) {
-    if (test_.showing == false && test_.nextBeginDrawNbFrame < test_.nbFrames ) {
-      test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-      test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.9 - 0.45;
-      test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
-      NPNX_LOG(test_.targetRect->mTransX);
-      NPNX_LOG(test_.targetRect->mTransY);
+    test_.lastClickTime = std::chrono::high_resolution_clock::now();
+    if (test_.running == true) {
+      UCHAR buf[16];
+      memset(buf, 0xff, sizeof(buf));
+      fwrite(buf, 1, 16, test_.mousePathFile);
+      fflush(test_.mousePathFile);
     }
+    test_.running = true;
   } 
 }
 
@@ -47,11 +49,9 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
 {
   if (action != GLFW_PRESS) return;
   double x, y;
-  glfwGetCursorPos(test_.window, &x, &y);
-  printf("%.8lf, %.8lf,\n", (double)(x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2),
-      - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2)); 
+  glfwGetCursorPos(test_.window, &x, &y); 
   mouse_button_callback(0, 1, GLFW_PRESS, (double)(x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2),
-    - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2));
+      - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2));
 }
 
 void before_every_frame() 
@@ -63,22 +63,24 @@ void before_every_frame()
     x = (double)(x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2);
     y = - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2);
   }
-  if (test_.showing == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
-    double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastShowingTime).count();
+  if (test_.running == true) {
+    fwrite(&x, sizeof(double), 1, test_.mousePathFile);
+    fwrite(&y, sizeof(double), 1, test_.mousePathFile);
+  }
+
+  if (test_.running == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
+    double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastClickTime).count();
     respondTimer /= 1e6;
     NPNX_LOG(respondTimer);
-    test_.showing = false;
-    test_.targetRect->visibleCallback = [] (int) {return false;};
-    test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-    test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.9 - 0.45;
-    test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
-    NPNX_LOG(test_.targetRect->mTransX);
-    NPNX_LOG(test_.targetRect->mTransY);
-  }
-  if (test_.nbFrames == test_.nextBeginDrawNbFrame) {
-    test_.targetRect->visibleCallback = [] (int) {return true;};
-    test_.showing = true;
-    test_.lastShowingTime = std::chrono::high_resolution_clock::now();
+    test_.running = false;
+    UCHAR buf[16];
+    memset(buf, 0xff, sizeof(buf));
+    fwrite(buf, 1, 16, test_.mousePathFile);
+    fflush(test_.mousePathFile);
+    int k = test_.nbFrames;
+    test_.targetRect->textureNoCallback = [&,k] (int) {
+      return test_.nbFrames - k > 120 ? 0 : 1;
+    };
   }
 }
 
@@ -89,6 +91,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
 int main() 
 {
+  test_.mousePathFile = fopen(NPNX_FETCH_DATA("mouse_path.dat"), "w");
   srand(1); // this guarantee that the random target rectangle will be same every time we run.
   NPNX_LOG(NPNX_DATA_PATH);
   glfwInit();
@@ -199,11 +202,50 @@ int main()
   bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
   renderer.AddLayer(&bgb);
 
-  const float targetVSize = 0.3f;
+  
+  std::vector<float> curveControlPoints = {
+    -0.33125000f, 0.58333333f,
+    -0.42500000f, 0.43333333f,
+    -0.16354167f, 0.72962963f,
+    0.00625000f, 0.54629630f,
+    -0.05104167f, 0.86296296f,
+    0.06666667f, 0.23888889f,
+    0.22187500f, 0.17222222f,
+    0.11145833f, 0.24074074f,
+    0.32708333f, 0.01481481f,
+    -0.09791667f, -0.26481481f,
+    -0.01354167f, -0.46296296f,
+    -0.21145833f, -0.06481481f
+  };
+
+  // std::vector<float> curveControlPoints = {
+  //   -0.33125000f, 0.6f,
+  //   -0.42500000f, 0.6f,
+  //   -0.16354167f, 0.6f,
+  //   0.325000f, 0.6f,
+  //   0.15104167f, 0.6f,
+  //   0.56666667f, 0.6f,
+  // };
+  CurveLayer curve(curveControlPoints, 150.0f, 50.0f);
+  curve.mTexture = makeTextureFromImage(NPNX_FETCH_DATA("bar.png"));
+  renderer.AddLayer(&curve);
+  
+  const float targetVSize = 0.2f;
   const float targetHSize = targetVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
-  DragRectLayer targetRect(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 100.0f);
-  targetRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("sliderb.png")));
-  targetRect.visibleCallback = [] (int) {return false;};
+  GLuint targetTex = makeTextureFromImage(NPNX_FETCH_DATA("sliderb.png"));
+  DragRectLayer sourceRect(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 100.0f);
+  sourceRect.mTexture.push_back(targetTex);
+  sourceRect.mATransX = curveControlPoints[0];
+  sourceRect.mATransY = curveControlPoints[1];
+  renderer.AddLayer(&sourceRect);
+
+  DragRectLayer targetRect(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 200.0f);
+  targetRect.mTexture.push_back(targetTex);
+  targetRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("passed.png")));
+  int s = curveControlPoints.size();
+  targetRect.mATransX = curveControlPoints[s - 6];
+  targetRect.mATransY = curveControlPoints[s - 5];
+  targetRect.textureNoCallback = [] (int) {return 0;};
   renderer.AddLayer(&targetRect);
   test_.targetRect = &targetRect;
   
@@ -286,5 +328,8 @@ int main()
   }
   mouseRenderer.FreeLayers();
   postMouseRenderer.FreeLayers();
+
+  fclose(test_.mousePathFile);
+  return 0;
 
 }

@@ -100,6 +100,7 @@ add_library(
   hcicontroller.cpp
   multimouse.cpp
   dragrectlayer.cpp
+  curvelayer.cpp
   shader.cpp
   renderer.cpp
   layerobject.cpp
@@ -132,7 +133,13 @@ add_executable(
 
   test_HCIPointer.cpp
   $<TARGET_OBJECTS:HCI_display>
+)
 
+add_executable(
+  test_Slider
+
+  test_Slider.cpp
+  $<TARGET_OBJECTS:HCI_display>
 )
 # target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 # if (NOT MSVC)
@@ -156,3 +163,5 @@ target_link_libraries(test_Pointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS}
 target_link_libraries(test_Ruler ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
 target_link_libraries(test_HCIPointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_Slider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})

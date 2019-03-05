@@ -71,7 +71,7 @@ class Localizer:
         value = np.zeros((10, 1))
         for i in range(10):
             temp_sample = sample_value_DCremove[i:self.len_e:10]
-            value[i] = max(temp_sample) + min(temp_sample)
+            value[i] = max(temp_sample) - min(temp_sample)
         std_min = max(value)
         shift_index = np.where(value==std_min)[0][0]
         sample_wave = sample_value_DCremove[shift_index:self.len_e:10]
