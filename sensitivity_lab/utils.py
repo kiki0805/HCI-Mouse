@@ -49,8 +49,9 @@ def chunk_decode(np_chunk, flip=False):
                 rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
                 crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
                         Manchester_encode('00111010010100')))
-        elif manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
-                Manchester_encode('00111010010100')) < 19:
+        # elif manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
+        #         Manchester_encode('00111010010100')) < 19:
+        else:
             crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
                         Manchester_encode('00111010010100')))
 
