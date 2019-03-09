@@ -133,8 +133,8 @@ public:
     // (32,0)
     //  |
     // (0,0) -- (0,32)
-    *sx = p2 * 32 * (double) WINDOW_WIDTH / (WINDOW_HEIGHT) + 420;
-    *sy = WINDOW_WIDTH - p1 * 32;
+    *sx = p2 * 32 + 420;
+    *sy = WINDOW_HEIGHT - p1 * 32;
   };
 
 private:

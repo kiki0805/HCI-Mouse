@@ -36,8 +36,8 @@ void mouse_button_callback(int hDevice, int button, int action, double screenX, 
       double Sx, Sy;
       Sx = rulerSizeX / (screenX - test_.lastX);
       Sy = - rulerSizeY / (screenY - test_.lastY);
+      printf("%.8lf, %.8lf,\n", screenX, screenY);
     }
-    printf("%.8lf, %.8lf,\n", screenX, screenY);
   }
 }
 
@@ -202,7 +202,8 @@ int main()
 
   multiMouseSystem.RegisterPoseMouseRenderer(&postMouseRenderer);
   multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return true; });
-
+  multiMouseSystem.mSensitivityX = 1.0f;
+  multiMouseSystem.mSensitivityY = 1.0f;
   test_.nbFrames = 0;
   int lastNbFrames = 0;
   double lastTime = glfwGetTime();

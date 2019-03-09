@@ -551,10 +551,9 @@ std::vector<float> curveControlPoints10 = {
   };
   postRenderer.AddLayer(&postBaseRect);
 
-  // RectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f);
-  RectLayer postRect(-1.0f, -1.0f, 1.0f, 1.0f, 999.9f);
+  RectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f);
   for (int i = 0; i < num_position_texture; i++) {
-    std::string pos_texture_path = "fremw2_";
+    std::string pos_texture_path = "fremw3_9_";//"fremw2_";
     pos_texture_path += std::to_string(i);
     pos_texture_path += ".png";
     postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
