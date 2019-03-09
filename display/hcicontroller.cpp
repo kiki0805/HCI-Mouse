@@ -152,13 +152,9 @@ void HCIInstance::receiverEntry(HANDLE hPipe) {
         //  |
         // (0,0) -- (0,32)
         
-        thisReport.param2 = *(int16_t *)&(buf[2]);
-        thisReport.param1 = *(int16_t *)&(buf[4]);
+        thisReport.param1 = *(int16_t *)&(buf[2]);
+        thisReport.param2 = *(int16_t *)&(buf[4]);
         
-        thisReport.param2 = 1080 - 32 * thisReport.param2;
-
-        thisReport.param1 *= 32 * 16.0f / 9.0f;
-        thisReport.param1 += 0;
         break;
       case HCIMESSAGEOUTTYPE_ANGLE:
         {

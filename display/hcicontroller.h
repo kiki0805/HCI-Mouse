@@ -8,7 +8,7 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
-
+#include <functional>
 
 namespace npnx {
 
@@ -37,6 +37,7 @@ struct HCIMessageReport {
 };
 
 typedef NpnxFifo<HCIMessageReport> HCIMessageFifo;
+
 
 class HCIController;
 class MultiMouseSystem;

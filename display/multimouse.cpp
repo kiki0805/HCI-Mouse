@@ -188,7 +188,9 @@ void MultiMouseSystem::PollMouseEvents() {
       switch (hciReport.type) {
         case HCIMESSAGEOUTTYPE_POSITION: 
           {
-            mouses[hciReport.index]->SetMousePos((double)hciReport.param1, (double)hciReport.param2);
+            double x,y;
+            hciToScreenPosFunc(hciReport.param1, hciReport.param2, &x, &y);
+            mouses[hciReport.index]->SetMousePos(x, y);
             mouseButtonCallback(hciReport.index, 0xffffffff, GLFW_PRESS, (double)hciReport.param1, (double)hciReport.param2);
             
             if (mEnableAngle) {

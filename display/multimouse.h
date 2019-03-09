@@ -33,6 +33,8 @@
 
 namespace npnx {
 
+typedef std::function<void(int, int, double *, double *)> HCITOSCREENPOSFUNC_T;
+
 class MultiMouseSystem;
 
 //TODO: this class must be thread safe.
@@ -127,6 +129,13 @@ public:
   MouseCore core;
   HCIController hciController;
   bool mEnableHCI;
+  HCITOSCREENPOSFUNC_T hciToScreenPosFunc = [] (int p1, int p2, double *sx, double *sy){
+    // (32,0)
+    //  |
+    // (0,0) -- (0,32)
+    *sx = p2 * 32 * (double) WINDOW_WIDTH / (WINDOW_HEIGHT) + 420;
+    *sy = WINDOW_WIDTH - p1 * 32;
+  };
 
 private:
   Renderer *mouseRenderer;
