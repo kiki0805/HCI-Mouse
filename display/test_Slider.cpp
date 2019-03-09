@@ -22,6 +22,8 @@ class Test_Slider {
 public:
   GLFWwindow * window;
   DragRectLayer * targetRect;
+  int bgIndex = 0;
+  int testCount = 0;
   bool running = false;
   int nbFrames = 0;
   std::chrono::high_resolution_clock::time_point lastClickTime;
@@ -54,6 +56,15 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
       - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2));
 }
 
+void save_respondtime_to_file(double respondTimer)
+{
+  freopen("slider_normal.txt","a",stdout);
+  printf("%.4lf\n",respondTimer);
+  freopen("CON","a",stdout);
+  return ;
+}
+
+
 void before_every_frame() 
 {
   double x,y;
@@ -71,7 +82,11 @@ void before_every_frame()
   if (test_.running == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
     double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastClickTime).count();
     respondTimer /= 1e6;
-    NPNX_LOG(respondTimer);
+    // NPNX_LOG(respondTimer);
+    save_respondtime_to_file(respondTimer);
+    test_.testCount ++;
+    NPNX_LOG(test_.testCount);
+    NPNX_LOG(test_.bgIndex);
     test_.running = false;
     UCHAR buf[16];
     memset(buf, 0xff, sizeof(buf));
@@ -86,7 +101,16 @@ void before_every_frame()
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-
+  if (action != GLFW_PRESS) return;
+	switch (key) {
+	case GLFW_KEY_W:
+		test_.bgIndex ++;
+    test_.bgIndex %= 3;
+    test_.testCount = 0;
+		break;
+	default:
+		break;
+	}
 }
 
 int main() 
@@ -195,28 +219,55 @@ int main()
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+  bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
-  RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
-  bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
-  renderer.AddLayer(&bgb);
+  // RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
+  // bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
+  // renderer.AddLayer(&bgb);
 
   
-  std::vector<float> curveControlPoints = {
-    -0.33125000f, 0.58333333f,
-    -0.42500000f, 0.43333333f,
-    -0.16354167f, 0.72962963f,
-    0.00625000f, 0.54629630f,
-    -0.05104167f, 0.86296296f,
-    0.06666667f, 0.23888889f,
-    0.22187500f, 0.17222222f,
-    0.11145833f, 0.24074074f,
-    0.32708333f, 0.01481481f,
-    -0.09791667f, -0.26481481f,
-    -0.01354167f, -0.46296296f,
-    -0.21145833f, -0.06481481f
-  };
+  // std::vector<float> curveControlPoints = {
+  //   -0.33125000f, 0.58333333f,
+  //   -0.42500000f, 0.43333333f,
+  //   -0.16354167f, 0.72962963f,
+  //   0.00625000f, 0.54629630f,
+  //   -0.05104167f, 0.86296296f,
+  //   0.06666667f, 0.23888889f,
+  //   0.22187500f, 0.17222222f,
+  //   0.11145833f, 0.24074074f,
+  //   0.32708333f, 0.01481481f,
+  //   -0.09791667f, -0.26481481f,
+  //   -0.01354167f, -0.46296296f,
+  //   -0.21145833f, -0.06481481f
+  // };
+
+std::vector<float> curveControlPoints = {
+  -0.34576667, 0.60090370,
+  -0.40710000, 0.50028889,
+  -0.28980000, 0.74468889,
+  -0.02271250, 0.75321852,
+  -0.17911250, 0.74677778,
+  0.15410000, 0.76905926,
+  0.28606250, 0.50168148,
+  0.27571250, 0.64999259,
+  0.28817083, 0.32812963,
+  -0.00460000, 0.28965926,
+  0.16914583, 0.27642963,
+  -0.13100417, 0.32151481,
+  -0.25606667, 0.10340000,
+  -0.27465833, 0.39601852,
+  -0.26344583, -0.06910741,
+  -0.02961250, -0.04821852,
+  -0.17000833, -0.04386667,
+  0.09832500, -0.03168148,
+  0.29315417, 0.08268518,
+  0.23067083, -0.01392593,
+  0.34691667, 0.26302593
+};
 
   // std::vector<float> curveControlPoints = {
   //   -0.33125000f, 0.6f,
@@ -284,22 +335,25 @@ int main()
   };
   postRenderer.AddLayer(&postBaseRect);
 
-  // RectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f);
-  // for (int i = 0; i < num_position_texture; i++) {
-  //   std::string pos_texture_path = "fremw2_";
-  //   pos_texture_path += std::to_string(i);
-  //   pos_texture_path += ".png";
-  //   postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
-  // }
-  // postRect.visibleCallback = [](int) {return true; };
-  // postRect.textureNoCallback = [=](int nbFrames) {return nbFrames % 62 + image_shift; };
-  // postRenderer.AddLayer(&postRect);
+  RectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f);
+  for (int i = 0; i < num_position_texture; i++) {
+    std::string pos_texture_path = "fremw2_";
+    pos_texture_path += std::to_string(i);
+    pos_texture_path += ".png";
+    postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
+  }
+  postRect.visibleCallback = [](int) {return true; };
+  postRect.textureNoCallback = [=](int nbFrames) {return nbFrames % 62 + image_shift; };
+  postRenderer.AddLayer(&postRect);
   
   renderer.Initialize();
   postRenderer.Initialize();
 
   multiMouseSystem.RegisterPoseMouseRenderer(&postMouseRenderer);
   multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return true; });
+  multiMouseSystem.mEnableAngle = false;
+  multiMouseSystem.mSensitivityX = 1.0f;
+  multiMouseSystem.mSensitivityY = 1.0f;
 
   test_.nbFrames = 0;
   int lastNbFrames = 0;
@@ -308,7 +362,7 @@ int main()
   {
     before_every_frame();
 
-    renderer.Draw(test_.nbFrames);
+    renderer.Draw(test_.bgIndex);
     mouseRenderer.Draw(test_.nbFrames);
     postRenderer.Draw(test_.nbFrames);
     postMouseRenderer.Draw(test_.nbFrames);

@@ -141,6 +141,13 @@ add_executable(
   test_Slider.cpp
   $<TARGET_OBJECTS:HCI_display>
 )
+
+add_executable(
+  test_HCISlider
+
+  test_HCISlider.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
 # target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 # if (NOT MSVC)
 #   target_compile_options(display PRIVATE -Wl,-rpath=./)
@@ -165,3 +172,5 @@ target_link_libraries(test_Ruler ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} $
 target_link_libraries(test_HCIPointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
 target_link_libraries(test_Slider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_HCISlider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
