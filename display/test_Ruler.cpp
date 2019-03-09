@@ -28,8 +28,6 @@ Test_Ruler test_;
 
 void mouse_button_callback(int hDevice, int button, int action, double screenX, double screenY) 
 {
-  NPNX_LOG(button);
-  NPNX_LOG(action);
   if (hDevice == 0 && button == 1) {
     if (action == GLFW_PRESS) {
       test_.lastX = screenX;
@@ -38,9 +36,8 @@ void mouse_button_callback(int hDevice, int button, int action, double screenX, 
       double Sx, Sy;
       Sx = rulerSizeX / (screenX - test_.lastX);
       Sy = - rulerSizeY / (screenY - test_.lastY);
-      NPNX_LOG(Sx);
-      NPNX_LOG(Sy);
     }
+    printf("%.8lf, %.8lf,\n", screenX, screenY);
   }
 }
 
@@ -167,7 +164,7 @@ int main()
 
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
   renderer.AddLayer(&bg);
 
   RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);

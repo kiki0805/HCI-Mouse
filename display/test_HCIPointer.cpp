@@ -19,10 +19,12 @@ int image_shift = 0;
 class Test_HCIPointer {
 public:
   GLFWwindow * window;
+  int testCount = 0;
   DragRectLayer * targetRect;
   bool showing = false;
   int nextBeginDrawNbFrame = -1;
   int nbFrames = 0;
+  int bgIndex = 0;
   std::chrono::high_resolution_clock::time_point lastShowingTime;
 }; 
 
@@ -34,7 +36,7 @@ void mouse_button_callback(int hDevice, int button, int action, double screenX, 
   if (button == 0x01 && action == GLFW_PRESS) {
     if (test_.showing == false && test_.nextBeginDrawNbFrame < test_.nbFrames ) {
       test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-      test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.9 - 0.45;
+      test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
       test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1; NPNX_LOG(test_.targetRect->mTransX);
       NPNX_LOG(test_.targetRect->mTransY);
     }
@@ -50,6 +52,16 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
   mouse_button_callback(0, 1, action, x, y);
 }
 
+
+void save_respondtime_to_file(double respondTimer)
+{
+  freopen("respondtime.txt","a",stdout);
+  printf("%.4lf\n",respondTimer);
+  freopen("CON","a",stdout);
+  return ;
+}
+
+
 void before_every_frame() 
 {
   double x,y;
@@ -57,11 +69,15 @@ void before_every_frame()
   if (test_.showing == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
     double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastShowingTime).count();
     respondTimer /= 1e6;
-    NPNX_LOG(respondTimer);
+    // NPNX_LOG(respondTimer);
+    save_respondtime_to_file(respondTimer);
+    test_.testCount ++;
+    NPNX_LOG(test_.testCount);
+    NPNX_LOG(test_.bgIndex);
     test_.showing = false;
     test_.targetRect->visibleCallback = [] (int) {return false;};
     test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-    test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.9 - 0.45;
+    test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
     test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
     NPNX_LOG(test_.targetRect->mTransX);
     NPNX_LOG(test_.targetRect->mTransY);
@@ -75,7 +91,16 @@ void before_every_frame()
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-
+  if (action != GLFW_PRESS) return;
+	switch (key) {
+	case GLFW_KEY_W:
+		test_.bgIndex ++;
+    test_.bgIndex %= 3;
+    test_.testCount = 0;
+		break;
+	default:
+		break;
+	}
 }
 
 int main() 
@@ -184,12 +209,15 @@ int main()
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+  bg.textureNoCallback = [=](int bgIndex) {return bgIndex; };
   renderer.AddLayer(&bg);
 
-  RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
-  bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
-  renderer.AddLayer(&bgb);
+  // RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
+  // bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
+  // renderer.AddLayer(&bgb);
 
   const float targetVSize = 0.3f;
   const float targetHSize = targetVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
@@ -250,6 +278,7 @@ int main()
 
   multiMouseSystem.RegisterPoseMouseRenderer(&postMouseRenderer);
   multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return true; });
+  multiMouseSystem.mEnableAngle = false;
 
   test_.nbFrames = 0;
   int lastNbFrames = 0;
@@ -258,7 +287,7 @@ int main()
   {
     before_every_frame();
 
-    renderer.Draw(test_.nbFrames);
+    renderer.Draw(test_.bgIndex);
     mouseRenderer.Draw(test_.nbFrames);
     postRenderer.Draw(test_.nbFrames);
     postMouseRenderer.Draw(test_.nbFrames);

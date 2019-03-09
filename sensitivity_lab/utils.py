@@ -42,18 +42,18 @@ def chunk_decode(np_chunk, flip=False):
         crc_val = list(bit_str[-4:])
         crc_val = ''.join(crc_val)
         crc_check = crc_validate(bit_str[:-4], crc_val)
+        # print(crc_cal(bit_str[:-4]), crc_val)
         if crc_check:
             if bit_str == '00111010010100':
             # print(flip)
                 rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
-            else:
-                print('crc fail check')
-        if flip:
-            crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
-                Manchester_encode('11000101101011')))
+                crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
+                        Manchester_encode('00111010010100')))
+        # elif manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
+        #         Manchester_encode('00111010010100')) < 19:
         else:
             crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
-                Manchester_encode('00111010010100')))
+                        Manchester_encode('00111010010100')))
 
     if rtn != []:
         return rtn, crc_fail

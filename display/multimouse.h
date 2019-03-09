@@ -121,6 +121,7 @@ public:
   std::vector<MouseInstance *> mouses;
   inline size_t GetNumMouse() { return mouses.size(); }
   double mSensitivityX = 0.092, mSensitivityY = 0.094;
+  bool mEnableAngle = true;
   MOUSEBUTTONCALLBACKFUNC mouseButtonCallback;
   MouseFifo fifo;
   MouseCore core;

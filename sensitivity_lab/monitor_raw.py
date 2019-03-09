@@ -1,13 +1,21 @@
-FILE_NAME = 'data233.csv'
+pct = input('pct: ')
+snr = '-'#input('SNR: ')
+base_color = input('base color: ')
+FILE_NAME = '_'.join(['data233', 'fdiff', pct, snr, base_color])
+import os
+count = 0
+while os.path.exists(FILE_NAME + str(count) + '.csv'):
+    count += 1
+FILE_NAME = FILE_NAME + str(count) + '.csv'
+
+print('FILE NAME:', FILE_NAME)
 # FILE_NAME = None
 
 import usb.core
 import re
 import sys
-from interpolate_f import interpolate_f
 import threading
 from multiprocessing import Process, Queue
-import matplotlib.pyplot as plt
 import time
 import math
 import numpy as np
@@ -51,68 +59,10 @@ def init():
                                          data_or_wLength = None
                                          )
 
-# init()
-
-plt.ion()
-
-line1, = plt.plot([], [], 'r', label='original') 
-# line1 = None
-ax = plt.gca() # get most of the figure elements 
-
 start = time.time()
-
-class SlideArray:
-    def __init__(self, window, size, line, draw_interval, ele_type='coordiante', location_mod=False, sample_line=None, scatter_mode=False):
-        self.scatter_mode = scatter_mode
-        self.sample_line = sample_line
-        self.window = window
-        self.draw_interval = draw_interval
-        self.line = line
-        self.size = size
-        self.last_detected = -1
-        self.location_mod = location_mod
-        self.init_timestamp = None
-        self.window_of_last_one = None
-        self.window_of_last_zero = None
-
-    def push(self, chunk_or_ele): # chunk for coordinate, ele for binary bits
-        assert chunk_or_ele.size <= self.size * 2
-        if self.window.size + chunk_or_ele.size > self.size * 2:
-            self.window = self.window[int((chunk_or_ele.size + self.window.size) - self.size * 2):]
-        if self.window.size == 0:
-            self.window = chunk_or_ele
-        else:
-            self.window = np.concatenate((self.window, chunk_or_ele))
-
-    def is_full(self):
-        if self.window.size > self.size * 2:
-            print('outflow')
-        return self.window.size == self.size * 2
-
-    def update_line_data(self):
-        if self.line is None:
-            return
-        if self.window.size == 0:
-            return
-
-        x, y = divide_coordinate(self.window)
-        if x.size < self.draw_interval:
-            if self.scatter_mode:
-                self.line.set_offsets(self.window)
-                return
-            self.line.set_xdata(x)
-            self.line.set_ydata(y)
-        else:
-            if self.scatter_mode:
-                self.line.set_offsets(self.window[-self.draw_interval:,:])
-                return
-            self.line.set_xdata(x[-self.draw_interval:])
-            self.line.set_ydata(y[-self.draw_interval:])
 
 def update():
     global q, update_time
-    raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, int(MOUSE_FRAME_RATE * 0.05))
-    # raw_frames_m = SlideArray(np.array([[]]), MOUSE_FRAME_RATE * 2, line1, MOUSE_FRAME_RATE)
     if FILE_NAME:
         f = open(FILE_NAME, 'w')
     time1 = None
@@ -137,17 +87,6 @@ def update():
             f.write(str(val_fixed) + ','  + str(timestamp) + '\n')
             continue
 
-        raw_frames_m.push(np.array([[timestamp, val_fixed], ]))
-        if raw_frames_m.line and timestamp - time1 > update_time:
-            raw_frames_m.update_line_data()
-            ax.relim() # renew the data limits
-            ax.autoscale_view(True, True, True) # rescale plot view
-            plt.draw() # plot new figure
-            if update_time != -1:
-                time1 = timestamp
-                plt.pause(1e-6)
-            else:
-                plt.pause(1e-6)
 
 q = Queue()
 p = Process(target=update) # for display

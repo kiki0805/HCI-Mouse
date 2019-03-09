@@ -10,10 +10,12 @@ MouseInstance::MouseInstance(MultiMouseSystem *parent, int hDevice):
 {
   NPNX_ASSERT_LOG(parent, "MouseInstance no parent");
 
-  mRotateMatrix[0][0] = cos(0);
-  mRotateMatrix[0][1] = -sin(0);
+  #define M_PI 3.141592654
+  mRotateMatrix[0][0] = cos(M_PI);
+  mRotateMatrix[0][1] = -sin(M_PI);
   mRotateMatrix[1][0] = -mRotateMatrix[0][1];
   mRotateMatrix[1][1] = mRotateMatrix[0][0];
+  #undef M_PI
 }
 
 void MouseInstance::SetMousePos(double xCoord, double yCoord) {
@@ -189,6 +191,7 @@ void MultiMouseSystem::PollMouseEvents() {
             mouses[hciReport.index]->SetMousePos((double)hciReport.param1, (double)hciReport.param2);
             mouseButtonCallback(hciReport.index, 0xffffffff, GLFW_PRESS, (double)hciReport.param1, (double)hciReport.param2);
             
+            if (mEnableAngle) {
             RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
             NPNX_ASSERT(targetLayer);
             targetLayer->visibleCallback = [] (int) {return true;};
@@ -205,8 +208,8 @@ void MultiMouseSystem::PollMouseEvents() {
               return 0;
             };
             targetLayer->textureNoCallback = [] (const int) -> unsigned int{return 0;};
-            hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_1;
-          
+              hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_1;
+            }
           }
           break;
         case HCIMESSAGEOUTTYPE_ANGLE:

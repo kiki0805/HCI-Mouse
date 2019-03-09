@@ -94,7 +94,7 @@ if __name__ == '__main__':
         for i in range(DATA_BLOCK_SIZE):
             for j in range(DATA_BLOCK_SIZE):
                 # off[(i,j)] = random.randint(1, BITS_NUM * EXPEND + PREAMBLE_NP.size + 4)
-                off[(i,j)] = random.randint(1, (BITS_NUM +4) * EXPEND + PREAMBLE_NP.size)
+                off[(i,j)] = random.randint(1, (BITS_NUM + 4) * EXPEND + PREAMBLE_NP.size)
                 if not quiet:
                     data[i][j] = np.array(filter_normalize(raw_data[i][j].tolist()))
                     quiet = input('quiet? ')
