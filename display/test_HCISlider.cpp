@@ -219,10 +219,10 @@ int main()
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
+  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
   bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
@@ -356,7 +356,8 @@ std::vector<float> curveControlPoints = {
   };
   postRenderer.AddLayer(&postBaseRect);
 
-  SplittedRectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f, 0.25f);
+  const float splitLength = 0.25f;
+  SplittedRectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f, splitLength);
   for (int i = 0; i < num_position_texture; i++) {
     // std::string pos_texture_path = "fremw3_9_";
     std::string pos_texture_path = "fremw2_";
@@ -374,6 +375,18 @@ std::vector<float> curveControlPoints = {
   multiMouseSystem.RegisterPoseMouseRenderer(&postMouseRenderer);
   multiMouseSystem.RegisterMouseRenderer(&mouseRenderer, [&](int) { return true; });
   multiMouseSystem.mEnableAngle = false;
+  multiMouseSystem.hciToScreenPosFunc = [=] (int p1, int p2, double *sx, double *sy){
+    // (32,0)
+    //  |
+    // (0,0) -- (0,32)
+    *sx = p2 * 32 + 420;
+    *sy = WINDOW_HEIGHT - p1 * 32;
+    if (*sx < WINDOW_WIDTH / 2) {
+      *sx -= WINDOW_WIDTH / 2 * splitLength;
+    } else {
+      *sx += WINDOW_WIDTH / 2 * splitLength;
+    }
+  };
 
   test_.nbFrames = 0;
   int lastNbFrames = 0;

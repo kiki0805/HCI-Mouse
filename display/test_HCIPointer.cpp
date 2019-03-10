@@ -215,7 +215,7 @@ int main()
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
-  bg.textureNoCallback = [=](int bgIndex) {return bgIndex; };
+  bg.textureNoCallback = [&](int nbFrames) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
   // RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);

@@ -301,7 +301,7 @@ int main()
     for (int j = 0; j < 2; j++) {
       CurveLayer * curve = new CurveLayer(predefinedCurves[i], 150.0f, 50.0f+0.1f * (i * 2 + j) , j == 0);
       curve->mTexture = curveBodyTex;
-      curve->visibleCallback = [](int){return false;};
+      curve->visibleCallback = [](int){return true;};
       renderer.AddLayer(curve);
       curves.push_back(curve);
     
@@ -311,7 +311,7 @@ int main()
       sourceRect->mTexture.push_back(curveBeginTex);
       sourceRect->mATransX = predefinedCurves[i][0];
       sourceRect->mATransY = predefinedCurves[i][1];
-      sourceRect->visibleCallback = [](int){return false;};
+      sourceRect->visibleCallback = [](int){return true;};
       renderer.AddLayer(sourceRect);
       sourceCircles.push_back(sourceRect);
 
@@ -322,7 +322,7 @@ int main()
       targetRect->mATransX = predefinedCurves[i][s - 6];
       targetRect->mATransY = predefinedCurves[i][s - 5];
       targetRect->textureNoCallback = [] (int) {return 0;};
-      targetRect->visibleCallback = [] (int) {return false;};
+      targetRect->visibleCallback = [] (int) {return true;};
       renderer.AddLayer(targetRect);
       targetCircles.push_back(targetRect);
     }
@@ -362,16 +362,17 @@ int main()
   };
   postRenderer.AddLayer(&postBaseRect);
 
-  // SplittedRectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f, 0.25f);
-  // for (int i = 0; i < num_position_texture; i++) {
-  //   std::string pos_texture_path = "fremw2_";
-  //   pos_texture_path += std::to_string(i);
-  //   pos_texture_path += ".png";
-  //   postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
-  // }
-  // postRect.visibleCallback = [](int) {return true; };
-  // postRect.textureNoCallback = [=](int nbFrames) {return nbFrames % 62 + image_shift; };
-  // postRenderer.AddLayer(&postRect);
+  const float splitLength = 0.25f;
+  SplittedRectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f, splitLength);
+  for (int i = 0; i < num_position_texture; i++) {
+    std::string pos_texture_path = "fremw2_";
+    pos_texture_path += std::to_string(i);
+    pos_texture_path += ".png";
+    postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
+  }
+  postRect.visibleCallback = [](int) {return true; };
+  postRect.textureNoCallback = [=](int nbFrames) {return nbFrames % 62 + image_shift; };
+  postRenderer.AddLayer(&postRect);
   
   renderer.Initialize();
   postRenderer.Initialize();
@@ -381,6 +382,18 @@ int main()
   multiMouseSystem.mEnableAngle = false;
   multiMouseSystem.mSensitivityX = 1.0f;
   multiMouseSystem.mSensitivityY = 1.0f;
+  multiMouseSystem.hciToScreenPosFunc = [=] (int p1, int p2, double *sx, double *sy){
+    // (32,0)
+    //  |
+    // (0,0) -- (0,32)
+    *sx = p2 * 32 + 420;
+    *sy = WINDOW_HEIGHT - p1 * 32;
+    if (*sx < 960) {
+      *sx -= 1920 * splitLength;
+    } else {
+      *sx += 1920 * splitLength;
+    }
+  };
 
   test_.nbFrames = 0;
   int lastNbFrames = 0;
