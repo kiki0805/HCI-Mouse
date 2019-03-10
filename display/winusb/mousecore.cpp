@@ -86,6 +86,7 @@ void MouseCore::Start() {
 
 int MouseCore::ControlTransfer(int mouse_idx, uint8_t request_type, uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
                     unsigned char *data, uint16_t wLength, unsigned int timeout) {
+  if (mouse_idx >= num_mouse) return -1; 
   return libusb_control_transfer(devs_handle[mouse_idx], request_type, bRequest, wValue, wIndex, data, wLength > 4096 ? 4096: wLength, timeout);
 }
 
