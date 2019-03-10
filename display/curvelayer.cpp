@@ -6,8 +6,9 @@
 
 using namespace npnx;
 
-CurveLayer::CurveLayer(std::vector<float> & controlPoints, float lineWidth, float z) :
-  LayerObject(z)
+CurveLayer::CurveLayer(std::vector<float> & controlPoints, float lineWidth, float z, bool centrosymmetric) :
+  LayerObject(z),
+  mCentrosymmetric(centrosymmetric)
 {
   NPNX_ASSERT(controlPoints.size() % 6 == 0 && controlPoints.size() > 6);
   mControlPoints = controlPoints;
@@ -97,7 +98,13 @@ int CurveLayer::DrawGL(const int nbFrames) {
   NPNX_ASSERT(mTexture!= 0);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, mTexture);
-  glDrawElements(GL_TRIANGLE_STRIP, mNbVertex, GL_UNSIGNED_INT, (void *)(mEBOOffset * sizeof(GLuint)));
+  if (mCentrosymmetric) {
+    glUniform1i(glGetUniformLocation(mParent->mDefaultShader->mShader, "centrosymmetric"), 1);
+    glDrawElements(GL_TRIANGLE_STRIP, mNbVertex, GL_UNSIGNED_INT, (void *)(mEBOOffset * sizeof(GLuint)));
+    glUniform1i(glGetUniformLocation(mParent->mDefaultShader->mShader, "centrosymmetric"), 0);
+  } else {
+    glDrawElements(GL_TRIANGLE_STRIP, mNbVertex, GL_UNSIGNED_INT, (void *)(mEBOOffset * sizeof(GLuint)));
+  }
   return 0;
 }
 

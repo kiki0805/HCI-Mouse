@@ -12,7 +12,7 @@ using std::vector;
 
 class CurveLayer : public LayerObject {
 public:
-  CurveLayer(vector<float> & controlPoints, float lineWidth, float z);
+  CurveLayer(vector<float> & controlPoints, float lineWidth, float z, bool centrosymmetric = false);
   virtual ~CurveLayer();
   
   virtual int Initialize(const int VBOOffset, const int EBOOffset);
@@ -35,6 +35,7 @@ public:
   vector<float> mLinePoints;
   float mLineWidth;
   GLuint mTexture  = 0;
+  bool mCentrosymmetric;
 };
 }
 

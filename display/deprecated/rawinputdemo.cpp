@@ -242,7 +242,7 @@ int main()
   glfwGetCursorPos(window, &dragDemo.cursorOriginX, &dragDemo.cursorOriginY);
 
   Shader defaultShader;
-  defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex1.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
+  defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
   defaultShader.Use();
   glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture0"), 0);
   glUniform1f(glGetUniformLocation(defaultShader.mShader, "xTrans"), 0.0f);

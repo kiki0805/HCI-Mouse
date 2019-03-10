@@ -139,6 +139,7 @@ add_executable(
   test_Slider
 
   test_Slider.cpp
+  curvedata.cpp 
   $<TARGET_OBJECTS:HCI_display>
 )
 
@@ -146,6 +147,7 @@ add_executable(
   test_HCISlider
 
   test_HCISlider.cpp
+  curvedata.cpp
   $<TARGET_OBJECTS:HCI_display>
 )
 # target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})

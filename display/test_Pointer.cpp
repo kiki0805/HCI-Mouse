@@ -193,7 +193,7 @@ int main()
   glfwSetMouseButtonCallback(window, glfwmouse_button);
 
   Shader defaultShader;
-  defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex1.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
+  defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
   defaultShader.Use();
   glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture0"), 0);
   glUniform1f(glGetUniformLocation(defaultShader.mShader, "xTrans"), 0.0f);
@@ -203,6 +203,9 @@ int main()
   adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment.glsl"));
   adjustShader.Use();
   glUniform1i(glGetUniformLocation(adjustShader.mShader, "texture0"), 0);
+  glUniform1f(glGetUniformLocation(adjustShader.mShader, "xTrans"), 0.0f);
+  glUniform1f(glGetUniformLocation(adjustShader.mShader, "yTrans"), 0.0f);
+  glUniform1i(glGetUniformLocation(adjustShader.mShader, "centrosymmetric"), 0);
   glUniform1i(glGetUniformLocation(adjustShader.mShader, "rawScreen"), 1);
   glUniform1i(glGetUniformLocation(adjustShader.mShader, "letThrough"), 0);
 

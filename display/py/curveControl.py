@@ -6,8 +6,13 @@ while (True):
     s = input()
   except:
     break
-  x , y = tuple(map(float, s.strip(', \r\t\n').split(sep = ',')))
-  vertex.append([x, y])
+  try:
+    x , y = tuple(map(float, s.strip(', \r\t\n').split(sep = ',')))
+    vertex.append([x, y])
+  except:
+    vertex = []
+    print(r'},')
+    print(r'{')
   
   l = len(vertex)
   if l >= 3:
@@ -32,15 +37,20 @@ while (True):
     nd = (d01 / 2.5) ** 2 / (dc if dc != 0 else 0.00000001)
     if nd > d01 : 
       nd = d01
-    print(x1 , y1, sep = ',', end = ",\n")
-    print(dx * nd + x1, dy * nd + y1, sep = ',', end = ',\n')
+
+    trans = lambda x,y: (y*9/16, -x*16/9)
+    ax, ay = trans (x1, y1)
+    print(ax , ay, sep = 'f,', end = "f,\n")
+    ax, ay = trans (dx * nd + x1, dy * nd + y1)
+    print(ax, ay, sep = 'f,', end = 'f,\n')
     
     d02 = d(x2 - x1, y2 - y1)
     dc = (dx * (x2 - x1) + dy * (y2 - y1))
-    nd = (d02 / 2.5) ** 2 / (dc if dc != 0 else 0.00000001)
+    nd = (d02 / 2) ** 2 / (dc if dc != 0 else 0.00000001)
     if nd > d02:
       nd = d02 
-    print(dx * nd + x1, dy * nd + y1, sep = ',', end = ',\n')
+    ax, ay = trans (dx * nd + x1, dy * nd + y1)
+    print(ax, ay, sep = 'f,', end = 'f,\n')
 
 
 
