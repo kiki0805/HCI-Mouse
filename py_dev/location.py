@@ -84,6 +84,6 @@ class Localizer:
             result = chunk_decode(bit_stream, flip=True)
 
         if result is not None:
-            print(result)
+            # print(result)
             return result
     

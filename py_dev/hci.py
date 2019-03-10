@@ -80,11 +80,12 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import numpy as np
     
-    f = open('pos_data.csv', 'w')
-    f2 = open('pos_data2.csv','w')
+    # f = open('pos_data.csv', 'w')
+    # f2 = open('pos_data2.csv','w')
     update_time = time.time()
     stt = time.time()
     count = 0
+    mode = 'ANGLE'
     while True:
         # if read_queue.empty():
         #     continue
@@ -96,7 +97,9 @@ if __name__ == '__main__':
             # print('received angle data')
             # whole image 19*19
             # angl_queue.put(read_data[1])
-            localizer.reset()
+            if mode == 'LOCATION':
+                localizer.reset()
+                mode = 'ANGLE'
             try:
                 ret = measurer.update(read_data[1:])
             except:
@@ -106,12 +109,19 @@ if __name__ == '__main__':
                 write_queue.put(data_packing(ret[0], ret[1]))
                     # last_agl_ts = time.time()
         elif func == TypeID.POSITION:
-            measurer.reset()
+            if mode == 'ANGLE':
+                measurer.reset()
+                mode = 'LOCATION'
             count += 1
             ts = int.from_bytes(read_data[-16:-8],'little') / (1e6)
+            # if last_pos_ts is not None and ts - last_pos_ts > 1/240 and ts - last_pos_ts < 1:
+            #     stuck_count += 1
+            #     print('stuck_count:', stuck_count)
+            # last_pos_ts = ts
+                
             ts2 = int.from_bytes(read_data[-8:],'little') / (1e6)
-            f.write(str(ts) + ',' + str(read_data[1]) + '\n')
-            f2.write(str(ts2) + ',' + str(read_data[2]) + '\n')
+            # f.write(str(ts) + ',' + str(read_data[1]) + '\n')
+            # f2.write(str(ts2) + ',' + str(read_data[2]) + '\n')
             try:
                 ret = localizer.update(((ts, read_data[1]), (ts2, read_data[2])))
             except:
@@ -125,8 +135,9 @@ if __name__ == '__main__':
                 # if localizer.last_succ is not None:
                 #     print(time.time() - localizer.last_succ)
                 # localizer.last_succ = time.time()
-                if time.time() - last_pos_ts > 2:
+                if time.time() - last_pos_ts > 1:
                     write_queue.put(data_packing(TypeID.POSITION, ret[0]))
+                    print(ret[0])
                     last_pos_ts = time.time()
             # print('received position data')
             # tuple of two tuple

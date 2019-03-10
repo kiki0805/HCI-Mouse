@@ -11,7 +11,7 @@ sys.path.append("..")
 from setting import *
 from utils import *
 
-PREFIX = 'fremw2_28_'
+PREFIX = 'frem36_6_3_9_'
 
 def draw_block(im_arr, i, j, block_size, value):
     for k1 in range(block_size):
@@ -24,7 +24,7 @@ def draw_block(im_arr, i, j, block_size, value):
 
 def draw_process(start, end, data, off, real):
     shiftn = start / real
-    shift_pixels = 15 # 14
+    shift_pixels = 14#15 # 14
     if shiftn == 0:
         shift = [0, 0]
     elif shiftn == 1:
@@ -70,6 +70,7 @@ def draw_process(start, end, data, off, real):
         im = Image.fromarray(np.uint8(im_arr))
         width, height = im.size
         c = ImageChops.offset(im, shift[0], shift[1])
+        # c = c.resize((1920, 1080), Image.ANTIALIAS)
         # c.paste((0,0,0),(0,0,shift[0],height))
         # c.paste((0,0,0),(0,0,width,shift[1]))
         
@@ -77,14 +78,16 @@ def draw_process(start, end, data, off, real):
 
 WIDTH = 1080
 HEIGHT = 1080
-BLOCK_SIZE = 6#4
-DATA_BLOCK_SIZE = 36#32
+BLOCK_SIZE = 4#6
+DATA_BLOCK_SIZE = 32#36
 
 if __name__ == '__main__':
     # raw_data = designed_location_encode(SIZE)
     raw_data = raw_random_location(SIZE)
     # print(raw_data)
-    data = np.zeros((DATA_BLOCK_SIZE, DATA_BLOCK_SIZE, (BITS_NUM +4) * EXPEND + PREAMBLE_NP.size ))
+    data = np.zeros((DATA_BLOCK_SIZE,  DATA_BLOCK_SIZE, (BITS_NUM +4) * EXPEND + PREAMBLE_NP.size ))
+
+    # data = np.zeros((int(WIDTH / DATA_BLOCK_SIZE), int(HEIGHT / DATA_BLOCK_SIZE), (BITS_NUM +4) * EXPEND + PREAMBLE_NP.size ))
     # data = np.zeros((DATA_BLOCK_SIZE, DATA_BLOCK_SIZE, BITS_NUM * EXPEND + PREAMBLE_NP.size))
     print('Using ' + CODING_METHOD + '...')
     # quiet = True
@@ -93,6 +96,8 @@ if __name__ == '__main__':
     if FILTER:
         for i in range(DATA_BLOCK_SIZE):
             for j in range(DATA_BLOCK_SIZE):
+        # for i in range(int(WIDTH / DATA_BLOCK_SIZE)):
+        #     for j in range(int(HEIGHT / DATA_BLOCK_SIZE)):
                 # off[(i,j)] = random.randint(1, BITS_NUM * EXPEND + PREAMBLE_NP.size + 4)
                 off[(i,j)] = random.randint(1, (BITS_NUM + 4) * EXPEND + PREAMBLE_NP.size)
                 if not quiet:

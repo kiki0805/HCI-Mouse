@@ -30,26 +30,26 @@ def draw_process(start, end, filtered_data, filtered_data2):
         for i in range(0, HEIGHT, BLOCK_SIZE):
             for j in range(0, WIDTH, BLOCK_SIZE):
                 # if i < int(HEIGHT / 2):
-                #     im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
                 #     # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
                 # else:
                 #     im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data2[n] * 255)
                     # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data2[n]+128)
-                if (i / BLOCK_SIZE) % 2 == 0:
-                    if (j / BLOCK_SIZE) % 2 == 0:
-                        im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
-                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
-                    else:
-                       im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
-                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, 255 - filtered_data[n] + 128)
+                # if (i / BLOCK_SIZE) % 2 == 0:
+                #     if (j / BLOCK_SIZE) % 2 == 0:
+                #         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                #         # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
+                #     else:
+                #        im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
+                #         # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, 255 - filtered_data[n] + 128)
                     
-                else:
-                    if (j / BLOCK_SIZE) % 2 == 0:
-                        im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
-                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, 255 - filtered_data[n] + 128)
-                    else:
-                        im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
-                        # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
+                # else:
+                #     if (j / BLOCK_SIZE) % 2 == 0:
+                #         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, (1 - filtered_data[n]) * 255)
+                #         # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, 255 - filtered_data[n] + 128)
+                #     else:
+                #         im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n] * 255)
+                #         # im_arr = draw_block(im_arr, i, j, BLOCK_SIZE, filtered_data[n]+128)
         im = Image.fromarray(np.uint8(im_arr))
         im.save('../display/data/' + PREFIX + str(n) + '.png')
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
             direct_data = input('Direct data: ')
     else:
         raw_data = num2bin(int(val), BITS_NUM)
-
+        raw_data = raw_data + crc_cal(raw_data)
     data = raw_data
 
     # NRZI = input('If use NRZI? ')
@@ -80,12 +80,7 @@ if __name__ == '__main__':
             data = CODING_DIC[raw_data[-BITS_NUM:]]
     elif MANCHESTER_MODE:
         print('Using Manchester...')
-        # data = PREAMBLE_STR + Manchester_encode(raw_data)
-        if NRZI:
-            print(add_NRZI(raw_data))
-            data = Manchester_encode(add_NRZI(raw_data))
-        else:
-            data = PREAMBLE_STR + Manchester_encode(raw_data)
+        data = PREAMBLE_STR + Manchester_encode(raw_data)
     elif FREQ:
         print('Using FREQ...')
         data = list(freq_encode(raw_data))

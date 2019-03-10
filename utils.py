@@ -493,7 +493,7 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
                 plt.show()
             l = input('update cut length? ')
     else:
-        l = 3
+        l = 15
         l2 = 0
         a1 = fft(complex_arr)
         a1[0:1 + l]=0

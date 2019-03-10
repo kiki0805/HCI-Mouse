@@ -112,14 +112,14 @@ def _detect_line(lines, ref=None):
 
 def change_cur(cur):
     if cur == 'red':
-        print('changing to white...')
+        # print('changing to white...')
         time.sleep(COLOR_CHANGE_INTERVAL)
-        print('done')
+        # print('done')
         return 'white'
     else:
-        print('changing to red...')
+        # print('changing to red...')
         time.sleep(COLOR_CHANGE_INTERVAL)
-        print('done')
+        # print('done')
         return 'red'
 
 
