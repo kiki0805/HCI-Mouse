@@ -37,6 +37,7 @@ int DragRectLayer::DrawGL(const int nbFrames)
 }
 
 bool DragRectLayer::isInside(double x, double y, const int nbFrames) {
+  if (!visibleCallback(nbFrames)) return false;
   double dx = x - mTransX - mATransX;
   double dy = y - mTransY - mATransY;
   if (mCentrosymmetric) {

@@ -28,13 +28,12 @@ public:
   int testCount = 0;
   bool running = false;
   int nbFrames = 0;
-  std::chrono::high_resolution_clock::time_point lastClickTime;
   FILE * mousePathFile;
   std::vector<CurveLayer *> curves;
   std::vector<DragRectLayer *> sourceCircles;
   std::vector<DragRectLayer *> targetCircles;
-  int curveIdx = MAX_PREDEFINED_CURVES - 1;
 }; 
+  
 
 Test_Slider::~Test_Slider(){
   for (auto it: curves) {
@@ -51,7 +50,16 @@ Test_Slider::~Test_Slider(){
   targetCircles.clear();
 }
 
+class Player_Slider {
+public:
+  int curveIdx = 0;
+  int nextDrawFrame = -1;
+  bool drawing = false;
+  std::chrono::high_resolution_clock::time_point displayTime;
+};
+
 Test_Slider test_;
+Player_Slider player_[2];
 
 auto truefunc = [] (int) -> bool {return true;};
 auto falsefunc = [] (int) -> bool {return false;};
@@ -77,16 +85,16 @@ void curveFadein(int curveid, int playerid, int delay_in_frames) {
 
 void mouse_button_callback(int hDevice, int button, int action, double screenX, double screenY) 
 {
-  if (hDevice != 0) return;
+  // if (hDevice != 0) return;
   if (button == 0x00000001 && action == GLFW_PRESS) {
-    test_.lastClickTime = std::chrono::high_resolution_clock::now();
-    if (test_.running == true) {
-      UCHAR buf[16];
-      memset(buf, 0xff, sizeof(buf));
-      fwrite(buf, 1, 16, test_.mousePathFile);
-      fflush(test_.mousePathFile);
+    if (test_.running == false) {
+      for (int pid = 0; pid < 2; pid++) {
+        int ndf = (int)((double)rand() / RAND_MAX * 240 + 120);
+        player_[pid].nextDrawFrame = test_.nbFrames + ndf;
+        curveFadein(player_[pid].curveIdx, pid, ndf);
+      }
+      test_.running = true;
     }
-    test_.running = true;
   } 
 }
 
@@ -110,36 +118,55 @@ void save_respondtime_to_file(double respondTimer)
 
 void before_every_frame() 
 {
-  // double x,y;
-  // multiMouseSystem.GetCursorPos(0, &x, &y);
-  // if (multiMouseSystem.GetNumMouse() == 0) {
-  //   glfwGetCursorPos(test_.window, &x, &y);
-  //   x = (double)(x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2);
-  //   y = - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2);
-  // }
-  // if (test_.running == true) {
-  //   fwrite(&x, sizeof(double), 1, test_.mousePathFile);
-  //   fwrite(&y, sizeof(double), 1, test_.mousePathFile);
-  // }
+  for (int pid = 0; pid < 2; pid++) {
+    if (test_.nbFrames == player_[pid].nextDrawFrame) {
+      player_[pid].displayTime = std::chrono::high_resolution_clock::now();
+      player_[pid].drawing = true;
+    }
 
-  // if (test_.running == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
-  //   double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastClickTime).count();
-  //   respondTimer /= 1e6;
-  //   // NPNX_LOG(respondTimer);
-  //   save_respondtime_to_file(respondTimer);
-  //   test_.testCount ++;
-  //   NPNX_LOG(test_.testCount);
-  //   NPNX_LOG(test_.bgIndex);
-  //   test_.running = false;
-  //   UCHAR buf[16];
-  //   memset(buf, 0xff, sizeof(buf));
-  //   fwrite(buf, 1, 16, test_.mousePathFile);
-  //   fflush(test_.mousePathFile);
-  //   int k = test_.nbFrames;
-  //   test_.targetRect->textureNoCallback = [&,k] (int) {
-  //     return test_.nbFrames - k > 120 ? 0 : 1;
-  //   };
-  // }
+    if (!player_[pid].drawing) continue;
+
+    double x,y;
+    if (multiMouseSystem.GetNumMouse() == 0) {
+      glfwGetCursorPos(test_.window, &x, &y);
+      x = (double)(x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2);
+      y = - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2);
+      if (test_.targetCircles[player_[pid].curveIdx * 2 + pid] -> isInside(x, y, test_.nbFrames)) {
+        double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - player_[pid].displayTime).count();
+        respondTimer /= 1e6;
+        printf("pid:%d respondTime:%lf\n", 
+          pid,
+          respondTimer
+        );
+        curveFadeout(player_[pid].curveIdx, pid, 120);
+        player_[pid].curveIdx += 1;
+        player_[pid].curveIdx %= MAX_PREDEFINED_CURVES;
+        int ndf = (int)((double)rand() / RAND_MAX * 240 + 120);
+        player_[pid].nextDrawFrame = test_.nbFrames + ndf;
+        curveFadein(player_[pid].curveIdx, pid, ndf);
+        player_[pid].drawing = false;
+      }
+    } else {
+      for (int mouseid = 0; mouseid < multiMouseSystem.GetNumMouse(); mouseid++) {
+        multiMouseSystem.GetCursorPos(mouseid, &x, &y);
+        if (test_.targetCircles[player_[pid].curveIdx * 2 + pid] -> isInside(x, y, test_.nbFrames)) {
+          double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - player_[pid].displayTime).count();
+          respondTimer /= 1e6;
+          printf("pid:%d respondTime:%lf\n", 
+            pid,
+            respondTimer
+          );
+          curveFadeout(player_[pid].curveIdx, pid, 120);
+          player_[pid].curveIdx += 1;
+          player_[pid].curveIdx %= MAX_PREDEFINED_CURVES;
+          int ndf = (int)((double)rand() / RAND_MAX * 240 + 120);
+          player_[pid].nextDrawFrame = test_.nbFrames + ndf;
+          curveFadein(player_[pid].curveIdx, pid, ndf);
+          player_[pid].drawing = false;
+        }
+      }
+    }
+  }
 }
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -151,18 +178,6 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     test_.bgIndex %= 3;
     test_.testCount = 0;
 		break;
-  case GLFW_KEY_P:
-    {
-      curveFadeout(test_.curveIdx, 0, 120);
-      curveFadeout(test_.curveIdx, 1, 120);
-      test_.curveIdx +=1;
-	    test_.curveIdx %= MAX_PREDEFINED_CURVES;
-      curveFadein(test_.curveIdx, 0, 60);
-      curveFadein(test_.curveIdx, 1, 120);
-    }
-    break;
-  case GLFW_KEY_Q:
-    break;
 	default:
 		break;
 	}
@@ -277,10 +292,9 @@ int main()
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("test.png")));
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
   bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
@@ -301,7 +315,7 @@ int main()
     for (int j = 0; j < 2; j++) {
       CurveLayer * curve = new CurveLayer(predefinedCurves[i], 150.0f, 50.0f+0.1f * (i * 2 + j) , j == 0);
       curve->mTexture = curveBodyTex;
-      curve->visibleCallback = [](int){return true;};
+      curve->visibleCallback = falsefunc;
       renderer.AddLayer(curve);
       curves.push_back(curve);
     
@@ -311,7 +325,7 @@ int main()
       sourceRect->mTexture.push_back(curveBeginTex);
       sourceRect->mATransX = predefinedCurves[i][0];
       sourceRect->mATransY = predefinedCurves[i][1];
-      sourceRect->visibleCallback = [](int){return true;};
+      sourceRect->visibleCallback = falsefunc;
       renderer.AddLayer(sourceRect);
       sourceCircles.push_back(sourceRect);
 
@@ -322,7 +336,7 @@ int main()
       targetRect->mATransX = predefinedCurves[i][s - 6];
       targetRect->mATransY = predefinedCurves[i][s - 5];
       targetRect->textureNoCallback = [] (int) {return 0;};
-      targetRect->visibleCallback = [] (int) {return true;};
+      targetRect->visibleCallback = falsefunc;
       renderer.AddLayer(targetRect);
       targetCircles.push_back(targetRect);
     }
@@ -388,10 +402,10 @@ int main()
     // (0,0) -- (0,32)
     *sx = p2 * 32 + 420;
     *sy = WINDOW_HEIGHT - p1 * 32;
-    if (*sx < 960) {
-      *sx -= 1920 * splitLength;
+    if (*sx < WINDOW_WIDTH / 2) {
+      *sx -= WINDOW_WIDTH / 2 * splitLength;
     } else {
-      *sx += 1920 * splitLength;
+      *sx += WINDOW_WIDTH / 2 * splitLength;
     }
   };
 
