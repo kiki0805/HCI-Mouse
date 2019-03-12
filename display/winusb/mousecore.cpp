@@ -44,7 +44,7 @@ int MouseCore::Init(uint16_t vid, uint16_t pid, MOUSEREPORTCALLBACKFUNC func) {
     print_device(dev_list[i], 0);
     libusb_device_descriptor desc;
     LIBUSB_ASSERTCALL(libusb_get_device_descriptor(dev_list[i], &desc));
-    if (desc.idVendor == vid) {
+    if ((desc.idVendor & 0xfff0) == 0x0460) {
       printf("found target\n");
       devs[num_mouse++] = dev_list[i];
       LIBUSB_ASSERTCALL(libusb_open(devs[num_mouse - 1], &devs_handle[num_mouse - 1]));
@@ -96,7 +96,7 @@ void MouseCore::poll(int idx) {
   while (!shouldStop) {
     int ret, cnt;
     unsigned char buf[1024];
-    ret = libusb_interrupt_transfer(devs_handle[idx], target_report_endpoint, buf, hid_report_size, NULL, 10);
+    ret = libusb_interrupt_transfer(devs_handle[idx], target_report_endpoint, buf, hid_report_size, NULL, 1000);
     if (ret == LIBUSB_ERROR_TIMEOUT || ret == LIBUSB_ERROR_PIPE) continue;
     if (ret < 0) {
       printf("%d device polling failed: %s\n", idx, libusb_error_name(ret));
