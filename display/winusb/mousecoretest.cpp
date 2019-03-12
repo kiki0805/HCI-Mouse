@@ -19,7 +19,7 @@ void printTime(int id) {
   int64_t loctfi64 = (int64_t)loctf.dwHighDateTime * 4294967296LL + (int64_t)*(uint32_t *)&loctf.dwLowDateTime; 
   int microseconds = loctfi64 % 10000000;
   char newTime[1024];
-  sprintf(newTime, "%d %d:%d:%d.%d\n", id, loct.wHour, loct.wMinute, loct.wSecond, microseconds);
+  sprintf(newTime, "%d %d:%d:%d.%07d\n", id, loct.wHour, loct.wMinute, loct.wSecond, microseconds);
   fileOutput += newTime;
 }
 
