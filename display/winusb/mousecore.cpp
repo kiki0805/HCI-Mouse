@@ -1,3 +1,4 @@
+#ifndef USE_MOUSECORE_NATIVE
 #include "mousecore.h"
 
 #include <stdio.h>
@@ -133,3 +134,6 @@ MouseReport MouseCore::raw_to_mousereport(uint8_t *buffer, size_t size) {
   // printf("%04hx %04hx\n", result.xTrans, result.yTrans);
   return result;
 }
+#else 
+  #include "mousecore_native.cpp"
+#endif 

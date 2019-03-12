@@ -4,9 +4,17 @@
 #include <stdint.h>
 #include <functional>
 #include <thread>
+#include <vector>
 
+#ifndef USE_MOUSECORE_NATIVE
 #include <libusb.h>
 #include "libusb_utils.h"
+#else
+#include "../common.h"
+#include "usb_utils.h"
+#include <windows.h>
+#include <SetupAPI.h>
+#endif
 
 struct MouseReport {
   uint8_t flags;
@@ -57,11 +65,22 @@ private:
   MouseReport raw_to_mousereport(uint8_t *buffer, size_t size);
 
 private:
+
+#ifndef USE_MOUSECORE_NATIVE
   libusb_device *devs[NUM_MOUSE_MAXIMUM];
   libusb_device_handle *devs_handle[NUM_MOUSE_MAXIMUM];
+#else
+  std::vector<PSP_DEVICE_INTERFACE_DETAIL_DATA> pInterface_details;
+  std::vector<HANDLE> h_files, h_winusbs, h_hidinterfaces;
+  inline WCHAR* GetDevicePath(int hDevice) {
+    return &(pInterface_details[hDevice]->DevicePath[0]);
+  }
+#endif
+
   MOUSEREPORTCALLBACKFUNC mouseReportCallbackFunc;
   int num_mouse = 0;
   int hid_report_size = 0;
+
   bool shouldStop = false;
   std::thread pollThread[NUM_MOUSE_MAXIMUM];
 
