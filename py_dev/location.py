@@ -56,12 +56,17 @@ class Localizer:
 
         M = np.array(frames)
         M = M[np.logical_and(M[:,0] > last_ts - 0.5, M[:,0] < last_ts + 0.5)]
+        if M.size == 0:
+            M = np.array(frames)
+            M = M[M[:,0] > last_ts - 0.5]
         Mtime = M[:,0]
         value = M[:,1]
         if fix:
             self.last_ts = Mtime[-1]
         else:
             self.last_ts_accum = Mtime[-1]
+        if Mtime[-1] - Mtime[0] < 0.3:
+            return
         sample_time = np.arange(Mtime[0], Mtime[-1], 1 / 2400)
         sample_value = interpl(Mtime, value, sample_time[:-1], 'nearest')
         sample_time = sample_time[:-1]
@@ -85,5 +90,6 @@ class Localizer:
 
         if result is not None:
             # print(result)
+            self.reset()
             return result
     

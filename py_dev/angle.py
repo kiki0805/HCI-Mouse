@@ -143,7 +143,7 @@ class AngleMeasurer:
         self.img = Image.new("RGB", RESOLUTION)
         self.red_img = None
         self.white_img = None
-        self.collect = 2
+        self.collect = 0
         self.cur = 'red'
         self.red_angle = None
         self.red_lines = None
@@ -155,6 +155,8 @@ class AngleMeasurer:
         self.w_rhos = None
         self.r_votes = None
         self.w_votes = None
+        self.w_count = 0
+
         # self.white_angle = None
         # self.white_lines = None
     
@@ -162,7 +164,7 @@ class AngleMeasurer:
         self.img = Image.new("RGB", RESOLUTION)
         self.red_img = None
         self.white_img = None
-        self.collect = 2
+        self.collect = 0
         self.cur = 'red'
         self.red_angle = None
         self.red_lines = None
@@ -174,6 +176,7 @@ class AngleMeasurer:
         self.w_rhos = None
         self.r_votes = None
         self.w_votes = None
+        # self.w_count = 0
 
     def calc_angle(self, im_raw, mode, ref=None):
         # mode = self.cur
@@ -259,9 +262,11 @@ class AngleMeasurer:
         return ang, rhos, votes, x, BW, H, rho
 
 
-    def update(self, vals):
+    def update(self, vals, typeID):
+        if typeID == TypeID.ANGLE_WHITE: self.cur = 'white'
+        elif typeID == TypeID.ANGLE: self.cur = 'red'
         count = 0
-        print('angle: received values')
+        print('angle: received values', self.cur)
         for v in vals:
             i = math.floor(count / RESOLUTION[0])
             j = count % RESOLUTION[1]
@@ -271,8 +276,12 @@ class AngleMeasurer:
         if self.collect != 0:
             self.collect -= 1
             return
-        self.img.save(self.cur+'.png')
-        print('decoding ' + self.cur)
+
+        self.img.save(self.cur +str(time.time()) + '.png')
+        # if self.cur == 'white': self.w_count += 1
+        # self.img.save(self.cur+str(self.w_count) + '.png')
+        # print('decoding ' + self.cur)
+        # if self.cur == 'white': return
         
         # threshold = get_threshold(self.img, self.cur)
         
@@ -281,7 +290,7 @@ class AngleMeasurer:
             self.r_ang, self.r_rhos, self.r_votes, self.raw_rx, \
                 _, _, _ = self.calc_angle(self.img, 'red')
             self.red_img = self.img.copy()
-            self.collect = 2
+            self.collect = 0
             self.cur = 'white'
             return TypeID.ANGLE_COLOR2WHITE, 0
         else:
@@ -292,6 +301,7 @@ class AngleMeasurer:
                 return
             self.white_img = self.img.copy()
             print('angle:', ang)
+            self.reset()
             return TypeID.ANGLE, ang
             # return TypeID.ANGLE, 30
     

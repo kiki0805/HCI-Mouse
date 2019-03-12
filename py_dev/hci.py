@@ -86,6 +86,7 @@ if __name__ == '__main__':
     stt = time.time()
     count = 0
     mode = 'ANGLE'
+    debug_time = time.time()
     while True:
         # if read_queue.empty():
         #     continue
@@ -100,20 +101,26 @@ if __name__ == '__main__':
             if mode == 'LOCATION':
                 localizer.reset()
                 mode = 'ANGLE'
+            if time.time() - last_agl_ts < 0.4:
+                continue
+                
             try:
-                ret = measurer.update(read_data[1:])
+                ret = measurer.update(read_data[1:], func)
             except:
                 continue
             if ret is not None:
                 # if time.time() - last_agl_ts > 1:
                 write_queue.put(data_packing(ret[0], ret[1]))
-                    # last_agl_ts = time.time()
+                last_agl_ts = time.time()
         elif func == TypeID.POSITION:
             if mode == 'ANGLE':
                 measurer.reset()
                 mode = 'LOCATION'
             count += 1
             ts = int.from_bytes(read_data[-16:-8],'little') / (1e6)
+            if time.time() - debug_time > 1:
+                print('IN POSITION')
+                debug_time = time.time()
             # if last_pos_ts is not None and ts - last_pos_ts > 1/240 and ts - last_pos_ts < 1:
             #     stuck_count += 1
             #     print('stuck_count:', stuck_count)
@@ -124,7 +131,9 @@ if __name__ == '__main__':
             # f2.write(str(ts2) + ',' + str(read_data[2]) + '\n')
             try:
                 ret = localizer.update(((ts, read_data[1]), (ts2, read_data[2])))
+            # except Exception as e:
             except:
+            #     print(e)
                 continue
             # if time.time() - stt > 1:
             #     stt = time.time()
@@ -139,6 +148,7 @@ if __name__ == '__main__':
                     write_queue.put(data_packing(TypeID.POSITION, ret[0]))
                     print(ret[0])
                     last_pos_ts = time.time()
+                    
             # print('received position data')
             # tuple of two tuple
             # ((ts, v), (ts, v)) 0x0D, 0x0B
