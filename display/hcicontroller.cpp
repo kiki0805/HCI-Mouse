@@ -70,7 +70,7 @@ void HCIInstance::Start() {
 void HCIInstance::senderEntry(HANDLE hPipe) {
   int counter = 0;
   int64_t lll = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-  
+  int lastState = HCIMESSAGEINTYPE_POSITION;
   while (true) {
     int nowState = messageType.load();
     switch (nowState) {
@@ -107,15 +107,24 @@ void HCIInstance::senderEntry(HANDLE hPipe) {
           unsigned char buf[4096];
           buf[0] = nowState;
           unsigned char tempbuf[255];
+          if (lastState != nowState) {
+            std::chrono::duration<double, std::milli> wait_ms(10);
+            std::this_thread::sleep_for(wait_ms);
+          }
           mParent->core->ControlTransfer(mouseIdx, 0x40, 0x01, 0x0000, 0x0D, tempbuf, 1, 1000);
           for (int i = 0; i < 19*19; i++) {
             int cnt = mParent->core->ControlTransfer(mouseIdx, 0xC0, 0x01, 0x0000, 0x0D, buf + 1 + i, 1, 1000);
             LIBUSB_CHECK_RET(hcisender_position_controlTrans, cnt);
-            std::chrono::duration<double, std::milli> wait_ms(1);
+            std::chrono::duration<double, std::milli> wait_ms(0.5);
             std::this_thread::sleep_for(wait_ms);
+            int currentState = messageType.load();
+            if (currentState != nowState) break;
           }
           DWORD length = 0;
-          NPNX_ASSERT_LOG(WriteFile(hPipe, buf, 19 * 19 + 1, &length, NULL), GetLastError());
+          int currentState = messageType.load();
+          if (nowState == currentState) {
+            NPNX_ASSERT_LOG(WriteFile(hPipe, buf, 19 * 19 + 1, &length, NULL), GetLastError());
+          }
         }
         break;
       case HCIMESSAGEINTYPE_ANGLE_HALT:
@@ -130,9 +139,8 @@ void HCIInstance::senderEntry(HANDLE hPipe) {
         NPNX_ASSERT(false && "HCIInstance send status error");
         break;
     }
-    // std::chrono::duration<double, std::milli> wait_ms(1);
-    // std::this_thread::sleep_for(wait_ms);
     std::this_thread::yield();
+    lastState = nowState;
   }
 }
 

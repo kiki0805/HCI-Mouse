@@ -26,6 +26,7 @@ public:
   DragRectLayer * targetRect;
   int bgIndex = 0;
   int testCount = 0;
+  int testCount2 = 0;
   bool running = false;
   int nbFrames = 0;
   FILE * mousePathFile;
@@ -107,10 +108,10 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
       - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2));
 }
 
-void save_respondtime_to_file(double respondTimer)
+void save_respondtime_to_file(int pid, double respondTimer)
 {
   freopen("slider_hci.txt","a",stdout);
-  printf("%.4lf\n",respondTimer);
+  printf("%d %.4lf\n",pid, respondTimer);
   freopen("CON","a",stdout);
   return ;
 }
@@ -125,7 +126,6 @@ void before_every_frame()
     }
 
     if (!player_[pid].drawing) continue;
-
     double x,y;
     if (multiMouseSystem.GetNumMouse() == 0) {
       glfwGetCursorPos(test_.window, &x, &y);
@@ -138,6 +138,13 @@ void before_every_frame()
           pid,
           respondTimer
         );
+        save_respondtime_to_file(pid, respondTimer);
+        test_.testCount ++;
+        if (test_.testCount % 10 == 0) {
+          std::cout<<"change background" << std::endl;
+          test_.bgIndex ++;
+          test_.bgIndex %= 3;
+        }
         curveFadeout(player_[pid].curveIdx, pid, 120);
         player_[pid].curveIdx += 1;
         player_[pid].curveIdx %= MAX_PREDEFINED_CURVES;
@@ -156,6 +163,13 @@ void before_every_frame()
             pid,
             respondTimer
           );
+          save_respondtime_to_file(pid, respondTimer);
+          test_.testCount2 ++;
+          if (test_.testCount2 % 10 == 0) {
+            std::cout<<"change background" << std::endl;
+            test_.bgIndex ++;
+            test_.bgIndex %= 3;
+          }
           curveFadeout(player_[pid].curveIdx, pid, 120);
           player_[pid].curveIdx += 1;
           player_[pid].curveIdx %= MAX_PREDEFINED_CURVES;
@@ -163,6 +177,7 @@ void before_every_frame()
           player_[pid].nextDrawFrame = test_.nbFrames + ndf;
           curveFadein(player_[pid].curveIdx, pid, ndf);
           player_[pid].drawing = false;
+          break; // if one mouse is hitting the object, do not test for the other mouses.
         }
       }
     }
@@ -171,12 +186,14 @@ void before_every_frame()
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+  // std::cout<<"change background"<<std::endl;
   if (action != GLFW_PRESS) return;
 	switch (key) {
 	case GLFW_KEY_W:
 		test_.bgIndex ++;
     test_.bgIndex %= 3;
     test_.testCount = 0;
+    
 		break;
 	default:
 		break;

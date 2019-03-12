@@ -22,6 +22,7 @@ public:
   GLFWwindow * window;
   DragRectLayer * targetRect;
   bool showing = false;
+  bool running = false;
   int bgIndex = 0;
   int testCount = 0;
   int nextBeginDrawNbFrame = -1;
@@ -31,12 +32,41 @@ public:
 
 Test_Pointer test_;
 
+
+void save_respondtime_to_file(double respondTimer)
+{
+  freopen("respondtime_normal_new.txt","a",stdout);
+  printf("%.4lf\n",respondTimer);
+  freopen("CON","a",stdout);
+  return ;
+}
+
 void mouse_button_callback(int hDevice, int button, int action, double screenX, double screenY) 
 {
   if (hDevice != 0) return;
   if (button == 0x00000001 && action == GLFW_PRESS) {
-    if (test_.showing == false && test_.nextBeginDrawNbFrame < test_.nbFrames ) {
-      test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
+    if (test_.running == false ) {
+      test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + 120 + test_.nbFrames;
+      test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
+      test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
+      NPNX_LOG(test_.targetRect->mTransX);
+      NPNX_LOG(test_.targetRect->mTransY);
+      test_.running = true;
+    } else if (test_.showing) {
+      double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastShowingTime).count();
+      respondTimer /= 1e6;
+      save_respondtime_to_file(respondTimer);
+      test_.testCount ++;
+      NPNX_LOG(test_.testCount);
+      NPNX_LOG(test_.bgIndex);
+      if (test_.testCount % 10 == 0) {
+        test_.bgIndex ++;
+        test_.bgIndex %= 3;
+      }
+      // NPNX_LOG(respondTimer);
+      test_.showing = false;
+      test_.targetRect->visibleCallback = [] (int) {return false;};
+      test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + 120 + test_.nbFrames;
       test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
       test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
       NPNX_LOG(test_.targetRect->mTransX);
@@ -56,41 +86,10 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
     - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2));
 }
 
-void save_respondtime_to_file(double respondTimer)
-{
-  freopen("respondtime_normal.txt","a",stdout);
-  printf("%.4lf\n",respondTimer);
-  freopen("CON","a",stdout);
-  return ;
-}
-
 
 
 void before_every_frame() 
 {
-  double x,y;
-  multiMouseSystem.GetCursorPos(0, &x, &y);
-  if (multiMouseSystem.GetNumMouse() == 0) {
-    glfwGetCursorPos(test_.window, &x, &y);
-    x = (double)(x - WINDOW_WIDTH / 2) / (WINDOW_WIDTH / 2);
-    y = - (double) (y - WINDOW_HEIGHT / 2) / (WINDOW_HEIGHT / 2);
-  }
-  if (test_.showing == true && test_.targetRect->isInside(x, y, test_.nbFrames)) {
-    double respondTimer = (double) std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - test_.lastShowingTime).count();
-    respondTimer /= 1e6;
-    save_respondtime_to_file(respondTimer);
-    test_.testCount ++;
-    NPNX_LOG(test_.testCount);
-    NPNX_LOG(test_.bgIndex);
-    // NPNX_LOG(respondTimer);
-    test_.showing = false;
-    test_.targetRect->visibleCallback = [] (int) {return false;};
-    test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
-    test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
-    test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
-    NPNX_LOG(test_.targetRect->mTransX);
-    NPNX_LOG(test_.targetRect->mTransY);
-  }
   if (test_.nbFrames == test_.nextBeginDrawNbFrame) {
     test_.targetRect->visibleCallback = [] (int) {return true;};
     test_.showing = true;
@@ -223,7 +222,7 @@ int main()
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
-  bg.textureNoCallback = [=](int bgIndex) {return bgIndex; };
+  bg.textureNoCallback = [&](int nbFrames) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
   // RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
@@ -300,7 +299,7 @@ int main()
   {
     before_every_frame();
 
-    renderer.Draw(test_.bgIndex);
+    renderer.Draw(test_.nbFrames);
     mouseRenderer.Draw(test_.nbFrames);
     postRenderer.Draw(test_.nbFrames);
     postMouseRenderer.Draw(test_.nbFrames);

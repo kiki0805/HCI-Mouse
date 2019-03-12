@@ -35,7 +35,7 @@ void mouse_button_callback(int hDevice, int button, int action, double screenX, 
   if (hDevice != 0) return;
   if (button == 0x01 && action == GLFW_PRESS) {
     if (test_.showing == false && test_.nextBeginDrawNbFrame < test_.nbFrames ) {
-      test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
+      test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + 120 + test_.nbFrames;
       test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
       test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1; NPNX_LOG(test_.targetRect->mTransX);
       NPNX_LOG(test_.targetRect->mTransY);
@@ -76,7 +76,7 @@ void before_every_frame()
     NPNX_LOG(test_.bgIndex);
     test_.showing = false;
     test_.targetRect->visibleCallback = [] (int) {return false;};
-    test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + test_.nbFrames;
+    test_.nextBeginDrawNbFrame = ((double)rand() / RAND_MAX) * 240 + 120 + test_.nbFrames;
     test_.targetRect->mTransX = ((double)rand() / RAND_MAX) * 0.7 - 0.35;
     test_.targetRect->mTransY = ((double)rand() / RAND_MAX) * 1.1 - 0.1;
     NPNX_LOG(test_.targetRect->mTransX);

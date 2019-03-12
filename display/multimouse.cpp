@@ -227,10 +227,12 @@ void MultiMouseSystem::PollMouseEvents() {
           break;
         case HCIMESSAGEOUTTYPE_ANGLE_SIGNAL:
           {
-            RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
-            NPNX_ASSERT(targetLayer);
-            targetLayer->textureNoCallback = [] (const int) -> unsigned int {return 1;};
-            hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_2;
+            if (hciController.instances[hciReport.index]->messageType.load() == HCIMESSAGEINTYPE_ANGLE_1) {
+              RectLayer *targetLayer = dynamic_cast<RectLayer *> (postMouseRenderer->mLayers[*(float *)&hciReport.index]);
+              NPNX_ASSERT(targetLayer);
+              targetLayer->textureNoCallback = [] (const int) -> unsigned int {return 1;};
+              hciController.instances[hciReport.index]->messageType=HCIMESSAGEINTYPE_ANGLE_2;
+            } 
           }
           break;
         case HCIMESSAGEOUTTYPE_ANGLE_HALT:
