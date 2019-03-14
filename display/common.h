@@ -1,6 +1,10 @@
 #ifndef DISPLAY_COMMON_H_
 #define DISPLAY_COMMON_H_
 
+#ifdef _WIN32
+#define _WIN32_WINNT 0x0602
+#endif
+
 #ifndef NPNX_CLI_ONLY
 #include <GL/glew.h>
 

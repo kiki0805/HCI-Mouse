@@ -6,7 +6,7 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-set(MOUSECORE_NATIVE OFF CACHE BOOL "USE WINUSB BACKEND" FORCE)
+set(MOUSECORE_NATIVE ON CACHE BOOL "USE WINUSB BACKEND" FORCE)
 
 if(MOUSECORE_NATIVE)
   add_definitions(-DUSE_MOUSECORE_NATIVE)
@@ -157,6 +157,13 @@ add_executable(
   curvedata.cpp
   $<TARGET_OBJECTS:HCI_display>
 )
+
+add_executable(
+  test_Simple
+
+  test_Simple.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
 # target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 # if (NOT MSVC)
 #   target_compile_options(display PRIVATE -Wl,-rpath=./)
@@ -183,3 +190,5 @@ target_link_libraries(test_HCIPointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LI
 target_link_libraries(test_Slider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
 target_link_libraries(test_HCISlider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_Simple ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})

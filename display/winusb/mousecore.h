@@ -1,10 +1,6 @@
 #ifndef DISPLAY_WINUSB_MOUSECORE_H_
 #define DISPLAY_WINUSB_MOUSECORE_H_
 
-#include <stdint.h>
-#include <functional>
-#include <thread>
-#include <vector>
 
 #ifndef USE_MOUSECORE_NATIVE
 #include <libusb.h>
@@ -15,6 +11,11 @@
 #include <windows.h>
 #include <SetupAPI.h>
 #endif
+
+#include <stdint.h>
+#include <functional>
+#include <thread>
+#include <vector>
 
 struct MouseReport {
   uint8_t flags;
