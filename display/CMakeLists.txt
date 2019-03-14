@@ -8,10 +8,16 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(MOUSECORE_NATIVE ON CACHE BOOL "USE WINUSB BACKEND" FORCE)
 
+#set this to on to test winusb overlapped io, set to off when doing the demo for best performance.
+set(MOUSECORE_NATIVE_ASYNC OFF CACHE BOOL "USB WINUSB WITH OVERLAPPED IO" FORCE)
+
 if(MOUSECORE_NATIVE)
   add_definitions(-DUSE_MOUSECORE_NATIVE)
 endif()
 
+if(MOUSECORE_NATIVE_ASYNC)
+  add_definitions(-DUSE_MOUSECORE_NATIVE_ASYNC)
+endif()
 
 find_package(OpenCV REQUIRED)
 message(STATUS opencv_inc " " ${OpenCV_INCLUDE_DIRS})

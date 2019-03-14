@@ -5,6 +5,10 @@
 #ifndef USE_MOUSECORE_NATIVE
 #include <libusb.h>
 #include "libusb_utils.h"
+  #ifdef MOUSECORE_NATIVE_ASYNC
+    #error "cannot use native_async without native enabled."
+  #endif
+
 #else
 #include "../common.h"
 #include "usb_utils.h"

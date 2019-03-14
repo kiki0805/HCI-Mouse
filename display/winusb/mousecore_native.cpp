@@ -186,10 +186,27 @@ int MouseCore::ControlTransfer(int mouse_idx, uint8_t request_type, uint8_t bReq
     realwLength
   };
   DWORD length;
+
+#ifdef USE_MOUSECORE_NATIVE_ASYNC
+  OVERLAPPED overlapped;
+  memset(&overlapped, 0, sizeof(OVERLAPPED));
+  HANDLE hEvent = CreateEvent(NULL, false, false, NULL);
+  NPNX_ASSERT_LOG(hEvent != NULL, GetLastError());
+  overlapped.hEvent = hEvent;
+  NPNX_ASSERT_LOG( 
+    WinUsb_ControlTransfer(h_winusbs[mouse_idx], controlSetup, data, realwLength, &length, &overlapped)
+    || GetLastError() == ERROR_IO_PENDING,
+    GetLastError()
+  );
+  GetOverlappedResult(h_winusbs[mouse_idx], &overlapped, &length, true);
+  CloseHandle(overlapped.hEvent);
+#else
   NPNX_ASSERT_LOG( 
     WinUsb_ControlTransfer(h_winusbs[mouse_idx], controlSetup, data, realwLength, &length, NULL),
     GetLastError()
   );
+#endif
+
   return length;
 }
 
@@ -197,9 +214,24 @@ void MouseCore::poll(int idx) {
   while (!shouldStop) {
     UCHAR buf[200];
     DWORD length;
+#ifdef USE_MOUSECORE_NATIVE_ASYNC
+  OVERLAPPED overlapped;
+  memset(&overlapped, 0, sizeof(OVERLAPPED));
+  HANDLE hEvent = CreateEvent(NULL, false, false, NULL);
+  NPNX_ASSERT_LOG(hEvent != NULL, GetLastError());
+  overlapped.hEvent = hEvent;
+  NPNX_ASSERT_LOG( WinUsb_ReadPipe(h_hidinterfaces[idx], target_report_endpoint, buf, hid_report_size, &length, &overlapped)
+    || GetLastError() == ERROR_IO_PENDING,
+    GetLastError()
+  );
+  GetOverlappedResult(h_hidinterfaces[idx], &overlapped, &length, true);
+  CloseHandle(overlapped.hEvent);
+
+#else
     NPNX_ASSERT_LOG( WinUsb_ReadPipe(h_hidinterfaces[idx], target_report_endpoint, buf, hid_report_size, &length, NULL),
       GetLastError()
     );
+#endif
     mouseReportCallbackFunc(idx, raw_to_mousereport(buf, hid_report_size));
   }
 }

@@ -21,6 +21,9 @@ using std::endl;
 #define HID_REPORT_TYPE_INPUT 0x01
 #define HID_REPORT_TYPE_OUTPUT 0x02
 #define HID_REPORT_TYPE_FEATURE 0x03
+
+#define USE_ASYNC_USBIO
+
 int get_hid_record_size(uint8_t *hid_report_descriptor, int size, int type)
 {
   uint8_t i, j = 0;
@@ -260,13 +263,33 @@ int main()
     }
     printf("\n");
 
+
+    
+    
     controltransfer = {
       0x81, 0x06, 0x2200, 0, 4096
     };
+
+#ifdef USE_ASYNC_USBIO
+    OVERLAPPED overlapped;
+    memset(&overlapped, 0, sizeof(OVERLAPPED));
+    HANDLE hEvent = CreateEvent(NULL, false, false, NULL);
+    NPNX_ASSERT_LOG(hEvent != NULL, GetLastError());
+    overlapped.hEvent = hEvent;
+    NPNX_ASSERT_LOG( 
+      WinUsb_ControlTransfer(h_winusb, controltransfer, buf, 4096, &length, &overlapped) ||
+      GetLastError() == ERROR_IO_PENDING,
+      GetLastError()
+    );
+    GetOverlappedResult(h_winusb, &overlapped, &length, true);
+    CloseHandle(overlapped.hEvent);
+#else 
     NPNX_ASSERT_LOG( 
       WinUsb_ControlTransfer(h_winusb, controltransfer, buf, 4096, &length, NULL),
       GetLastError()
     );
+#endif
+
     for(int i = 0; i < length; i++){
       printf("%02hhx ", buf[i]);
     }
