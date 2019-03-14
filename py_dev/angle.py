@@ -266,7 +266,7 @@ class AngleMeasurer:
         if typeID == TypeID.ANGLE_WHITE: self.cur = 'white'
         elif typeID == TypeID.ANGLE: self.cur = 'red'
         count = 0
-        print('angle: received values', self.cur)
+        print('[' + str(time.time()) + ']angle: received values', self.cur)
         for v in vals:
             i = math.floor(count / RESOLUTION[0])
             j = count % RESOLUTION[1]
@@ -300,7 +300,7 @@ class AngleMeasurer:
             if ang is None:
                 return
             self.white_img = self.img.copy()
-            print('angle:', ang)
+            print('[' + str(time.time()) + ']angle:', ang)
             self.reset()
             return TypeID.ANGLE, ang
             # return TypeID.ANGLE, 30

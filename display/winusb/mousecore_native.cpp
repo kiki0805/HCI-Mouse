@@ -177,7 +177,7 @@ void MouseCore::Start() {
 int MouseCore::ControlTransfer(int mouse_idx, uint8_t request_type, uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
                     unsigned char *data, uint16_t wLength, unsigned int timeout) {
   uint16_t realwLength = 4096 < wLength? 4096 : wLength;
-  if (mouse_idx >= num_mouse) return -1; 
+  NPNX_ASSERT(mouse_idx < num_mouse);
   WINUSB_SETUP_PACKET controlSetup = {
     request_type,
     bRequest,

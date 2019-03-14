@@ -110,7 +110,7 @@ void glfwmouse_button(GLFWwindow *window, int button, int action, int _)
 
 void save_respondtime_to_file(int pid, double respondTimer)
 {
-  freopen("slider_normal.txt","a",stdout);
+  freopen("slider_normal_mutl_.txt","a",stdout);
   printf("%d %.4lf\n", pid, respondTimer);
   freopen("CON","a",stdout);
   return ;
@@ -140,12 +140,12 @@ void before_every_frame()
           respondTimer
         );
         save_respondtime_to_file(pid, respondTimer);
-        test_.testCount ++;
-        if (test_.testCount % 10 == 0) {
-          std::cout<<"change background" << std::endl;
-          test_.bgIndex ++;
-          test_.bgIndex %= 3;
-        }
+        // test_.testCount ++;
+        // if (test_.testCount % 10 == 0) {
+        //   std::cout<<"change background" << std::endl;
+        //   test_.bgIndex ++;
+        //   test_.bgIndex %= 3;
+        // }
         curveFadeout(player_[pid].curveIdx, pid, 120);
         player_[pid].curveIdx += 1;
         player_[pid].curveIdx %= MAX_PREDEFINED_CURVES;
@@ -165,12 +165,12 @@ void before_every_frame()
             respondTimer
           );
           save_respondtime_to_file(pid, respondTimer);
-          test_.testCount2 ++;
-          if (test_.testCount2 % 10 == 0) {
-            std::cout<<"change background" << std::endl;
-            test_.bgIndex ++;
-            test_.bgIndex %= 3;
-          }
+          // test_.testCount2 ++;
+          // if (test_.testCount2 % 10 == 0) {
+          //   std::cout<<"change background" << std::endl;
+          //   test_.bgIndex ++;
+          //   test_.bgIndex %= 3;
+          // }
           curveFadeout(player_[pid].curveIdx, pid, 120);
           player_[pid].curveIdx += 1;
           player_[pid].curveIdx %= MAX_PREDEFINED_CURVES;
