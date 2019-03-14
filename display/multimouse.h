@@ -122,7 +122,7 @@ public:
   static const size_t cNumLimit = NUM_MOUSE_MAXIMUM;
   std::vector<MouseInstance *> mouses;
   inline size_t GetNumMouse() { return mouses.size(); }
-  double mSensitivityX = 0.092, mSensitivityY = 0.094;
+  double mSensitivityX = 0.091, mSensitivityY = 0.091;
   bool mEnableAngle = true;
   MOUSEBUTTONCALLBACKFUNC mouseButtonCallback;
   MouseFifo fifo;

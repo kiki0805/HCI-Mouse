@@ -41,7 +41,7 @@ def pipe_client_write(pipe_name, q, idx):
         packet = q.get()
         packet_tagged = tagging_index(packet, int(idx))
         win32file.WriteFile(handle, packet_tagged)
-        print('send data: ',end='')
+        print('[' + str(time.time()) + ']send data: ',end='')
         print(packet_tagged)
     # except:
     #     print('Outpipe Broken')
@@ -95,19 +95,19 @@ if __name__ == '__main__':
         # print(read_data)
         # print(int.from_bytes(read_data[-8:],'little'))
         if func == TypeID.ANGLE or func == TypeID.ANGLE_WHITE:
-            # print('received angle data')
-            # whole image 19*19
-            # angl_queue.put(read_data[1])
+            # if time.time() - debug_time > 1:
+            #     print('IN AGNLE')
+            #     debug_time = time.time()
             if mode == 'LOCATION':
                 localizer.reset()
                 mode = 'ANGLE'
-            if time.time() - last_agl_ts < 0.4:
-                continue
+            # if time.time() - last_agl_ts < 0.4:
+            #     continue
                 
-            try:
-                ret = measurer.update(read_data[1:], func)
-            except:
-                continue
+            # try:
+            ret = measurer.update(read_data[1:], func)
+            # except:
+            #     continue
             if ret is not None:
                 # if time.time() - last_agl_ts > 1:
                 write_queue.put(data_packing(ret[0], ret[1]))
@@ -118,40 +118,17 @@ if __name__ == '__main__':
                 mode = 'LOCATION'
             count += 1
             ts = int.from_bytes(read_data[-16:-8],'little') / (1e6)
-            if time.time() - debug_time > 1:
-                print('IN POSITION')
-                debug_time = time.time()
-            # if last_pos_ts is not None and ts - last_pos_ts > 1/240 and ts - last_pos_ts < 1:
-            #     stuck_count += 1
-            #     print('stuck_count:', stuck_count)
-            # last_pos_ts = ts
-                
             ts2 = int.from_bytes(read_data[-8:],'little') / (1e6)
-            # f.write(str(ts) + ',' + str(read_data[1]) + '\n')
-            # f2.write(str(ts2) + ',' + str(read_data[2]) + '\n')
             try:
                 ret = localizer.update(((ts, read_data[1]), (ts2, read_data[2])))
             # except Exception as e:
             except:
             #     print(e)
                 continue
-            # if time.time() - stt > 1:
-            #     stt = time.time()
-            #     print(count)
-            #     count = 0
-
             if ret is not None:
-                # if localizer.last_succ is not None:
-                #     print(time.time() - localizer.last_succ)
-                # localizer.last_succ = time.time()
                 if time.time() - last_pos_ts > 1:
                     write_queue.put(data_packing(TypeID.POSITION, ret[0]))
                     print(ret[0])
                     last_pos_ts = time.time()
                     
-            # print('received position data')
-            # tuple of two tuple
-            # ((ts, v), (ts, v)) 0x0D, 0x0B
-            # loc_queue.put(read_data[1:])
-
 
