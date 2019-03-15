@@ -228,10 +228,10 @@ int main()
   bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("emptyboard.png")));
   renderer.AddLayer(&bgb);
 
-  GLuint sbTex = makeTextureFromImage(NPNX_FETCH_DATA("sliderb.png"));
-  GLuint paTex = makeTextureFromImage(NPNX_FETCH_DATA("passed.png"));
+  GLuint sbTex = makeTextureFromImage(NPNX_FETCH_DATA("mole.png"));
+  GLuint paTex = makeTextureFromImage(NPNX_FETCH_DATA("molehit.png"));
 
-  const float targetVSize = 0.2f;
+  const float targetVSize = 0.3f;
   const float targetHSize = targetVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
   DragRectLayer piece1(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 1.0f);
   piece1.mTexture.push_back(sbTex);
