@@ -127,7 +127,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+  glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
   int monitorCount;
   GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
 
@@ -233,7 +233,9 @@ int main()
   bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
-  RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
+  const float boardVSize = 1.4f;
+  const float boardHSize = boardVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
+  RectLayer bgb(-boardHSize / 2, -boardVSize / 2, boardHSize / 2, boardVSize / 2, -9.0f);
   bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
   renderer.AddLayer(&bgb);
 
@@ -243,14 +245,14 @@ int main()
   const float targetVSize = 0.2f;
   const float targetHSize = targetVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
   DragRectLayer blackbowl(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 1.0f);
-  blackbowl.mATransX = -0.7f;
+  blackbowl.mATransX = -0.4f;
   blackbowl.mATransY = -0.8f;
   blackbowl.mTexture.push_back(blackPieceTex);
   renderer.AddLayer(&blackbowl);
   test_.blackbowl = &blackbowl;
 
-  DragRectLayer whitebowl(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 1.0f);
-  whitebowl.mATransX = 0.7f;
+  DragRectLayer whitebowl(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 1.1f);
+  whitebowl.mATransX = 0.4f;
   whitebowl.mATransY = 0.8f;
   whitebowl.mTexture.push_back(whitePieceTex);
   renderer.AddLayer(&whitebowl);
@@ -258,7 +260,7 @@ int main()
 
 
   for (int i = 0; i < 500; i++) {
-    const float targetVSize = 0.1f;
+    const float targetVSize = 0.06f;
     const float targetHSize = targetVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
     DragRectLayer *piece = new DragRectLayer(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 2.0f + 0.01f * i);
     piece->visibleCallback = falsefunc;

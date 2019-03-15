@@ -83,7 +83,7 @@ void MouseInstance::GetCursorPos(double *x, double *y, bool bGetMouseCenterPos) 
   int mouseY = mMousePosY;
   
   if (!bGetMouseCenterPos) {
-    mouseY += 250 / mParent->mSensitivityY;  //  the cursor is outside the mouse. 
+    mouseY += 270 / mParent->mSensitivityY;  //  the cursor is outside the mouse. 
   }
 
   *x = mouseX * mRotateMatrix[0][0] + mouseY * mRotateMatrix[0][1];

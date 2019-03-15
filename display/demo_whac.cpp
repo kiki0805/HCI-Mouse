@@ -17,7 +17,7 @@ using namespace npnx;
 
 const int num_position_texture = 248;
 int image_shift = 0;
-const int feedbackLength = 120;
+const int feedbackLength = 240;
 
 class Test_Whac {
 public:
@@ -117,6 +117,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
 
   int monitorCount;
   GLFWmonitor** pMonitor = glfwGetMonitors(&monitorCount);
@@ -224,7 +225,7 @@ int main()
   renderer.AddLayer(&bg);
 
   RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
-  bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("goboard.jpg")));
+  bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("emptyboard.png")));
   renderer.AddLayer(&bgb);
 
   GLuint sbTex = makeTextureFromImage(NPNX_FETCH_DATA("sliderb.png"));
