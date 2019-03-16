@@ -203,6 +203,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 int main() 
 {
   test_.mousePathFile = fopen(NPNX_FETCH_DATA("mouse_path.dat"), "w");
+  std::string frm;
+  frm.reserve(2000000);
   srand(1); // this guarantee that the random target rectangle will be same every time we run.
   NPNX_LOG(NPNX_DATA_PATH);
   glfwInit();
@@ -227,7 +229,7 @@ int main()
   NPNX_LOG(holographic_screen);
 
   GLFWwindow* window;
-#if (defined __linux__ || defined NPNX_BENCHMARK)
+#if (defined __linux__)
   window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Title", NULL, NULL);
 
 #else
@@ -289,6 +291,7 @@ int main()
   glUniform1f(glGetUniformLocation(defaultShader.mShader, "yTrans"), 0.0f);
 
   Shader adjustShader;
+  // adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("newAdjFrag.glsl"));
   adjustShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("adjustFragment.glsl"));
   adjustShader.Use();
   glUniform1i(glGetUniformLocation(adjustShader.mShader, "texture0"), 0);
@@ -427,9 +430,11 @@ int main()
   test_.nbFrames = 0;
   int lastNbFrames = 0;
   double lastTime = glfwGetTime();
+  double beginTime = lastTime;
   while (!glfwWindowShouldClose(window))
   {
     before_every_frame();
+    glUniform1i(glGetUniformLocation(adjustShader.mShader, "nbFrames"), test_.nbFrames);
 
     renderer.Draw(test_.nbFrames);
     mouseRenderer.Draw(test_.nbFrames);
@@ -440,9 +445,15 @@ int main()
     double deltaTime = thisTime - lastTime;
     if (deltaTime > 1.0)
     {
-      glfwSetWindowTitle(window, std::to_string((test_.nbFrames - lastNbFrames) / deltaTime).c_str());
+      // glfwSetWindowTitle(window, std::to_string((test_.nbFrames - lastNbFrames) / deltaTime).c_str());
+      double fr = (test_.nbFrames - lastNbFrames) / deltaTime;
+      frm += std::to_string(fr) + "\n";
       lastNbFrames = test_.nbFrames;
       lastTime = thisTime;
+    }
+    if (thisTime - beginTime > 110) {
+      glfwSetWindowShouldClose(window, true);
+      break;
     }
 
     glfwSwapBuffers(window);
@@ -451,6 +462,10 @@ int main()
   }
   mouseRenderer.FreeLayers();
   postMouseRenderer.FreeLayers();
+
+  FILE *frmf = fopen("framerate_sl.txt", "w");
+  fwrite(frm.c_str(), frm.size(), 1, frmf);
+  fclose(frmf);
 
   fclose(test_.mousePathFile);
   return 0;
