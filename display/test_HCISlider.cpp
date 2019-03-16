@@ -415,8 +415,8 @@ int main()
     // (32,0)
     //  |
     // (0,0) -- (0,32)
-    *sx = p2 * 32 * 1.055 + 420;
-    *sy = WINDOW_HEIGHT - p1 * 32 * 1.055;
+    *sx = p2 * 32 + 420;
+    *sy = WINDOW_HEIGHT - p1 * 32;
     if (*sx < WINDOW_WIDTH / 2) {
       *sx -= WINDOW_WIDTH / 2 * splitLength;
     } else {

@@ -70,7 +70,7 @@ void before_every_frame()
   for (int pid = 0; pid < 2; pid++) {
     if (player_[pid].nextBeginFrame == test_.nbFrames) {
       player_[pid].showing = true;
-      player_[pid].target->mTransX = ((double)rand() / RAND_MAX) * 0.5 + (pid == 0 ? -0.5 : 0);
+      player_[pid].target->mTransX = ((double)rand() / RAND_MAX) * 0.4 + (pid == 0 ? -0.5 : 0);
       player_[pid].target->mTransY = ((double)rand() / RAND_MAX) * 1.6 - 0.8;
       player_[pid].target->textureNoCallback = [] (int nbFrames) {return 0;};
       player_[pid].target->visibleCallback = truefunc;
@@ -218,20 +218,20 @@ int main()
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
   RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grass.jpg")));
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
   bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
   bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
   renderer.AddLayer(&bg);
 
-  RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
-  bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("emptyboard.png")));
-  renderer.AddLayer(&bgb);
+  // RectLayer bgb(-(double)WINDOW_HEIGHT / WINDOW_WIDTH, -1.0f, (double)WINDOW_HEIGHT / WINDOW_WIDTH, 1.0f, -9.0f);
+  // bgb.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grass.jpg")));
+  // renderer.AddLayer(&bgb);
 
   GLuint sbTex = makeTextureFromImage(NPNX_FETCH_DATA("mole.png"));
   GLuint paTex = makeTextureFromImage(NPNX_FETCH_DATA("molehit.png"));
 
-  const float targetVSize = 0.3f;
+  const float targetVSize = 0.4f;
   const float targetHSize = targetVSize * WINDOW_HEIGHT / WINDOW_WIDTH;
   DragRectLayer piece1(-targetHSize / 2, -targetVSize / 2, targetHSize / 2, targetVSize / 2, 1.0f);
   piece1.mTexture.push_back(sbTex);
