@@ -451,7 +451,7 @@ int main()
       lastNbFrames = test_.nbFrames;
       lastTime = thisTime;
     }
-    if (thisTime - beginTime > 10) {
+    if (thisTime - beginTime > 110) {
       glfwSetWindowShouldClose(window, true);
       break;
     }
