@@ -69,8 +69,11 @@ add_subdirectory(winusb)
 include_directories(${NPNXWINUSB_INC})
 link_directories(${NPNXWINUSB_LIBPTH})
 
-#uncomment this to disable V_SYNC
-# add_definitions(-DNPNX_BENCHMARK) 
+# benchmark option
+# when use cmake build for msvc, debug and release chosen at the build time.
+# which means should use cmake --build . --config Release
+add_definitions(-DNPNX_BENCHMARK) 
+add_compile_options(-O2 -DNDEBUG)
 
 #add source file here
 # add_executable(
