@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <atomic>
+#include <iostream>
 
 #include "winusb/mousecore.h"
 #include "layerobject.h"
@@ -14,22 +15,26 @@
 
 using namespace npnx;
 
-const int num_position_texture = 248;
-const char position_texture_name_prefix[] = "fremw2_";
+// const int num_position_texture = 248;
+// const char position_texture_name_prefix[] = "freq_";
 const char csv_name_prefix[] = "test_";
-const int packetLengthInFrames = num_position_texture;
-const int packetLimit = 100;
+const int packetLengthInFrames = 62; //num_position_texture;
+// const 
 const int positionLimit = 100;
 
 class Test_Simple {
 public:
+  int packetLimit = 100;
+  int mode = 0;
+  int num_position_texture = 248;
+  //char position_texture_name_prefix[] = "freq1_";
   GLFWwindow * window;
   MouseCore * core;
   int nbFrames = 0;
-  int beforeStripLengthInFrames = 120;
-  int afterStripLengthInFrames = 120;
+  int beforeStripLengthInFrames = 0;//120;
+  int afterStripLengthInFrames = 0;//120;
   int nextStopFrameNo = 0;
-
+  int stopFrames = 0;
   int num_mouse = 0;
 
   int currentMousePositionId = -1;
@@ -70,7 +75,7 @@ void mouseReportCallback(int idx, MouseReport report) {
   //    report.flags, report.button, report.xTrans, report.yTrans, report.wheel);
 }
 
-void mouseReaderEntry(int mouseid, int positionID, bool EnableAveData = true) {
+void mouseReaderEntry(int mouseid, int positionID, int mode, bool EnableAveData = true) {
   std::vector<CTData> databuf;
   databuf.reserve(1000000);
   while (!player_[mouseid].writeFileSignal.load()) {
@@ -99,6 +104,11 @@ void mouseReaderEntry(int mouseid, int positionID, bool EnableAveData = true) {
   }
   
   std::string filename = csv_name_prefix;
+  char* position_texture_name_prefix;
+  if (mode == 1) position_texture_name_prefix = "freq1_";
+  else if(mode == 2) position_texture_name_prefix = "freq2_";
+  else if (mode == 3) position_texture_name_prefix = "freq_";
+  else std::cout<<"WRONG TEST_.MODE"<<std::endl;
   filename += position_texture_name_prefix + std::to_string(getTime()) + "_" + std::to_string(mouseid) + ".csv";
   FILE *csv_file = fopen(filename.c_str(), "w");
   
@@ -121,7 +131,7 @@ void before_every_frame(){
     
     test_.currentPacketId += 1;
 
-    if (test_.currentPacketId.load() >= packetLimit) {
+    if (test_.currentPacketId.load() >= test_.packetLimit) {
       test_.readMouseDataSwitch = false;
       
       test_.currentPacketId = 0;
@@ -142,32 +152,55 @@ void before_every_frame(){
         }       
       }
 
-      test_.currentMousePositionId += 1;
+      test_.mode += 1;
+      if (test_.mode > 3) {
+        test_.currentMousePositionId += 1;
+      }
       
       if (test_.currentMousePositionId >= positionLimit) {
         printf("finished!");
         glfwSetWindowShouldClose(test_.window, GLFW_TRUE);
         return;
       } else {
-        printf("Change Position %d. input anything to continue:", test_.currentMousePositionId);
-        char tempbuf[4096];
-        scanf("%s", tempbuf); 
+        // test_.packetLimit = test_.mode == 3 ? 400 : 100;
+        if(test_.mode > 3){
+          test_.mode = 1;
+          
+          printf("Change Position %d. input anything to continue:", test_.currentMousePositionId);
+          char tempbuf[4096];
+          scanf("%s", tempbuf); 
+        }
+        else{
+          printf("Change Mode %d. \n", test_.mode);
+        }
       }
 
+
       for (int i = 0; i < test_.num_mouse; i++) {
-        player_[i].readerT = new std::thread(mouseReaderEntry, i, test_.currentMousePositionId, i == 0);
+        player_[i].readerT = new std::thread(mouseReaderEntry, i, test_.currentMousePositionId, test_.mode, i == 0);
       }
 
       test_.readMouseDataSwitch = true;
     }
-
+    
     int beginNo = test_.nbFrames + test_.beforeStripLengthInFrames;
     int endNo = beginNo + packetLengthInFrames;
     test_.nextStopFrameNo = endNo + test_.afterStripLengthInFrames;
-
     test_.rect->textureNoCallback = [=] (int nbFrames) -> unsigned int {
+      if (test_.stopFrames != 0) {test_.stopFrames -= 1; return 0;}
       if (nbFrames >= beginNo && nbFrames < endNo) {
-        return (nbFrames - beginNo) % packetLengthInFrames;
+        // int shiftIndex = test_.currentPacketId / (packetLimit / 4);
+          // return (nbFrames - beginNo) % packetLengthInFrames + shiftIndex * packetLengthInFrames + 248 * (test_.mode-1);
+        if(test_.mode == 3) {
+          // int lastShiftIndex = (test_.currentPacketId - 1) / (test_.packetLimit / 4);
+          int shiftIndex = test_.currentPacketId % 4;
+          // std::cout<<test_.currentPacketId<<" " <<shiftIndex<<std::endl;
+          // if(shiftIndex - lastShiftIndex == 1) {test_.stopFrames = 239; return 0;}
+          return (nbFrames - beginNo) % packetLengthInFrames + shiftIndex * packetLengthInFrames + 62 * (test_.mode-1);
+        }
+        else {
+          return (nbFrames - beginNo) % packetLengthInFrames + 62 * (test_.mode-1);
+        }
       }
       return 0;
     };
@@ -262,11 +295,30 @@ int main()
   Renderer renderer(&defaultShader, 0);
 
   RectLayer postRect(-9.0f / 16.0f, -1.0f, 9.0f / 16.0f, 1.0f, 999.9f);
-  for (int i = 0; i < num_position_texture; i++) {
-    std::string pos_texture_path = position_texture_name_prefix;
-    pos_texture_path += std::to_string(i);
-    pos_texture_path += ".png";
-    postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
+  
+  std::string position_texture_name_prefix;
+  int num_position_texture;
+  int mode = 0;
+  while(mode < 3) {
+    mode ++;
+    if (mode == 1) {
+      position_texture_name_prefix = "freq1_";
+      num_position_texture = 62;
+    }
+    else if(mode == 2) {
+      position_texture_name_prefix = "freq2_";
+      num_position_texture = 62;
+    }
+    else if (mode == 3) {
+      position_texture_name_prefix = "freq_";
+      num_position_texture = 248;
+    }
+    for (int i = 0; i < num_position_texture; i++) {
+      std::string pos_texture_path = position_texture_name_prefix;
+      pos_texture_path += std::to_string(i);
+      pos_texture_path += ".png";
+      postRect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA(pos_texture_path)));
+    }
   }
   postRect.visibleCallback = [](int) {return true; };
   postRect.textureNoCallback = [=](int nbFrames) {return 0; };
