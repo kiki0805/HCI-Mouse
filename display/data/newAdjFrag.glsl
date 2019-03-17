@@ -28,13 +28,13 @@ void main()
         int crc[10];
         crc[0] = 0;
         for (int i = 1; i < 8; i++) {
-          coding[i] = ((x % i) & 1) ^ ((y % i) & 1);
+          coding[i] = ((x % i) ^ ((y % i));
           crc[i] = coding[i] ^ crc[i - 1];
         }
         for (int i = 8; i < 10; i++) {
           coding[i] = crc [i-10];
         }
-        FragColor = rawColor - (coding[nbFrames % 62] & 1) * 80.0f;  
+        FragColor = rawColor - (coding[nbFrames % 62]) * 1.0f;  
         // FragColor = rawColor - 80.0f;
         FragColor.w = 1.0f;
     }

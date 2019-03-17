@@ -72,8 +72,8 @@ link_directories(${NPNXWINUSB_LIBPTH})
 # benchmark option
 # when use cmake build for msvc, debug and release chosen at the build time.
 # which means should use cmake --build . --config Release
-add_definitions(-DNPNX_BENCHMARK) 
-add_compile_options(-O2 -DNDEBUG)
+# add_definitions(-DNPNX_BENCHMARK) 
+# add_compile_options(-O2 -DNDEBUG)
 
 #add source file here
 # add_executable(
