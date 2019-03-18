@@ -100,7 +100,7 @@ Player_Simple player_[2];
   }
 
    std::string filename = csv_name_prefix;
-  filename += position_texture_name_prefix + std::to_string(getTime()) + "_" + std::to_string(mouseid) + ".csv";
+  filename += position_texture_name_prefix + std::to_string(getTime()) + "_" + std::to_string(mouseid) + "_BG" + std::to_string(test_.bgIndex) + ".csv";
   FILE *csv_file = fopen(filename.c_str(), "w");
 
    char fileLine[4096];
