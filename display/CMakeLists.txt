@@ -175,6 +175,13 @@ add_executable(
 )
 
 add_executable(
+  test_SimpleBG
+
+  test_SimpleBG.cpp
+  $<TARGET_OBJECTS:HCI_display>
+)
+
+add_executable(
   demo_go
 
   demo_go.cpp
@@ -215,6 +222,8 @@ target_link_libraries(test_Slider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} 
 target_link_libraries(test_HCISlider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
 target_link_libraries(test_Simple ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
+target_link_libraries(test_SimpleBG ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
 target_link_libraries(demo_go ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
