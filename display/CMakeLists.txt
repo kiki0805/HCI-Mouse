@@ -76,15 +76,15 @@ link_directories(${NPNXWINUSB_LIBPTH})
 # add_compile_options(-O2 -DNDEBUG)
 
 #add source file here
-# add_executable(
-#   display 
+add_executable(
+  display 
 
-#   main.cpp
-#   shader.cpp
-#   renderer.cpp
-#   layerobject.cpp
-#   imageUtils.cpp
-# )
+  main.cpp
+  shader.cpp
+  renderer.cpp
+  layerobject.cpp
+  imageUtils.cpp
+)
 
 # add_executable(
 #   chess
@@ -194,7 +194,7 @@ add_executable(
   demo_whac.cpp
   $<TARGET_OBJECTS:HCI_display>
 )
-# target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 # if (NOT MSVC)
 #   target_compile_options(display PRIVATE -Wl,-rpath=./)
 # endif()
