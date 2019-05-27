@@ -4,7 +4,6 @@ import time
 from collections import Counter
 from cv2 import cv2
 from PIL import Image
-from direction_judge import move_direction
 from skimage.transform import hough_line, hough_line_peaks
 from PIL import Image, ImageEnhance
 from scipy.ndimage.filters import gaussian_filter
