@@ -67,6 +67,7 @@ int main()
 	GLenum err = glewInit();
 	assert(!err);
 
+#ifndef NPNX_BENCHMARK
 #ifdef _WIN32
 	if (wglewIsSupported("WGL_EXT_swap_control"))
 	{
@@ -77,6 +78,7 @@ int main()
 		printf("[WARNING] WGL_EXT_swap_control is NOT supported.\n");
 	}
 	wglSwapIntervalEXT(1);
+#endif
 #endif
 
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -93,7 +95,7 @@ int main()
 	glUniform1f(glGetUniformLocation(defaultShader.mShader, "yTrans"), 0.0f);
 
 	npnx::Renderer renderer(&defaultShader, 0);
-	npnx::FakeVideoLayer rect(NPNX_DATA_PATH "/bg", ".jpg", 2, 3, -999);
+	npnx::FakeVideoLayer rect(NPNX_DATA_PATH "/bg", ".jpg", 2, 6000, -999);
 	renderer.AddLayer(&rect);
 
 
