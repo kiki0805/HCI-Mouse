@@ -32,3 +32,4 @@ display/winusb/native_pretest/build
 !green.png
 !angle_data/*
 !sensitivity_lab/*
+/venv
