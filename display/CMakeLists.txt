@@ -22,8 +22,6 @@ endif()
 find_package(OpenCV REQUIRED)
 message(STATUS opencv_inc " " ${OpenCV_INCLUDE_DIRS})
 
-add_subdirectory(3rdParty/glew/build/cmake)
-
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL " " FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL " " FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL " " FORCE)
@@ -74,13 +72,20 @@ link_directories(${NPNXWINUSB_LIBPTH})
 # link_directories(${FFMPEG_LIB_DIRS})
 # link_libraries(${FFMPEG_LIBS})
 
+set(GLEW_ARC ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/glew/lib/Release/x64/glew32s.lib)
+add_definitions(-DGLEW_STATIC)
+
+ADD_LIBRARY(glew STATIC IMPORTED)
+set_target_properties(glew PROPERTIES
+    IMPORTED_LOCATION ${GLEW_ARC})
+
 link_libraries(${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
 
 # benchmark option
 # when use cmake build for msvc, debug and release chosen at the build time.
 # which means should use cmake --build . --config Release
 # add_definitions(-DNPNX_BENCHMARK) 
-# add_compile_options(-O2 -DNDEBUG)
+add_compile_options(-O2 -DNDEBUG)
 
 #add source file here
 add_executable(
@@ -129,6 +134,7 @@ add_library(
   renderer.cpp
   layerobject.cpp
   imageUtils.cpp
+  videolayer.cpp
 )
 
 add_executable(
