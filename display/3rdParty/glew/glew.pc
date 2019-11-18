@@ -1,6 +1,6 @@
-prefix=C:/Program Files/HCI_Display
+prefix=C:/Program Files (x86)/HCI_Display
 exec_prefix=${prefix}
-libdir=C:/Program Files/HCI_Display/lib
+libdir=C:/Program Files (x86)/HCI_Display/lib
 includedir=${prefix}/include
 
 Name: glew

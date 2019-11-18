@@ -6,6 +6,7 @@
 #include <time.h>       /* time */
 #include <stdlib.h>
 #include "layerobject.h"
+#include "videolayer.h"
 #include "shader.h"
 #include "renderer.h"
 
@@ -84,7 +85,7 @@ int main()
 
 
 	npnx::Shader defaultShader;
-	defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("movingFrag.glsl"));
+	defaultShader.LoadShader(NPNX_FETCH_DATA("defaultVertex.glsl"), NPNX_FETCH_DATA("defaultFragment.glsl"));
 	defaultShader.Use();
 	glUniform1i(glGetUniformLocation(defaultShader.mShader, "texture0"), 0);
 	glUniform1i(glGetUniformLocation(defaultShader.mShader, "nbFrame"), 0);
@@ -92,9 +93,9 @@ int main()
 	glUniform1f(glGetUniformLocation(defaultShader.mShader, "yTrans"), 0.0f);
 
 	npnx::Renderer renderer(&defaultShader, 0);
-	npnx::RectLayer rect(-1.0f, -1.0f, 1.0f, 1.0f, 1.0);
-	rect.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("white.png")));
+	npnx::FakeVideoLayer rect(NPNX_DATA_PATH "/bg", ".jpg", 2, 3, -999);
 	renderer.AddLayer(&rect);
+
 
 	renderer.Initialize();
 	int nbFrames = 0;

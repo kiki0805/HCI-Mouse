@@ -31,7 +31,7 @@ unsigned int makeTexture(unsigned char *buffer, int width, int height, int chann
     NPNX_ASSERT(channel != 3 && channel != 4);
     break;
   }
-  glGenerateMipmap(GL_TEXTURE_2D);
+  // glGenerateMipmap(GL_TEXTURE_2D);
   return texture;
 }
 
@@ -47,6 +47,25 @@ unsigned int makeTextureFromImage(const char * imagepath){
   //unique_ptr only used for simple buffers, do not use it or shared ptr to generate class object, because my ability limitation.
   //  ——npnx
   return makeTexture(img.data, img.cols, img.rows, img.channels());
+}
+
+int readImageFlipped(const char *imagepath, uint8_t * buffer, size_t size, int & width, int & height, int & channel) {
+	NPNX_LOG(imagepath);
+  cv::Mat img(cv::imread(imagepath,cv::IMREAD_COLOR));
+  cv::flip(img, img, 0);
+  if (!img.isContinuous()) {
+    img = img.clone();
+  }
+  int imgsize = img.cols * img.rows * img.channels();
+  if (size<imgsize) {
+    return -1;
+  } else {
+    width = img.cols;
+    height = img.rows;
+    channel = img.channels();
+    memcpy(buffer, img.data, imgsize);
+  }
+  return imgsize;
 }
 
 void generateFBO(unsigned int &fbo, unsigned int &texColorBuffer)
