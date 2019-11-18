@@ -69,6 +69,13 @@ add_subdirectory(winusb)
 include_directories(${NPNXWINUSB_INC})
 link_directories(${NPNXWINUSB_LIBPTH})
 
+# add_subdirectory(3rdParty/ffmpeg)
+# include_directories(${FFMPEG_INCLUDE_DIRS})
+# link_directories(${FFMPEG_LIB_DIRS})
+# link_libraries(${FFMPEG_LIBS})
+
+link_libraries(${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
+
 # benchmark option
 # when use cmake build for msvc, debug and release chosen at the build time.
 # which means should use cmake --build . --config Release
@@ -84,6 +91,7 @@ add_executable(
   renderer.cpp
   layerobject.cpp
   imageUtils.cpp
+  videolayer.cpp
 )
 
 # add_executable(
@@ -194,37 +202,3 @@ add_executable(
   demo_whac.cpp
   $<TARGET_OBJECTS:HCI_display>
 )
-target_link_libraries(display glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-# if (NOT MSVC)
-#   target_compile_options(display PRIVATE -Wl,-rpath=./)
-# endif()
-
-# target_link_libraries(chess glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-# if (NOT MSVC)
-#   target_compile_options(chess PRIVATE -Wl,-rpath=./)
-# endif()
-
-# target_link_libraries(drag glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-# if (NOT MSVC)
-#   target_compile_options(drag PRIVATE -Wl,-rpath=./)
-# endif()
-
-target_link_libraries(winusbdemo ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_Pointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_Ruler ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_HCIPointer ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_Slider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_HCISlider ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_Simple ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(test_SimpleBG ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(demo_go ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})
-
-target_link_libraries(demo_whac ${NPNXWINUSB_LIB} glfw glew ${HCI_EXTRA_LIBS} ${OpenCV_LIBS})

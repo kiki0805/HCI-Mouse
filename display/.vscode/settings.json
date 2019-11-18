@@ -1,5 +1,6 @@
 {
   "files.associations": {
+    "*.cfg": "latex",
     "cmath": "cpp",
     "cstddef": "cpp",
     "cstdint": "cpp",
@@ -67,6 +68,11 @@
     "shellapi.h": "c",
     "internal.h": "c",
     "atomic": "cpp",
-    "deque": "cpp"
-  }
+    "deque": "cpp",
+    "stdio.h": "c",
+    "concepts": "cpp"
+  },
+  "C_Cpp.default.cStandard": "c11",
+  "C_Cpp.default.cppStandard": "c++17",
+  "C_Cpp.default.intelliSenseMode": "msvc-x64"
 }
