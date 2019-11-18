@@ -99,27 +99,27 @@ add_executable(
   videolayer.cpp
 )
 
-# add_executable(
-#   chess
+add_executable(
+  chess
 
-#   chessdemo.cpp
-#   shader.cpp
-#   renderer.cpp
-#   layerobject.cpp
-#   imageUtils.cpp
-#   simpleChess.cpp
-# )
+  chessdemo.cpp
+  shader.cpp
+  renderer.cpp
+  layerobject.cpp
+  imageUtils.cpp
+  simpleChess.cpp
+)
 
-# add_executable(
-#   drag
+add_executable(
+  drag
 
-#   dragdemo.cpp
-#   dragrectlayer.cpp
-#   shader.cpp
-#   renderer.cpp
-#   layerobject.cpp
-#   imageUtils.cpp
-# )
+  dragdemo.cpp
+  dragrectlayer.cpp
+  shader.cpp
+  renderer.cpp
+  layerobject.cpp
+  imageUtils.cpp
+)
 
 add_library(
   HCI_display
