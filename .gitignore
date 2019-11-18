@@ -33,3 +33,4 @@ display/winusb/native_pretest/build
 !angle_data/*
 !sensitivity_lab/*
 display/3rdParty/ffmpeg
+/venv
