@@ -7,7 +7,6 @@ from cv2 import cv2
 import numpy as np
 import usb.util
 from PIL import Image, ImageEnhance, ImageOps  
-from direction_judge import move_direction
 
 def pil2cv(im):
     im = np.array(im)
