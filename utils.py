@@ -46,8 +46,8 @@ def chunk_decode(np_chunk, flip=False):
             if bit_str == '00111010010100':
             # print(flip)
                 rtn.append([decoded_num, bit_str, naive_location(decoded_num, (32,32))])
-            else:
-                print('crc fail check')
+            # else:
+            #     print('crc fail check')
         if flip:
             crc_fail.append(manhattan_dist(chunk[i+len(pat):i+len(pat)+(BITS_NUM+4) * EXPEND], \
                 Manchester_encode('11000101101011')))
@@ -493,7 +493,7 @@ def filter_normalize(complex_arr, quiet=False, nothing=False):
                 plt.show()
             l = input('update cut length? ')
     else:
-        l = 15
+        l = 15 if len(complex_arr) > 15 else 0
         l2 = 0
         a1 = fft(complex_arr)
         a1[0:1 + l]=0

@@ -14,8 +14,8 @@
 
  using namespace npnx;
 
- const int num_position_texture = 248;
-const char position_texture_name_prefix[] = "fremw2_";
+ const int num_position_texture = 62;
+const char position_texture_name_prefix[] = "freq2_";
 const char csv_name_prefix[] = "test_";
 const int packetLengthInFrames = num_position_texture;
 const int packetLimit = 100;
@@ -26,8 +26,8 @@ public:
   GLFWwindow * window;
   MouseCore * core;
   int nbFrames = 0;
-  int beforeStripLengthInFrames = 120;
-  int afterStripLengthInFrames = 120;
+  int beforeStripLengthInFrames = 0;
+  int afterStripLengthInFrames = 0;
   int nextStopFrameNo = 0;
   int bgIndex = 0;
 
@@ -84,10 +84,10 @@ Player_Simple player_[2];
      test_.core->ControlTransfer(mouseid, 0xC0, 0x01, 0x0000, 0x0D, buf, 1, 1000);
     LIBUSB_CHECK_RET(CT1, cnt);
 
-     if (EnableAveData) {
+    //  if (EnableAveData) {
       test_.core->ControlTransfer(mouseid, 0xC0, 0x01, 0x0000, 0x0B, buf + 1, 1, 1000);
       LIBUSB_CHECK_RET(CT1, cnt);
-    }
+    // }
 
      if (test_.readMouseDataSwitch.load()) {
       databuf.push_back({

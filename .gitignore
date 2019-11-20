@@ -5,6 +5,7 @@
 *.avi
 *.csv
 *.mkv
+*.jpg
 *.ipynb
 *.png
 !test.png
@@ -26,10 +27,7 @@ filtered_data
 display/build
 display/winusb/build
 display/winusb/native_pretest/build
-!display/data/*
 !ori.png
 !red.png
 !green.png
-!angle_data/*
-!sensitivity_lab/*
 display/3rdParty/ffmpeg
