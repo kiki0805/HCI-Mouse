@@ -11,6 +11,7 @@
 #include "shader.h"
 #include "renderer.h"
 #include "imageUtils.h"
+#include "videolayer.h"
 
  using namespace npnx;
 
@@ -280,12 +281,20 @@ Player_Simple player_[2];
 
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
-  RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
-  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
-  bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
-  renderer.AddLayer(&bg);
+  // RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
+  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
+  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+  // bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
+  FakeVideoLayer v1(NPNX_FETCH_DATA("head1"),"tail1", 100, 30, -999); //100 is number of images, 30 is fps, -999 is z_index
+  FakeVideoLayer v2(NPNX_FETCH_DATA("head2"),"tail2", 100, 30, -99);
+  FakeVideoLayer v3(NPNX_FETCH_DATA("head3"),"tail3", 100, 30, -98);
+  v1.visibleCallback=[](int _) {return test_.bgIndex==0;};
+  v1.visibleCallback=[](int _) {return test_.bgIndex==1;};
+  v1.visibleCallback=[](int _) {return test_.bgIndex==2;};
+  renderer.AddLayer(&v1);
+  renderer.AddLayer(&v2);
+  renderer.AddLayer(&v3);
 
   RectLayer postBaseRect(-1.0, -1.0, 1.0, 1.0, -999.9);
   postBaseRect.mTexture.push_back(0);
