@@ -82,11 +82,11 @@ Player_Simple player_[2];
     cnt = test_.core->ControlTransfer(mouseid, 0x40, 0x01, 0x0000, 0x0D, buf, 1, 1000);
     LIBUSB_CHECK_RET(CT1, cnt);
 
-     test_.core->ControlTransfer(mouseid, 0xC0, 0x01, 0x0000, 0x0D, buf, 1, 1000);
+    test_.core->ControlTransfer(mouseid, 0xC0, 0x01, 0x0000, 0x0D, buf, 1, 1000);
     LIBUSB_CHECK_RET(CT1, cnt);
 
     //  if (EnableAveData) {
-      test_.core->ControlTransfer(mouseid, 0xC0, 0x01, 0x0000, 0x0B, buf + 1, 1, 1000);
+    test_.core->ControlTransfer(mouseid, 0xC0, 0x01, 0x0000, 0x0B, buf + 1, 1, 1000);
       LIBUSB_CHECK_RET(CT1, cnt);
     // }
 
@@ -281,20 +281,24 @@ Player_Simple player_[2];
 
   postRenderer.mDefaultTexture.assign({ 0, fboColorTex0 });
 
-  // RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -999.0f);
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
-  // bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
-  // bg.textureNoCallback = [&](int _) {return test_.bgIndex; };
-  FakeVideoLayer v1(NPNX_FETCH_DATA("head1"),"tail1", 100, 30, -999); //100 is number of images, 30 is fps, -999 is z_index
-  FakeVideoLayer v2(NPNX_FETCH_DATA("head2"),"tail2", 100, 30, -99);
-  FakeVideoLayer v3(NPNX_FETCH_DATA("head3"),"tail3", 100, 30, -98);
-  v1.visibleCallback=[](int _) {return test_.bgIndex==0;};
-  v1.visibleCallback=[](int _) {return test_.bgIndex==1;};
-  v1.visibleCallback=[](int _) {return test_.bgIndex==2;};
+  RectLayer bg(-1.0f, -1.0f, 1.0f, 1.0f, -998.0f);
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("win.jpg")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("lion.png")));
+  bg.mTexture.push_back(makeTextureFromImage(NPNX_FETCH_DATA("grey_1920_1080.png")));
+  bg.visibleCallback = [](int _) {return test_.bgIndex < 3; };
+  bg.textureNoCallback = [&](int _) {return test_.bgIndex % 3; };
+  renderer.AddLayer(&bg);
+  FakeVideoLayer v1(NPNX_FETCH_DATA("/apple/apple"), ".png", 452, 30, -999); //100 is number of images, 30 is fps, -999 is z_index
+  FakeVideoLayer v3(NPNX_FETCH_DATA("/bg2/bg2_"),".png", 602, 30, -98); //100 is number of images, 30 is fps, -999 is z_index
+  FakeVideoLayer v2(NPNX_FETCH_DATA("/nature/nature"), ".png", 453, 30, -99); //100 is number of images, 30 is fps, -999 is z_index
+
+  v1.visibleCallback = [](int _) {return test_.bgIndex == 3; };
+  v2.visibleCallback = [](int _) {return test_.bgIndex == 4; };
+  v3.visibleCallback = [](int _) {return test_.bgIndex == 5; };
   renderer.AddLayer(&v1);
   renderer.AddLayer(&v2);
   renderer.AddLayer(&v3);
+
 
   RectLayer postBaseRect(-1.0, -1.0, 1.0, 1.0, -999.9);
   postBaseRect.mTexture.push_back(0);

@@ -52,7 +52,7 @@ namespace npnx {
 
     uint8_t *memorypool = NULL;
     size_t memoryusage, memoryheadInd=0, memoryTailInd=0;
-    size_t memorysize = 4000000000LL;
+    size_t memorysize = 1000000000LL;
     GLuint mTexture; 
     int fps;
     int currentImageNum;

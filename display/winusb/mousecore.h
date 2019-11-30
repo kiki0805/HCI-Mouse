@@ -37,14 +37,14 @@ typedef std::function<void(int, MouseReport)> MOUSEREPORTCALLBACKFUNC;
 
 #define NUM_MOUSE_MAXIMUM 10
 
-// const uint16_t default_vid = 0x046D;
-// const uint16_t default_pid = 0xC077;
+const uint16_t default_vid = 0x046D;
+const uint16_t default_pid = 0xC077;
 
 // const uint16_t default_vid = 0x046D;
 // const uint16_t default_pid = 0xC019;
 
-const uint16_t default_vid = 0x046D;
-const uint16_t default_pid = 0xC05B;
+// const uint16_t default_vid = 0x046D;
+// const uint16_t default_pid = 0xC05B;
 
 //this is for mouse hid report
 const int target_report_configuration = 0x01;
